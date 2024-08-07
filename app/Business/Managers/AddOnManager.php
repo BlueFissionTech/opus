@@ -211,7 +211,7 @@ class AddOnManager extends Service
                 $file = OPUS_ROOT.$file;
             }
             if (file_exists($file)) {
-                require $file;
+                require_once($file);
                 return true;
             }
             return false;

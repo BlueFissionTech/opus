@@ -2,9 +2,9 @@
 // SkillManager.php
 namespace App\Business\Managers;
 
-use BlueFission\BlueCore\Skill\Intent\Intent;
-use BlueFission\BlueCore\Skill\Intent\Matcher;
-use BlueFission\BlueCore\Skill\BaseSkill;
+use BlueFission\Automata\Intent\Intent;
+use BlueFission\Automata\Intent\Matcher;
+use BlueFission\Automata\Intent\Skill\BaseSkill;
 use BlueFission\Automata\Context;
 use BlueFission\Services\Service;
 use BlueFission\Automata\Language\EntityExtractor;
