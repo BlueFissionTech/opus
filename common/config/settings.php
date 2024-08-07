@@ -12,6 +12,9 @@ if (!defined("SITE_ROOT") ){
 if (!defined("DEBUG") ){
 	define('DEBUG', false);
 }
+if (!defined('STDIN')) {
+  define('STDIN', fopen('php://stdin', 'r'));
+}
 // Some error handling to be removed later
 ini_set('display_errors', 1);
 ini_set('html_errors', 1);
