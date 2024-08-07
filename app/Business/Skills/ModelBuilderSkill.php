@@ -3,7 +3,7 @@
 namespace App\Business\Skills;
 
 use BlueFission\Automata\Context;
-use BlueFission\BlueCore\Skill\BaseSkill;
+use BlueFission\Automata\Intent\Skill\BaseSkill;
 use BlueFission\BlueCore\Conversation\ModelBuilderConversation;
 
 class ModelBuilderSkill extends BaseSkill

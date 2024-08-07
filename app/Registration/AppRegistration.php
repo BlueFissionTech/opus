@@ -132,7 +132,7 @@ class AppRegistration implements IExtension {
 		$this->_app->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
 
 		$this->_app->bind('BlueFission\Automata\LLM\Clients\IClient', 'BlueFission\Automata\LLM\Clients\OpenAIClient');
-		$this->_app->bind('BlueFission\Automata\Analysis\IAnalyzer', 'BlueFission\BlueCore\Skill\Intent\KeywordIntentAnalyzer');
+		$this->_app->bind('BlueFission\Automata\Analysis\IAnalyzer', 'BlueFission\Automata\Intent\KeywordIntentAnalyzer');
 		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\ITopicRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\TopicRepositorySql');
 		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IDialoguesByTopicQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\DialoguesByTopicQuerySql');
 		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IDialoguesByKeywordsQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\DialoguesByKeywordsQuerySql');
@@ -162,7 +162,7 @@ class AppRegistration implements IExtension {
 				'tokens'=>$this->_app->configuration('nlp')['dictionary']
 			], 'BlueFission\Automata\Language\Grammar');
 		$this->_app->bindArgs( ['modelDirPath'=>$this->_app->configuration('paths')['ml']['models']], 'BlueFission\Automata\Analysis\KeywordTopicAnalyzer');
-		$this->_app->bindArgs( ['modelDirPath'=>$this->_app->configuration('paths')['ml']['models']], 'BlueFission\BlueCore\Skill\Intent\KeywordIntentAnalyzer');
+		$this->_app->bindArgs( ['modelDirPath'=>$this->_app->configuration('paths')['ml']['models']], 'BlueFission\Automata\Intent\KeywordIntentAnalyzer');
 		$this->_app->bindArgs( ['config'=>$this->_app->configuration('nlp')['roots']], 'BlueFission\Automata\Language\StemmerLemmatizer');
 		$this->_app->bindArgs( ['storage'=>new \BlueFission\Data\Storage\Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');
 		$this->_app->bindArgs( ['apiKey'=>env('OPEN_AI_API_KEY')], 'BlueFission\Automata\LLM\Clients\OpenAIClient');

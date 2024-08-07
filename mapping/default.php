@@ -72,33 +72,33 @@ Mapping::add('/chain', function() {
 
 
 Mapping::add('/', function() {
-	return template('bluefission', 'default.html', ['title'=>"Welcome", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template('default', 'default.html', ['title'=>"Welcome", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
 }, 'index', 'get');
 
 // ADDED JULY 3/4 UPDATE
 Mapping::add('/opus', function() {
-	return template('bluefission', 'opus.html', ['title'=>"Opus", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template('default', 'opus.html', ['title'=>"Opus", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
 }, 'opus', 'get');
 Mapping::add('/services', function() {
-	return template('bluefission', 'services.html', ['title'=>"BlueFission Services", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template('default', 'services.html', ['title'=>"BlueFission Services", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
 }, 'services', 'get');
 Mapping::add('/about', function() {
-	return template('bluefission', 'about.html', ['title'=>"About BlueFission", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template('default', 'about.html', ['title'=>"About BlueFission", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
 }, 'about', 'get');
 Mapping::add('/blog', function() {
-	return template('bluefission', 'blog.html', ['title'=>"Blog", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template('default', 'blog.html', ['title'=>"Blog", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
 }, 'blog', 'get');
 Mapping::add('/blog-single', function() {
-	return template('bluefission', 'blog-single.html', ['title'=>"Blog Post", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template('default', 'blog-single.html', ['title'=>"Blog Post", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
 }, 'blog_single', 'get');
 Mapping::add('/contact', function() {
-	return template('bluefission', 'contact.html', ['title'=>"Contact BlueFission", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template('default', 'contact.html', ['title'=>"Contact BlueFission", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
 }, 'contact', 'get');
 Mapping::add('/terms', function() {
-	return template('bluefission', 'terms.html', ['title'=>"Terms and Conditions", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template('default', 'terms.html', ['title'=>"Terms and Conditions", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
 }, 'terms', 'get');
 Mapping::add('/privacy', function() {
-	return template('bluefission', 'privacy.html', ['title'=>"Privacy Policy", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template('default', 'privacy.html', ['title'=>"Privacy Policy", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
 }, 'privacy', 'get');
 
 
