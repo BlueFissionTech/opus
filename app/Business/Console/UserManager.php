@@ -2,13 +2,13 @@
 namespace App\Business\Console;
 
 use BlueFission\Services\Service;
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use App\Domain\User\Models\UserModel;
 use App\Domain\User\Models\CredentialModel;
 
 class UserManager extends Service {
 
-	public function __construct( MysqlLink $link )
+	public function __construct( MySQLLink $link )
     {
     	$this->_link = $link;
 		parent::__construct();

@@ -12,16 +12,17 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefission/automata.git",
-                "reference": "8620491bd57578cd9d17018ff549c1ea158743e1"
+                "reference": "85497ab4cad9aecfbf10de35a5c34f44e21661ca"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/automata/zipball/8620491bd57578cd9d17018ff549c1ea158743e1",
-                "reference": "8620491bd57578cd9d17018ff549c1ea158743e1",
+                "url": "https://api.github.com/repos/bluefission/automata/zipball/85497ab4cad9aecfbf10de35a5c34f44e21661ca",
+                "reference": "85497ab4cad9aecfbf10de35a5c34f44e21661ca",
                 "shasum": ""
             },
             "require": {
                 "bluefission/develation": "^1.0.0-alpha",
+                "google-gemini-php/client": "*",
                 "orhanerday/open-ai": "^2.2",
                 "php-ai/php-ml": "^0.10.0"
             },
@@ -63,7 +64,7 @@
                 "source": "https://github.com/bluefission/automata/tree/master",
                 "issues": "https://github.com/bluefission/automata/issues"
             },
-            "time": "2024-07-17T00:41:42+00:00"
+            "time": "2024-08-07T02:23:49+00:00"
         },
         {
             "name": "bluefission/bluecore",
@@ -71,12 +72,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefission/bluecore.git",
-                "reference": "d7e955e4f7d36e2ee2d64ffc69e882078a10967a"
+                "reference": "01041bc02ff7d57578ca78d8f58e45afb33cbebb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/bluecore/zipball/d7e955e4f7d36e2ee2d64ffc69e882078a10967a",
-                "reference": "d7e955e4f7d36e2ee2d64ffc69e882078a10967a",
+                "url": "https://api.github.com/repos/bluefission/bluecore/zipball/01041bc02ff7d57578ca78d8f58e45afb33cbebb",
+                "reference": "01041bc02ff7d57578ca78d8f58e45afb33cbebb",
                 "shasum": ""
             },
             "require": {
@@ -135,7 +136,7 @@
                 "source": "https://github.com/bluefission/bluecore/tree/main",
                 "issues": "https://github.com/bluefission/bluecore/issues"
             },
-            "time": "2024-07-10T02:36:09+00:00"
+            "time": "2024-08-07T00:44:47+00:00"
         },
         {
             "name": "bluefission/develation",
@@ -143,17 +144,20 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefission/develation.git",
-                "reference": "b2b4a4a29d057fafc1d2954ad985afab5ae92b94"
+                "reference": "541e5a048c428512278d20ba4361d7e9b520eb51"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/develation/zipball/b2b4a4a29d057fafc1d2954ad985afab5ae92b94",
-                "reference": "b2b4a4a29d057fafc1d2954ad985afab5ae92b94",
+                "url": "https://api.github.com/repos/bluefission/develation/zipball/541e5a048c428512278d20ba4361d7e9b520eb51",
+                "reference": "541e5a048c428512278d20ba4361d7e9b520eb51",
                 "shasum": ""
             },
             "require": {
                 "cboden/ratchet": "^0.4.4",
-                "php": "*"
+                "php": "*",
+                "php-http/discovery": "1.x-dev",
+                "psr/http-client": "^1.0@dev",
+                "psr/http-message": "^2.0@dev"
             },
             "require-dev": {
                 "phpunit/phpunit": "^11.1@dev"
@@ -195,7 +199,7 @@
                 "source": "https://github.com/bluefission/develation/tree/v1.0.0-alpha",
                 "issues": "https://github.com/bluefission/develation/issues"
             },
-            "time": "2024-07-25T23:44:54+00:00"
+            "time": "2024-08-07T02:26:08+00:00"
         },
         {
             "name": "bluefission/simpleclients",
@@ -203,18 +207,16 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefission/simpleclients.git",
-                "reference": "947143409268f57dd0633df6f8d05cb736fe477b"
+                "reference": "32122d5864d774140b1dc14cf3c99561410eaed7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/simpleclients/zipball/947143409268f57dd0633df6f8d05cb736fe477b",
-                "reference": "947143409268f57dd0633df6f8d05cb736fe477b",
+                "url": "https://api.github.com/repos/bluefission/simpleclients/zipball/32122d5864d774140b1dc14cf3c99561410eaed7",
+                "reference": "32122d5864d774140b1dc14cf3c99561410eaed7",
                 "shasum": ""
             },
             "require": {
-                "bluefission/automata": "dev-master",
                 "bluefission/develation": "^1.0.0-alpha",
-                "orhanerday/open-ai": "^2.2",
                 "simplehtmldom/simplehtmldom": "^2.0@RC"
             },
             "require-dev": {
@@ -250,7 +252,7 @@
                 "source": "https://github.com/bluefission/simpleclients/tree/master",
                 "issues": "https://github.com/bluefission/simpleclients/issues"
             },
-            "time": "2024-07-09T03:15:25+00:00"
+            "time": "2024-08-07T02:43:33+00:00"
         },
         {
             "name": "bluefission/wise",
@@ -258,12 +260,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefission/wise.git",
-                "reference": "b2557ceaf1bbc3d96c1a659296afc0e5d17b459f"
+                "reference": "6ab9abe7a1be6d9eb8cfa138dd654aa2f5ebbdf6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/wise/zipball/b2557ceaf1bbc3d96c1a659296afc0e5d17b459f",
-                "reference": "b2557ceaf1bbc3d96c1a659296afc0e5d17b459f",
+                "url": "https://api.github.com/repos/bluefission/wise/zipball/6ab9abe7a1be6d9eb8cfa138dd654aa2f5ebbdf6",
+                "reference": "6ab9abe7a1be6d9eb8cfa138dd654aa2f5ebbdf6",
                 "shasum": ""
             },
             "require": {
@@ -319,7 +321,7 @@
                 "source": "https://github.com/bluefission/wise/tree/main",
                 "issues": "https://github.com/bluefission/wise/issues"
             },
-            "time": "2024-07-31T20:46:59+00:00"
+            "time": "2024-08-03T04:00:52+00:00"
         },
         {
             "name": "botman/botman",
@@ -1180,6 +1182,69 @@
                 "source": "https://github.com/genkovich/DialogFlowBotManMiddleware/tree/0.0.6"
             },
             "time": "2021-03-30T15:28:33+00:00"
+        },
+        {
+            "name": "google-gemini-php/client",
+            "version": "1.0.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/google-gemini-php/client.git",
+                "reference": "9002b5d218a63e7692de76728b700600c8e61dca"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/google-gemini-php/client/zipball/9002b5d218a63e7692de76728b700600c8e61dca",
+                "reference": "9002b5d218a63e7692de76728b700600c8e61dca",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.1.0",
+                "php-http/discovery": "^1.19.2"
+            },
+            "require-dev": {
+                "guzzlehttp/guzzle": "^7.8.1",
+                "guzzlehttp/psr7": "^2.6.2",
+                "laravel/pint": "^1.13.10",
+                "mockery/mockery": "^1.6.7",
+                "pestphp/pest": "^2.30",
+                "phpstan/phpstan": "^1.10"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/Gemini.php"
+                ],
+                "psr-4": {
+                    "Gemini\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fatih AYDIN",
+                    "email": "aydinfatih52@gmail.com"
+                }
+            ],
+            "description": "Gemini API is a supercharged PHP API client that allows you to interact with the Gemini API",
+            "keywords": [
+                "Gemini",
+                "client",
+                "gemini-pro",
+                "language",
+                "natural",
+                "nlp",
+                "php",
+                "processing",
+                "sdk"
+            ],
+            "support": {
+                "issues": "https://github.com/google-gemini-php/client/issues",
+                "source": "https://github.com/google-gemini-php/client/tree/1.0.5"
+            },
+            "time": "2024-07-09T11:28:21+00:00"
         },
         {
             "name": "google/auth",
@@ -2089,7 +2154,7 @@
         },
         {
             "name": "illuminate/collections",
-            "version": "v10.48.18",
+            "version": "v10.48.19",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/collections.git",
@@ -2144,7 +2209,7 @@
         },
         {
             "name": "illuminate/conditionable",
-            "version": "v10.48.18",
+            "version": "v10.48.19",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/conditionable.git",
@@ -2190,7 +2255,7 @@
         },
         {
             "name": "illuminate/contracts",
-            "version": "v10.48.18",
+            "version": "v10.48.19",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/contracts.git",
@@ -2238,7 +2303,7 @@
         },
         {
             "name": "illuminate/macroable",
-            "version": "v10.48.18",
+            "version": "v10.48.19",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/macroable.git",
@@ -2284,7 +2349,7 @@
         },
         {
             "name": "illuminate/support",
-            "version": "v10.48.18",
+            "version": "v10.48.19",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/support.git",
@@ -2355,26 +2420,27 @@
         },
         {
             "name": "laravel/serializable-closure",
-            "version": "v1.3.3",
+            "version": "v1.3.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/serializable-closure.git",
-                "reference": "3dbf8a8e914634c48d389c1234552666b3d43754"
+                "reference": "61b87392d986dc49ad5ef64e75b1ff5fee24ef81"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/serializable-closure/zipball/3dbf8a8e914634c48d389c1234552666b3d43754",
-                "reference": "3dbf8a8e914634c48d389c1234552666b3d43754",
+                "url": "https://api.github.com/repos/laravel/serializable-closure/zipball/61b87392d986dc49ad5ef64e75b1ff5fee24ef81",
+                "reference": "61b87392d986dc49ad5ef64e75b1ff5fee24ef81",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.3|^8.0"
             },
             "require-dev": {
-                "nesbot/carbon": "^2.61",
+                "illuminate/support": "^8.0|^9.0|^10.0|^11.0",
+                "nesbot/carbon": "^2.61|^3.0",
                 "pestphp/pest": "^1.21.3",
                 "phpstan/phpstan": "^1.8.2",
-                "symfony/var-dumper": "^5.4.11"
+                "symfony/var-dumper": "^5.4.11|^6.2.0|^7.0.0"
             },
             "type": "library",
             "extra": {
@@ -2411,7 +2477,7 @@
                 "issues": "https://github.com/laravel/serializable-closure/issues",
                 "source": "https://github.com/laravel/serializable-closure"
             },
-            "time": "2023-11-08T14:08:06+00:00"
+            "time": "2024-08-02T07:48:17+00:00"
         },
         {
             "name": "maennchen/zipstream-php",
@@ -3012,16 +3078,16 @@
         },
         {
             "name": "php-http/discovery",
-            "version": "1.19.4",
+            "version": "1.x-dev",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-http/discovery.git",
-                "reference": "0700efda8d7526335132360167315fdab3aeb599"
+                "reference": "ed16f5209c597c564da6efa54f771e8bda743f07"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-http/discovery/zipball/0700efda8d7526335132360167315fdab3aeb599",
-                "reference": "0700efda8d7526335132360167315fdab3aeb599",
+                "url": "https://api.github.com/repos/php-http/discovery/zipball/ed16f5209c597c564da6efa54f771e8bda743f07",
+                "reference": "ed16f5209c597c564da6efa54f771e8bda743f07",
                 "shasum": ""
             },
             "require": {
@@ -3048,6 +3114,7 @@
                 "sebastian/comparator": "^3.0.5 || ^4.0.8",
                 "symfony/phpunit-bridge": "^6.4.4 || ^7.0.1"
             },
+            "default-branch": true,
             "type": "composer-plugin",
             "extra": {
                 "class": "Http\\Discovery\\Composer\\Plugin",
@@ -3085,9 +3152,9 @@
             ],
             "support": {
                 "issues": "https://github.com/php-http/discovery/issues",
-                "source": "https://github.com/php-http/discovery/tree/1.19.4"
+                "source": "https://github.com/php-http/discovery/tree/1.x"
             },
-            "time": "2024-03-29T13:00:05+00:00"
+            "time": "2024-04-22T09:10:37+00:00"
         },
         {
             "name": "phpoffice/common",

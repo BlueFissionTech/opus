@@ -3,7 +3,7 @@
 namespace App\Business\Managers;
 
 use BlueFission\Services\Service;
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use App\Domain\User\Repositories\IUserRepository;
 use App\Domain\User\Repositories\ICredentialRepository;
 use App\Domain\User\User;

@@ -2,13 +2,13 @@
 namespace App\Business;
 
 use BlueFission\Services\Service;
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 
 class MysqlConnector extends Service
 {
 	private $_link;
 
-	public function __construct( MysqlLink $link )
+	public function __construct( MySQLLink $link )
 	{
 		$this->_link = $link;
 		$this->_link->open();

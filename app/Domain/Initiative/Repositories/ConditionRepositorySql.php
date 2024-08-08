@@ -1,7 +1,7 @@
 <?php
 namespace App\Domain\Initiative\Repositories;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use BlueFission\BlueCore\Repository\RepositorySql;
 use App\Domain\Initiative\Repositories\IConditionRepository;
 use App\Domain\Initiative\Models\ConditionModel as Model;
@@ -12,7 +12,7 @@ class ConditionRepositorySql extends RepositorySql implements IConditionReposito
     // protected $_db;
     protected $_name = "conditions";
 
-    public function __construct(MysqlLink $link, Model $model)
+    public function __construct(MySQLLink $link, Model $model)
     {
         parent::__construct($link, $model);
     }

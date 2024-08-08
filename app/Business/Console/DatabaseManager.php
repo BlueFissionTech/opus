@@ -2,8 +2,9 @@
 namespace App\Business\Console;
 
 use BlueFission\Services\Service;
+use BlueFission\Behavioral\IDispatcher;
 
-class DatabaseManager extends Service {
+class DatabaseManager extends Service implements IDispatcher {
 
 	private $_deltaDir = OPUS_ROOT.'/datasources/structure/';
 	private $_generatorDir = OPUS_ROOT.'/datasources/generator/';
@@ -50,9 +51,26 @@ class DatabaseManager extends Service {
 	public function populate()
 	{
 		$generators = $this->loadGenerators();
+		// if RootSeeder is in the list, replace `generators` with it's method call return for `seeders`
+		if ( in_array('RootSeeder.php', $generators) ) {
+			$classname = $this->findClassName( $this->_generatorDir . 'RootSeeder.php' );
+			if ( $classname ) {
+				include_once($this->_generatorDir . 'RootSeeder.php');
+				// $object = new $classname();
+				$object = \App::makeInstance($classname);
+				if ( method_exists($object, 'seeders') ) {
+					$generators = call_user_func([$object, 'seeders']);
+				}
+			}
+		}
+
 		foreach ( $generators as $generator ) {
 			$classname = '';
 			if ( strpos($generator, '.') != 0 ) {
+
+				// if it doesn't end in .php, append it
+				$generator = strpos($generator, '.php') ? $generator : $generator . '.php';
+
 				$classname = $this->findClassName( $this->_generatorDir . $generator );
 				if ( $classname ) {
 					include_once($this->_generatorDir . $generator);

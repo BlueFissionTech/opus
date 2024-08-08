@@ -3,7 +3,7 @@ namespace App\Business\Http\Api\Admin;
 
 use BlueFission\Services\Service;
 use BlueFission\Services\Request;
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use App\Domain\Content\Queries\IAllContentQuery;
 use App\Domain\Content\Repositories\IContentRepository;
 use App\Domain\Content\Content;

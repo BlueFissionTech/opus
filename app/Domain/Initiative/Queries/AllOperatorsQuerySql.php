@@ -1,7 +1,7 @@
 <?php
 namespace App\Domain\Initiative\Queries;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use App\Domain\Initiative\Models\OperatorModel as Model;
 
 use App\Domain\Initiative\Queries\IAllOperatorsQuery;
@@ -9,7 +9,7 @@ use App\Domain\Initiative\Queries\IAllOperatorsQuery;
 class AllOperatorsQuerySql implements IAllOperatorsQuery {
 	private $_model;
 
-	public function __construct( MysqlLink $link, Model $model )
+	public function __construct( MySQLLink $link, Model $model )
 	{
 		$link->open();
 

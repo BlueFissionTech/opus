@@ -1,7 +1,7 @@
 <?php
 namespace App\Domain\Initiative\Repositories;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use BlueFission\BlueCore\Repository\RepositorySql;
 use App\Domain\Initiative\Repositories\IInitiativeRepository;
 use App\Domain\Initiative\Models\InitiativeModel as Model;
@@ -15,7 +15,7 @@ class InitiativeRepositorySql extends RepositorySql implements IInitiativeReposi
     protected $_name = "initiatives";
     private $_kpi_type_model;
 
-    public function __construct(MysqlLink $link, Model $model, KpiTypeModel $kpi_type_model)
+    public function __construct(MySQLLink $link, Model $model, KpiTypeModel $kpi_type_model)
     {
         parent::__construct($link, $model);
         $this->_kpi_type_model = $kpi_type_model;

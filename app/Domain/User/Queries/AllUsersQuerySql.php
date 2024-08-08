@@ -1,7 +1,7 @@
 <?php
 namespace App\Domain\User\Queries;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use App\Domain\User\Models\UserModel as Model;
 
 use App\Domain\User\Queries\IAllUserQuery;
@@ -9,7 +9,7 @@ use App\Domain\User\Queries\IAllUserQuery;
 class AllUsersQuerySql implements IAllUsersQuery {
 	private $_model;
 
-	public function __construct( MysqlLink $link, Model $model )
+	public function __construct( MySQLLink $link, Model $model )
 	{
 		$link->open();
 

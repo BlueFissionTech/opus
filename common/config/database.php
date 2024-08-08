@@ -11,6 +11,12 @@ return [
 		'key'=>'_rowid',
 		'ignore_null'=>false,
 	],
+	'sqlite'=> [
+		'location'=>null,
+		'table'=>'',
+		'key'=>'_rowid',
+		'ignore_null'=>false,
+	],
 	'database'=> [
 		'location'=>null
 	],

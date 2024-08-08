@@ -1,7 +1,7 @@
 <?php
 namespace App\Domain\User\Repositories;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use BlueFission\BlueCore\Repository\RepositorySql;
 use App\Domain\User\Repositories\ICredentialRepository;
 use App\Domain\User\Models\CredentialModel as Model;
@@ -12,7 +12,7 @@ class CredentialRepositorySql extends RepositorySql implements ICredentialReposi
     // protected $_db;
     protected $_name = "credentials";
 
-    public function __construct(MysqlLink $link, Model $model)
+    public function __construct(MySQLLink $link, Model $model)
     {
         parent::__construct($link, $model);
     }

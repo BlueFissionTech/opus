@@ -3,12 +3,12 @@ namespace App\Business\Http\Api;
 
 use BlueFission\Services\Service;
 use BlueFission\Services\Request;
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use BlueFission\BlueCore\Auth as Authenticator;
 
 class AuthenticationController extends Service {
 
-    public function __construct( MysqlLink $link )
+    public function __construct( MySQLLink $link )
     {
         parent::__construct();
         $link->open();

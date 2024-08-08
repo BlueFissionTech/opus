@@ -1,7 +1,7 @@
 <?php
 namespace App\Domain\User\Repositories;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use BlueFission\BlueCore\Repository\RepositorySql;
 use App\Domain\User\Repositories\IUserRepository;
 use App\Domain\User\Models\UserModel as Model;
@@ -12,7 +12,7 @@ class UserRepositorySql extends RepositorySql implements IUserRepository
     // protected $_db;
     protected $_name = "users";
 
-    public function __construct(MysqlLink $link, Model $model)
+    public function __construct(MySQLLink $link, Model $model)
     {
         parent::__construct($link, $model);
     }

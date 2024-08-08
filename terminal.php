@@ -82,7 +82,7 @@ use \BlueFission\Services\Service;
 // use \BlueFission\HTML\Table;
 // use \BlueFission\Utils\DateTime;
 // use \BlueFission\Utils\Util;
-// use \BlueFission\Connections\Database\MysqlLink;
+// use \BlueFission\Connections\Database\MySQLLink;
 // use \BlueFission\Data\Storage\MysqlBulk;
 // use \BlueFission\Data\Storage\Mysql;
 // use \BlueFission\System\System;

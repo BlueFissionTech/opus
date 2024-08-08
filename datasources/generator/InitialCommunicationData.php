@@ -1,13 +1,13 @@
 <?php
 use BlueFission\BlueCore\Datasource\Generator;
-use BlueFission\DevString;
+use BlueFission\Str;
 
-use App\Domain\Communication\Models\CommunicationTypeModel;
-use App\Domain\Communication\CommunicationType;
-use App\Domain\Communication\Models\CommunicationStatusModel;
-use App\Domain\Communication\CommunicationStatus;
-use App\Domain\Communication\Models\CommunicationChannelModel;
-use App\Domain\Communication\CommunicationChannel;
+use BlueFission\BlueCore\Domain\Communication\Models\CommunicationTypeModel;
+use BlueFission\BlueCore\Domain\Communication\CommunicationType;
+use BlueFission\BlueCore\Domain\Communication\Models\CommunicationStatusModel;
+use BlueFission\BlueCore\Domain\Communication\CommunicationStatus;
+use BlueFission\BlueCore\Domain\Communication\Models\CommunicationChannelModel;
+use BlueFission\BlueCore\Domain\Communication\CommunicationChannel;
 
 class InitialCommunicationData extends Generator
 {

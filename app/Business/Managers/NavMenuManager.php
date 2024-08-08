@@ -1,7 +1,7 @@
 <?php
 namespace App\Business\Managers;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use BlueFission\Services\Service;
 use BlueFission\BlueCore\Auth as Authenticator;
 

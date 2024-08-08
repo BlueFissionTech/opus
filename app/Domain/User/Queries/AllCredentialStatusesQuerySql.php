@@ -1,7 +1,7 @@
 <?php
 namespace App\Domain\User\Queries;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use App\Domain\User\Models\CredentialStatusModel as Model;
 
 use App\Domain\User\Queries\IAllCredentialStatusesQuery;
@@ -9,7 +9,7 @@ use App\Domain\User\Queries\IAllCredentialStatusesQuery;
 class AllCredentialStatusesQuerySql implements IAllCredentialStatusesQuery {
 	private $_model;
 
-	public function __construct( MysqlLink $link, Model $model )
+	public function __construct( MySQLLink $link, Model $model )
 	{
 		$link->open();
 

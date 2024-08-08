@@ -65,7 +65,7 @@ class CommunicationManager extends Service
     public function queueMessage(Communication $communication)
     {
         // If no model is configured, directly route the communication
-        // if (!MysqlLink::tableExists('communications') || $communication->isSecret()) {
+        // if (!MySQLLink::tableExists('communications') || $communication->isSecret()) {
         if ($this->repo === null || $communication->isSecret()) {
             $this->routeMessage($communication);
             return;

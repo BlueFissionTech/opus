@@ -2,12 +2,12 @@
 
 namespace App\Business\Managers;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use BlueFission\Services\Service;
 use BlueFission\Utils\Loader;
 use BlueFission\BlueCore\Domain\AddOn\Models\AddOnModel;
 use BlueFission\BlueCore\Domain\AddOn\AddOn;
-use BlueFission\DevString;
+use BlueFission\Str;
 use BlueFission\System\System;
 
 class AddOnManager extends Service
@@ -15,7 +15,7 @@ class AddOnManager extends Service
     private $_loader;
     protected $_model;
 
-    public function __construct(MysqlLink $link)
+    public function __construct(MySQLLink $link)
     {
         $link->open();
         $this->_model = new AddOnModel();
@@ -105,9 +105,10 @@ class AddOnManager extends Service
             $data = json_decode(file_get_contents(OPUS_ROOT.'addons' . DIRECTORY_SEPARATOR . $addOn  . DIRECTORY_SEPARATOR . 'definition.json'));
             $model = new AddOn;
             $model->name = $data->name ?? $addOn;
-            $model->description = DevString::truncate($data->description ?? "");
+            $model->location = $addOn;
+            $model->description = Str::truncate($data->description ?? "");
             $model->path = OPUS_ROOT.'addons' . DIRECTORY_SEPARATOR . $addOn;
-            $model->primaryFile = 'main.php';
+            $model->primary_file = 'main.php';
             // $addOn = $model;
             $list[$data->name] = $model;
         }
@@ -189,9 +190,9 @@ class AddOnManager extends Service
         return $addon;
     }
 
-    protected function getAddOnData($name)
+    protected function getAddOnData($location)
     {
-        $data = json_decode(file_get_contents(OPUS_ROOT.'addons' . DIRECTORY_SEPARATOR . $name  . DIRECTORY_SEPARATOR . 'definition.json'));
+        $data = json_decode(file_get_contents(OPUS_ROOT.'addons' . DIRECTORY_SEPARATOR . $location  . DIRECTORY_SEPARATOR . 'definition.json'));
         return $data;
     }
 

@@ -9,9 +9,9 @@ use BlueFission\Data\Storage\Storage;
 
 class AdminController extends Service {
 
-	public function index( Storage $datasource ) 
+	public function index( Storage $session, Storage $datasource ) 
     {
-        $auth = new Authenticator( $datasource );
+        $auth = new Authenticator( $session, $datasource );
 
         if ( $auth->isAuthenticated() ) {
             // globals('sideNav', $navMenuManager->renderMenu('sideNav'));

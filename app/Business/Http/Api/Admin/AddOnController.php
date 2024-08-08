@@ -3,7 +3,7 @@ namespace App\Business\Http\Api\Admin;
 
 use BlueFission\Services\Service;
 use BlueFission\Services\Request;
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use App\Business\Managers\AddOnManager;
 use App\Domain\AddOn\Queries\IAllAddOnsQuery;
 use App\Domain\AddOn\Queries\IActivatedAddOnsQuery;

@@ -3,7 +3,7 @@ namespace App\Business\Http\Api\Admin;
 
 use BlueFission\Services\Service;
 use BlueFission\Services\Request;
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use App\Domain\User\Models\CredentialModel;
 use App\Domain\User\Repositories\IUserRepository;
 use App\Domain\User\Queries\IAllUsersQuery;
@@ -12,7 +12,7 @@ use App\Domain\User\User;
 
 class UserController extends Service {
 
-    public function __construct( MysqlLink $link )
+    public function __construct( MySQLLink $link )
     {
         parent::__construct();
         $link->open();
@@ -44,7 +44,7 @@ class UserController extends Service {
         return response($response);
     }
 
-    public function updateCredentials( Request $request, MysqlLink $link )
+    public function updateCredentials( Request $request, MySQLLink $link )
     {
         // $credential->credential_id = $request->credential_id;
         // $credential->read();

@@ -1,7 +1,7 @@
 <?php
 namespace App\Domain\Initiative\Queries;
 
-use BlueFission\Connections\Database\MysqlLink;
+use BlueFission\Connections\Database\MySQLLink;
 use App\Domain\Initiative\Models\ConditionModel as Model;
 
 use App\Domain\Initiative\Queries\IInitiativeConditionsQuery;
@@ -9,7 +9,7 @@ use App\Domain\Initiative\Queries\IInitiativeConditionsQuery;
 class InitiativeConditionsQuerySql implements IInitiativeConditionsQuery {
 	private $_model;
 
-	public function __construct( MysqlLink $link, Model $model )
+	public function __construct( MySQLLink $link, Model $model )
 	{
 		$link->open();
 
