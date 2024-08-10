@@ -105,7 +105,6 @@ class AddOnManager extends Service
             $data = json_decode(file_get_contents(OPUS_ROOT.'addons' . DIRECTORY_SEPARATOR . $addOn  . DIRECTORY_SEPARATOR . 'definition.json'));
             $model = new AddOn;
             $model->name = $data->name ?? $addOn;
-            $model->location = $addOn;
             $model->description = Str::truncate($data->description ?? "");
             $model->path = OPUS_ROOT.'addons' . DIRECTORY_SEPARATOR . $addOn;
             $model->primary_file = 'main.php';
@@ -190,9 +189,9 @@ class AddOnManager extends Service
         return $addon;
     }
 
-    protected function getAddOnData($location)
+    protected function getAddOnData($name)
     {
-        $data = json_decode(file_get_contents(OPUS_ROOT.'addons' . DIRECTORY_SEPARATOR . $location  . DIRECTORY_SEPARATOR . 'definition.json'));
+        $data = json_decode(file_get_contents(OPUS_ROOT.'addons' . DIRECTORY_SEPARATOR . $name  . DIRECTORY_SEPARATOR . 'definition.json'));
         return $data;
     }
 

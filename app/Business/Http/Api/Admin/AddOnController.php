@@ -5,11 +5,11 @@ use BlueFission\Services\Service;
 use BlueFission\Services\Request;
 use BlueFission\Connections\Database\MySQLLink;
 use App\Business\Managers\AddOnManager;
-use App\Domain\AddOn\Queries\IAllAddOnsQuery;
-use App\Domain\AddOn\Queries\IActivatedAddOnsQuery;
-use App\Domain\AddOn\Repositories\IAddOnRepository;
-use App\Domain\AddOn\AddOn;
-use App\Domain\AddOn\Models\AddOnModel;
+use BlueFission\BlueCore\Domain\AddOn\Queries\IAllAddOnsQuery;
+use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
+use BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository;
+use BlueFission\BlueCore\Domain\AddOn\AddOn;
+use BlueFission\BlueCore\Domain\AddOn\Models\AddOnModel;
 
 class AddOnController extends Service {
 

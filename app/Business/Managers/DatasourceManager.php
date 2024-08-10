@@ -60,13 +60,29 @@ class DatasourceManager extends Service {
 	public function populate()
 	{
 		$generators = $this->loadGenerators();
+		if ( in_array('RootSeeder.php', $generators) ) {
+			$classname = $this->findClassName( $this->_generatorDir . 'RootSeeder.php' );
+			if ( $classname ) {
+				include_once($this->_generatorDir . 'RootSeeder.php');
+				$object = \App::makeInstance($classname);
+				if ( method_exists($object, 'seeders') ) {
+					$generators = call_user_func([$object, 'seeders']);
+					array_walk($generators, function(&$generator) {
+						$generator = $generator.'.php';
+					});
+				}
+			}
+		}
+
 		foreach ( $generators as $generator ) {
 			$classname = '';
-			if ( strpos($generator, '.') != 0 ) {
+
+			if ( strpos($generator, '.') !== 0 ) {
+				$generator = strpos($generator, '.php') ? $generator : $generator . '.php';
+				
 				$classname = $this->findClassName( $this->_generatorDir . $generator );
 				if ( $classname ) {
 					include_once($this->_generatorDir . $generator);
-					// $object = new $classname();
 					$object = \App::makeInstance($classname);
 					call_user_func([$object, 'populate']);
 				}

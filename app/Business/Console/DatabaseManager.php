@@ -60,15 +60,18 @@ class DatabaseManager extends Service implements IDispatcher {
 				$object = \App::makeInstance($classname);
 				if ( method_exists($object, 'seeders') ) {
 					$generators = call_user_func([$object, 'seeders']);
+					array_walk($generators, function(&$generator) {
+						$generator = $generator.'.php';
+					});
 				}
 			}
 		}
 
 		foreach ( $generators as $generator ) {
 			$classname = '';
-			if ( strpos($generator, '.') != 0 ) {
+			if ( strpos($generator, '.') !== 0 ) {
 
-				// if it doesn't end in .php, append it
+				// if it doesn't end in .php yet, append it
 				$generator = strpos($generator, '.php') ? $generator : $generator . '.php';
 
 				$classname = $this->findClassName( $this->_generatorDir . $generator );
