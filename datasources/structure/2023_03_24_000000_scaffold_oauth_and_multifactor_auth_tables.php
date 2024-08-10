@@ -1,8 +1,8 @@
 <?php
 
 use BlueFission\BlueCore\Datasource\Delta;
-use BlueFission\Data\Storage\Structure\MysqlStructure as Structure;
-use BlueFission\Data\Storage\Structure\MysqlScaffold as Scaffold;
+use BlueFission\Data\Storage\Structure\MySQLStructure as Structure;
+use BlueFission\Data\Storage\Structure\MySQLScaffold as Scaffold;
 
 class ScaffoldOAuthAndMultiFactorAuthTables extends Delta
 {
