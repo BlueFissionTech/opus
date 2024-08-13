@@ -4,7 +4,7 @@ namespace App\Business\Http\Api\Admin;
 use BlueFission\Services\Service;
 use BlueFission\Services\Request;
 use BlueFission\Connections\Database\MySQLLink;
-use App\Business\Managers\AddOnManager;
+use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IAllAddOnsQuery;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository;

@@ -1,18 +1,19 @@
 <?php
 namespace App\Registration;
-// use App\Business\Managers\CommandManager;
-use App\Business\Managers\NavMenuManager;
-use App\Business\Managers\DatasourceManager;
-use App\Business\Managers\AddOnManager;
-use App\Business\Managers\InterpretationManager;
-use App\Business\Managers\CommunicationManager;
-use App\Business\Managers\ConversationManager;
-use App\Business\Managers\ThreadManager;
-use App\Business\Managers\SkillManager;
+// use BlueFission\BlueCore\Business\Managers\CommandManager;
+use BlueFission\BlueCore\Business\Managers\NavMenuManager;
+use BlueFission\BlueCore\Business\Managers\DatasourceManager;
+use BlueFission\BlueCore\Business\Managers\AddOnManager;
+use BlueFission\BlueCore\Business\Managers\InterpretationManager;
+use BlueFission\BlueCore\Business\Managers\CommunicationManager;
+use BlueFission\BlueCore\Business\Managers\ConversationManager;
+use BlueFission\BlueCore\Business\Managers\ThreadManager;
+use BlueFission\BlueCore\Business\Managers\SkillManager;
 use App\Business\Services\OpenAIService;
-use App\Business\Services\OpenWeatherService;
-use App\Business\Services\LocationService;
 use App\Business\MysqlConnector;
+use BlueFission\Automata\LLM\Clients\OpenAIClient;
+use BlueFission\Automata\LLM\Clients\GoogleGeminiClient;
+use BlueFission\Automata\Intent\Matcher;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\Skill\Intent\Matcher;
 use BlueFission\BlueCore\Theme;
@@ -88,96 +89,121 @@ class AppRegistration implements IExtension {
 		$adapter = new FilesystemAdapter();
 		$cache = new SymfonyCache($adapter);
 		$botman = BotManFactory::create([], $cache);
-		$this->_app->delegate('botman', $botman);
+		$this->delegate('botman', $botman);
 
-		$this->_app->delegate('core', Core::class);
-		$this->_app->delegate('communication', CommunicationManager::class);
-		// $this->_app->delegate('cmd', CommandManager::class);
-		$this->_app->delegate('nav', NavMenuManager::class);
-		$this->_app->delegate('addons', AddOnManager::class);
-		$this->_app->delegate('interpreter', InterpretationManager::class);
-		$this->_app->delegate('convo', ConversationManager::class);
-		$this->_app->delegate('thread', ThreadManager::class);
-		$this->_app->delegate('skill', SkillManager::class);
-		$this->_app->delegate('datasource', DatasourceManager::class);
+		// $this->delegate('core', Core::class);
+		$this->delegate('communication', CommunicationManager::class);
+		// $this->delegate('cmd', CommandManager::class);
+		$this->delegate('nav', NavMenuManager::class);
+		$this->delegate('addons', AddOnManager::class);
+		$this->delegate('interpreter', InterpretationManager::class);
+		$this->delegate('convo', ConversationManager::class);
+		$this->delegate('thread', ThreadManager::class);
+		$this->delegate('skill', SkillManager::class);
+		$this->delegate('datasource', DatasourceManager::class);
 
-		$this->_app->delegate('intentmatcher', Matcher::class);
-		$this->_app->delegate('mysql', MysqlConnector::class);
-		$this->_app->delegate('openai', OpenAIService::class);
-
-		// TODO move these to addons
-		$this->_app->delegate('openweather', OpenWeatherService::class);
-		$this->_app->delegate('location', LocationService::class);
+		$this->delegate('intentmatcher', Matcher::class);
+		$this->delegate('mysql', MysqlConnector::class);
+		$this->delegate('openai', OpenAIService::class);
 	}
 
 	/**
 	 * Bind different components with their respective implementations
 	 */
 	public function bindings() {
-		$this->_app->bind('App\Domain\User\Queries\IAllUsersQuery', 'App\Domain\User\Queries\AllUsersQuerySql');
-		$this->_app->bind('App\Domain\User\Queries\IAllCredentialStatusesQuery', 'App\Domain\User\Queries\AllCredentialStatusesQuerySql');
-		$this->_app->bind('App\Domain\User\Repositories\IUserRepository', 'App\Domain\User\Repositories\UserRepositorySql');
-		$this->_app->bind('App\Domain\User\Repositories\ICredentialRepository', 'App\Domain\User\Repositories\CredentialRepositorySql');
+		$this->bind('App\Domain\User\Queries\IAllUsersQuery', 'App\Domain\User\Queries\AllUsersQuerySql');
+		$this->bind('App\Domain\User\Queries\IAllCredentialStatusesQuery', 'App\Domain\User\Queries\AllCredentialStatusesQuerySql');
+		$this->bind('App\Domain\User\Repositories\IUserRepository', 'App\Domain\User\Repositories\UserRepositorySql');
+		$this->bind('App\Domain\User\Repositories\ICredentialRepository', 'App\Domain\User\Repositories\CredentialRepositorySql');
 
-		$this->_app->bind('BlueFission\BlueCore\Domain\AddOn\Queries\IAllAddOnsQuery', 'BlueFission\BlueCore\Domain\AddOn\Queries\AllAddOnsQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery', 'BlueFission\BlueCore\Domain\AddOn\Queries\ActivatedAddOnsQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository', 'BlueFission\BlueCore\Domain\AddOn\Repositories\AddOnRepositorySql');
+		$this->bind('BlueFission\BlueCore\Domain\AddOn\Queries\IAllAddOnsQuery', 'BlueFission\BlueCore\Domain\AddOn\Queries\AllAddOnsQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery', 'BlueFission\BlueCore\Domain\AddOn\Queries\ActivatedAddOnsQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository', 'BlueFission\BlueCore\Domain\AddOn\Repositories\AddOnRepositorySql');
 
-		$this->_app->bind('BlueFission\BlueCore\Domain\Content\Queries\IAllContentQuery', 'BlueFission\BlueCore\Domain\Content\Queries\AllContentQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Content\Repositories\IContentRepository', 'BlueFission\BlueCore\Domain\Content\Repositories\ContentRepositorySql');
+		$this->bind('BlueFission\BlueCore\Domain\Content\Queries\IAllContentQuery', 'BlueFission\BlueCore\Domain\Content\Queries\AllContentQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Content\Repositories\IContentRepository', 'BlueFission\BlueCore\Domain\Content\Repositories\ContentRepositorySql');
 
-		$this->_app->bind('BlueFission\BlueCore\Domain\Communication\Repositories\ICommunicationRepository', 'BlueFission\BlueCore\Domain\Communication\Repositories\CommunicationRepositorySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Communication\Queries\IUndeliveredCommunicationsQuery', 'BlueFission\BlueCore\Domain\Communication\Queries\UndeliveredCommunicationsQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Communication\Repositories\ICommunicationRepository', 'BlueFission\BlueCore\Domain\Communication\Repositories\CommunicationRepositorySql');
+		$this->bind('BlueFission\BlueCore\Domain\Communication\Queries\IUndeliveredCommunicationsQuery', 'BlueFission\BlueCore\Domain\Communication\Queries\UndeliveredCommunicationsQuerySql');
 
-		$this->_app->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
+		$this->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
 
-		$this->_app->bind('BlueFission\Automata\LLM\Clients\IClient', 'BlueFission\Automata\LLM\Clients\OpenAIClient');
-		$this->_app->bind('BlueFission\Automata\Analysis\IAnalyzer', 'BlueFission\Automata\Intent\KeywordIntentAnalyzer');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\ITopicRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\TopicRepositorySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IDialoguesByTopicQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\DialoguesByTopicQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IDialoguesByKeywordsQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\DialoguesByKeywordsQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IMessagesByKeywordQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\MessagesByKeywordQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IMessagesByTimestampQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\MessagesByTimestampQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IMessagesByUserIdQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\MessagesByUserIdQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IMessagesQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\MessagesQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\IDialogueTypeRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\DialogueTypeRepositorySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\IDialogueRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\DialogueRepositorySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\IMessageRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\MessageRepositorySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\ILanguageRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\LanguageRepositorySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\ITopicRoutesByTopicQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\TopicRoutesByTopicQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\ITagsByTopicQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\TagsByTopicQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IAllTopicsQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\AllTopicsQuerySql');
-		$this->_app->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IFactsByKeywordsQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\FactsByKeywordsQuerySql');
+		$this->bind('BlueFission\Automata\LLM\Clients\IClient', OpenAIClient::class);
+		$this->bind('BlueFission\Automata\Analysis\IAnalyzer', 'BlueFission\Automata\Intent\KeywordIntentAnalyzer');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\ITopicRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\TopicRepositorySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IDialoguesByTopicQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\DialoguesByTopicQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IDialoguesByKeywordsQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\DialoguesByKeywordsQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IMessagesByKeywordQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\MessagesByKeywordQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IMessagesByTimestampQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\MessagesByTimestampQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IMessagesByUserIdQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\MessagesByUserIdQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IMessagesQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\MessagesQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\IDialogueTypeRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\DialogueTypeRepositorySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\IDialogueRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\DialogueRepositorySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\IMessageRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\MessageRepositorySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Repositories\ILanguageRepository', 'BlueFission\BlueCore\Domain\Conversation\Repositories\LanguageRepositorySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\ITopicRoutesByTopicQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\TopicRoutesByTopicQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\ITagsByTopicQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\TagsByTopicQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IAllTopicsQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\AllTopicsQuerySql');
+		$this->bind('BlueFission\BlueCore\Domain\Conversation\Queries\IFactsByKeywordsQuery', 'BlueFission\BlueCore\Domain\Conversation\Queries\FactsByKeywordsQuerySql');
 	}
 
 	/**
 	 * Pass arguments to different components
 	 */
 	public function arguments() {
-		$this->_app->bindArgs( ['config'=>$this->_app->configuration('database')['mysql']], 'BlueFission\Connections\Database\MySQLLink');
-		$this->_app->bindArgs( ['driverConfigurations'=>$this->_app->configuration('communication')['drivers']], 'App\Business\Managers\CommunicationManager');
-		$this->_app->bindArgs( [
-				'rules'=>$this->_app->configuration('nlp')['grammar']['rules'],
-				'commands'=>$this->_app->configuration('nlp')['grammar']['commands'],
-				'tokens'=>$this->_app->configuration('nlp')['dictionary']
+		$this->bindArgs( ['session'=>new \BlueFission\Data\Storage\Session()], 'App\Business\Http\AdminController');
+		$this->bindArgs( ['session'=>new \BlueFission\Data\Storage\Session()], 'BlueFission\Services\Authenticator');
+
+		$this->bindArgs( ['config'=>$this->configuration('database')['mysql']], 'BlueFission\Connections\Database\MySQLLink');
+		$this->bindArgs( ['driverConfigurations'=>$this->configuration('communication')['drivers']], 'App\Business\Managers\CommunicationManager');
+		$this->bindArgs( [
+				'rules'=>$this->configuration('nlp')['grammar']['rules'],
+				'commands'=>$this->configuration('nlp')['grammar']['commands'],
+				'tokens'=>$this->configuration('nlp')['dictionary']
 			], 'BlueFission\Automata\Language\Grammar');
-		$this->_app->bindArgs( ['modelDirPath'=>$this->_app->configuration('paths')['ml']['models']], 'BlueFission\Automata\Analysis\KeywordTopicAnalyzer');
-		$this->_app->bindArgs( ['modelDirPath'=>$this->_app->configuration('paths')['ml']['models']], 'BlueFission\Automata\Intent\KeywordIntentAnalyzer');
-		$this->_app->bindArgs( ['config'=>$this->_app->configuration('nlp')['roots']], 'BlueFission\Automata\Language\StemmerLemmatizer');
-		$this->_app->bindArgs( ['storage'=>new \BlueFission\Data\Storage\Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');
-		$this->_app->bindArgs( ['apiKey'=>env('OPEN_AI_API_KEY')], 'BlueFission\Automata\LLM\Clients\OpenAIClient');
+		$this->bindArgs( ['modelDirPath'=>$this->configuration('paths')['ml']['models']], 'BlueFission\Automata\Analysis\KeywordTopicAnalyzer');
+		$this->bindArgs( ['modelDirPath'=>$this->configuration('paths')['ml']['models']], 'BlueFission\Automata\Intent\KeywordIntentAnalyzer');
+		$this->bindArgs( ['config'=>$this->configuration('nlp')['roots']], 'BlueFission\Automata\Language\StemmerLemmatizer');
+		$this->bindArgs( ['storage'=>new \BlueFission\Data\Storage\Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');
+		$this->bindArgs( ['apiKey'=>env('OPEN_AI_API_KEY')], OpenAIClient::class);
+		$this->bindArgs( ['apiKey'=>env('GOOGLE_GEMINI_API_KEY')], GoogleGeminiClient::class);
 	}
 
 	public function addons()
 	{
-		$addons = $this->_app->service('addons');
+		$addons = $this->service('addons');
 		$addons->loadActivatedAddOns();
 	}
 
 	public function themes()
 	{
-		$this->_app->addTheme(new Theme('app/default', 'default'));
-		$this->_app->addTheme(new Theme('app/admin', 'admin'));
-		$this->_app->addTheme(new Theme('app/bluefission', 'bluefission'));
+		$this->theme(new Theme('app/default', 'default'));
+		$this->theme(new Theme('app/admin', 'admin'));
+		$this->theme(new Theme('app/bluefission', 'bluefission'));
+	}
+
+	// Helpers
+	private function delegate($name, $class) {
+		$this->_app->delegate($name, $class);
+	}
+
+	private function bind($abstract, $concrete) {
+		$this->_app->bind($abstract, $concrete);
+	}
+
+	private function bindArgs($args, $class) {
+		$this->_app->bindArgs($args, $class);
+	}
+
+	private function service($name) {
+		return $this->_app->service($name);
+	}
+
+	private function configuration($name) {
+		return $this->_app->configuration($name);
+	}
+
+	private function theme($theme) {
+		$this->_app->addTheme($theme);
 	}
 }

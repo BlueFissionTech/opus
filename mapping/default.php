@@ -1,7 +1,7 @@
 <?php
 use BlueFission\Services\Mapping;
 use BlueFission\Net\HTTP;
-use App\Business\Managers\ContentManager;
+use BlueFission\BlueCore\Business\Managers\ContentManager;
 
 Mapping::add('/game', function() {
 	return template('default', 'interactive.html', ['title'=>"Welcome", 'name'=>env('APP_NAME')]);
@@ -12,7 +12,7 @@ Mapping::add('/chatwindow', function() {
 }, 'chatwindow', 'get');
 
 // Conversations
-Mapping::add('/parse', ['App\Business\Managers\ConversationManager', 'parse'], 'parse', 'get');
+Mapping::add('/parse', ['BlueFission\BlueCore\Business\Managers\ConversationManager', 'parse'], 'parse', 'get');
 Mapping::add('/history', function() {
 	/*
 	$thread = instance('thread');

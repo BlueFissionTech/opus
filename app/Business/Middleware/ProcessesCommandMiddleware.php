@@ -4,8 +4,8 @@ namespace App\Business\Middleware;
 
 use BotMan\BotMan\BotMan;
 use BlueFission\Data\Storage\Session;
-// use App\Business\Managers\CommandManager;
-// use BlueFission\Wise\Cmd\CommandProcessor;
+use BlueFission\BlueCore\Business\Managers\CommandManager;
+use BlueFission\Wise\Cmd\CommandProcessor;
 use BotMan\BotMan\Interfaces\Middleware\Received;
 use BotMan\BotMan\Interfaces\Middleware\Sending;
 use BotMan\BotMan\Messages\Incoming\IncomingMessage;
@@ -14,23 +14,23 @@ use BotMan\BotMan\Messages\Outgoing\Actions\Button;
 
 class ProcessesCommandMiddleware implements Received, Sending
 {
-    // protected $commandManager;
-    // protected $commandProcessor;
-    protected $_core;
+    protected $commandManager;
+    protected $commandProcessor;
+    // protected $_core;
 
-    // public function __construct(CommandManager $commandManager, CommandProcessor $commandProcessor)
-    public function __construct()
+    public function __construct(CommandManager $commandManager, CommandProcessor $commandProcessor)
+    // public function __construct()
     {
-        // $this->commandManager = $commandManager;
-        // $this->commandProcessor = $commandProcessor;
+        $this->commandManager = $commandManager;
+        $this->commandProcessor = $commandProcessor;
     }
 
     public function received(IncomingMessage $message, $next, BotMan $bot)
     {
-        // $results = $this->commandManager->parse($message->getText());
-        $core = instance('core');
-        $core->handle($message->getText());
-        $results = $core->output();
+        $results = $this->commandManager->parse($message->getText());
+        // $core = instance('core');
+        // $core->handle($message->getText());
+        // $results = $core->output();
         $message->addExtras('command', $results);
 
         return $next($message);
