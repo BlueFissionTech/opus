@@ -51,7 +51,7 @@ class InitialUserData extends Generator
 		$credential->password = $password;
 		$credential->is_primary = 1;
 		$credential->credential_status_id = $status->id();
-		$credential->password = password_hash($credential->password, PASSWORD_DEFAULT);
+		$credential->password = Security::createToken($credential->password);
 		$credential->user_id = $user->id();
 
 		$credential->write();

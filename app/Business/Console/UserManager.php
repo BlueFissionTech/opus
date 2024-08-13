@@ -5,6 +5,7 @@ use BlueFission\Services\Service;
 use BlueFission\Connections\Database\MySQLLink;
 use App\Domain\User\Models\UserModel;
 use App\Domain\User\Models\CredentialModel;
+use BlueFission\BlueCore\Security;
 
 class UserManager extends Service {
 
@@ -25,7 +26,7 @@ class UserManager extends Service {
 		$credential->username = readline('Enter a username: ');
 		$credential->password = readline('Enter a password: ');
 
-		$credential->password = password_hash($credential->password, PASSWORD_DEFAULT);
+		$credential->password = Security::createToken($credential->password);
 
 		$user->write();
 		$user->read();
@@ -56,7 +57,7 @@ class UserManager extends Service {
 
 		$credential->password = readline('Enter a new password: ');
 
-		$credential->password = password_hash($credential->password, PASSWORD_DEFAULT);
+		$credential->password = Security::createToken($credential->password);
 
 		$credential->write();
 
