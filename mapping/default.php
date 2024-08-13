@@ -52,12 +52,12 @@ Mapping::add('/clear', function() {
 Mapping::add('/fillin', function() {
 	// $topic = "The future of work and AI/Automation - labor concerns and observations from dawn of the GPT era.";
 	$topic = "I think that the dystopian predictions around AI are sensationalist fear mongering and a distraction from the real conversation about capitalism.";
-	$result = (new \BlueFission\Automata\LLM\FillIn(new \App\Business\Services\OpenAIService(), (new \App\Business\Prompts\SocialPostPrompt($topic))->prompt()))->run(['max_tokens'=>250]);
+	$result = (new \BlueFission\Automata\LLM\FillIn(new \BlueFission\Automata\LLM\Clients\OpenAIClient(), (new \App\Business\Prompts\SocialPostPrompt($topic))->prompt()))->run(['max_tokens'=>250]);
 	var_dump($result); // echos: "Modern AI - from sci fi to reality"
 });
 
 Mapping::add('/chain', function() {
-	$llm = new \App\Business\Services\OpenAIService();
+	$llm = new \BlueFission\Automata\LLM\Clients\OpenAIClient();
 	$agent = new \BlueFission\Automata\LLM\Agent($llm);
 
 	// Register the tools

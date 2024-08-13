@@ -9,13 +9,12 @@ use BlueFission\BlueCore\Business\Managers\CommunicationManager;
 use BlueFission\BlueCore\Business\Managers\ConversationManager;
 use BlueFission\BlueCore\Business\Managers\ThreadManager;
 use BlueFission\BlueCore\Business\Managers\SkillManager;
-use App\Business\Services\OpenAIService;
 use App\Business\MysqlConnector;
 use BlueFission\Automata\LLM\Clients\OpenAIClient;
 use BlueFission\Automata\LLM\Clients\GoogleGeminiClient;
+use BlueFission\Data\Storage\Session;
 use BlueFission\Automata\Intent\Matcher;
 use BlueFission\BlueCore\Core;
-use BlueFission\BlueCore\Skill\Intent\Matcher;
 use BlueFission\BlueCore\Theme;
 use BlueFission\BlueCore\IExtension;
 // For Conversations
@@ -92,6 +91,7 @@ class AppRegistration implements IExtension {
 		$this->delegate('botman', $botman);
 
 		// $this->delegate('core', Core::class);
+		$this->delegate('session', Session::class);
 		$this->delegate('communication', CommunicationManager::class);
 		// $this->delegate('cmd', CommandManager::class);
 		$this->delegate('nav', NavMenuManager::class);
@@ -104,7 +104,6 @@ class AppRegistration implements IExtension {
 
 		$this->delegate('intentmatcher', Matcher::class);
 		$this->delegate('mysql', MysqlConnector::class);
-		$this->delegate('openai', OpenAIService::class);
 	}
 
 	/**
@@ -151,8 +150,9 @@ class AppRegistration implements IExtension {
 	 * Pass arguments to different components
 	 */
 	public function arguments() {
-		$this->bindArgs( ['session'=>new \BlueFission\Data\Storage\Session()], 'App\Business\Http\AdminController');
-		$this->bindArgs( ['session'=>new \BlueFission\Data\Storage\Session()], 'BlueFission\Services\Authenticator');
+		$this->bindArgs( ['session'=>new Session()], 'App\Business\Http\AdminController');
+		// $this->bindArgs( ['session'=>new Session()], 'BlueFission\Services\Authenticator');
+		$this->bindArgs( ['session'=>new Session()], 'BlueFission\BlueCore\Auth');
 
 		$this->bindArgs( ['config'=>$this->configuration('database')['mysql']], 'BlueFission\Connections\Database\MySQLLink');
 		$this->bindArgs( ['driverConfigurations'=>$this->configuration('communication')['drivers']], 'App\Business\Managers\CommunicationManager');
@@ -164,14 +164,14 @@ class AppRegistration implements IExtension {
 		$this->bindArgs( ['modelDirPath'=>$this->configuration('paths')['ml']['models']], 'BlueFission\Automata\Analysis\KeywordTopicAnalyzer');
 		$this->bindArgs( ['modelDirPath'=>$this->configuration('paths')['ml']['models']], 'BlueFission\Automata\Intent\KeywordIntentAnalyzer');
 		$this->bindArgs( ['config'=>$this->configuration('nlp')['roots']], 'BlueFission\Automata\Language\StemmerLemmatizer');
-		$this->bindArgs( ['storage'=>new \BlueFission\Data\Storage\Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');
+		$this->bindArgs( ['storage'=>new Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');
 		$this->bindArgs( ['apiKey'=>env('OPEN_AI_API_KEY')], OpenAIClient::class);
 		$this->bindArgs( ['apiKey'=>env('GOOGLE_GEMINI_API_KEY')], GoogleGeminiClient::class);
 	}
 
 	public function addons()
 	{
-		$addons = $this->service('addons');
+		$addons = instance('addons');
 		$addons->loadActivatedAddOns();
 	}
 
@@ -193,10 +193,6 @@ class AppRegistration implements IExtension {
 
 	private function bindArgs($args, $class) {
 		$this->_app->bindArgs($args, $class);
-	}
-
-	private function service($name) {
-		return $this->_app->service($name);
 	}
 
 	private function configuration($name) {
