@@ -14,7 +14,6 @@ require 'common/config/settings.php';
  * Include the autoloader for the dependencies.
  */
 require 'vendor/autoload.php';
-require 'common/helpers/global.php';
 // $autoloader = require 'common/config/settings.php';
 
 // Loader utility for non-composer compatible scripts
