@@ -6,7 +6,7 @@ use BlueFission\Services\Service;
 use App\Domain\User\Repositories\UserRepositorySql;
 use BlueFission\BlueCore\Auth as Authenticator;
 use BlueFission\Str;
-use BlueFission\BlueCore\Business\Http\Api\Admin\UserController;
+use App\Business\Http\Api\Admin\UserController;
 
 class UserResource extends Service
 {
