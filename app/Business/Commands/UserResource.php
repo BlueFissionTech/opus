@@ -1,6 +1,6 @@
 <?php
-// UserCommand.php
-namespace BlueFission\Wise\Res;
+// UserResource.php
+namespace App\Business\Commands;
 
 use BlueFission\Services\Service;
 use App\Domain\User\Repositories\UserRepositorySql;
