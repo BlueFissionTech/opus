@@ -11,12 +11,12 @@
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "https://github.com/bluefission/automata.git",
+                "url": "https://github.com/BlueFissionTech/automata.git",
                 "reference": "878da2be731e4a6ec4e35f09b9dd53d3636e8112"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/automata/zipball/878da2be731e4a6ec4e35f09b9dd53d3636e8112",
+                "url": "https://api.github.com/repos/BlueFissionTech/automata/zipball/878da2be731e4a6ec4e35f09b9dd53d3636e8112",
                 "reference": "878da2be731e4a6ec4e35f09b9dd53d3636e8112",
                 "shasum": ""
             },
@@ -61,8 +61,8 @@
                 "automata, ai, nlp, machine learning, chatbot, bot, communication, natural language processing"
             ],
             "support": {
-                "source": "https://github.com/bluefission/automata/tree/master",
-                "issues": "https://github.com/bluefission/automata/issues"
+                "source": "https://github.com/BlueFissionTech/automata/tree/master",
+                "issues": "https://github.com/BlueFissionTech/automata/issues"
             },
             "time": "2024-08-10T12:49:57+00:00"
         },
@@ -71,13 +71,13 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://github.com/bluefission/bluecore.git",
-                "reference": "2f216af0bd68292ee2300b71d136bea5f7140cae"
+                "url": "https://github.com/BlueFissionTech/bluecore.git",
+                "reference": "606496ea360270b6f1cddcdd6c2db2140cccdb3d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/bluecore/zipball/2f216af0bd68292ee2300b71d136bea5f7140cae",
-                "reference": "2f216af0bd68292ee2300b71d136bea5f7140cae",
+                "url": "https://api.github.com/repos/BlueFissionTech/bluecore/zipball/606496ea360270b6f1cddcdd6c2db2140cccdb3d",
+                "reference": "606496ea360270b6f1cddcdd6c2db2140cccdb3d",
                 "shasum": ""
             },
             "require": {
@@ -109,7 +109,8 @@
                 ],
                 "files": [
                     "src/Helpers/global.php",
-                    "src/Helpers/response.php"
+                    "src/Helpers/response.php",
+                    "src/Helpers/errors.php"
                 ]
             },
             "autoload-dev": {
@@ -133,23 +134,23 @@
                 "framework, core, bluefission, opus"
             ],
             "support": {
-                "source": "https://github.com/bluefission/bluecore/tree/main",
-                "issues": "https://github.com/bluefission/bluecore/issues"
+                "source": "https://github.com/BlueFissionTech/bluecore/tree/main",
+                "issues": "https://github.com/BlueFissionTech/bluecore/issues"
             },
-            "time": "2024-08-13T03:20:55+00:00"
+            "time": "2024-08-18T23:45:27+00:00"
         },
         {
             "name": "bluefission/develation",
             "version": "v1.0.0-alpha",
             "source": {
                 "type": "git",
-                "url": "https://github.com/bluefission/develation.git",
-                "reference": "ef97d575427654055d901c255b8fd37152e11a44"
+                "url": "https://github.com/BlueFissionTech/develation.git",
+                "reference": "b8e22053d07a3a5db73c51c564db5e0f52e8cf68"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/develation/zipball/ef97d575427654055d901c255b8fd37152e11a44",
-                "reference": "ef97d575427654055d901c255b8fd37152e11a44",
+                "url": "https://api.github.com/repos/BlueFissionTech/develation/zipball/b8e22053d07a3a5db73c51c564db5e0f52e8cf68",
+                "reference": "b8e22053d07a3a5db73c51c564db5e0f52e8cf68",
                 "shasum": ""
             },
             "require": {
@@ -196,22 +197,22 @@
                 "php"
             ],
             "support": {
-                "source": "https://github.com/bluefission/develation/tree/v1.0.0-alpha",
-                "issues": "https://github.com/bluefission/develation/issues"
+                "source": "https://github.com/BlueFissionTech/develation/tree/v1.0.0-alpha",
+                "issues": "https://github.com/BlueFissionTech/develation/issues"
             },
-            "time": "2024-08-13T00:49:52+00:00"
+            "time": "2024-08-15T23:11:20+00:00"
         },
         {
             "name": "bluefission/simpleclients",
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "https://github.com/bluefission/simpleclients.git",
+                "url": "https://github.com/BlueFissionTech/simpleclients.git",
                 "reference": "32122d5864d774140b1dc14cf3c99561410eaed7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/simpleclients/zipball/32122d5864d774140b1dc14cf3c99561410eaed7",
+                "url": "https://api.github.com/repos/BlueFissionTech/simpleclients/zipball/32122d5864d774140b1dc14cf3c99561410eaed7",
                 "reference": "32122d5864d774140b1dc14cf3c99561410eaed7",
                 "shasum": ""
             },
@@ -249,8 +250,8 @@
                 "clients, api, http, services"
             ],
             "support": {
-                "source": "https://github.com/bluefission/simpleclients/tree/master",
-                "issues": "https://github.com/bluefission/simpleclients/issues"
+                "source": "https://github.com/BlueFissionTech/simpleclients/tree/master",
+                "issues": "https://github.com/BlueFissionTech/simpleclients/issues"
             },
             "time": "2024-08-07T02:43:33+00:00"
         },
@@ -259,13 +260,13 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://github.com/bluefission/wise.git",
-                "reference": "6ab9abe7a1be6d9eb8cfa138dd654aa2f5ebbdf6"
+                "url": "https://github.com/BlueFissionTech/wise.git",
+                "reference": "48b9e92f04bde85092349b26a17dc6607530591d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefission/wise/zipball/6ab9abe7a1be6d9eb8cfa138dd654aa2f5ebbdf6",
-                "reference": "6ab9abe7a1be6d9eb8cfa138dd654aa2f5ebbdf6",
+                "url": "https://api.github.com/repos/BlueFissionTech/wise/zipball/48b9e92f04bde85092349b26a17dc6607530591d",
+                "reference": "48b9e92f04bde85092349b26a17dc6607530591d",
                 "shasum": ""
             },
             "require": {
@@ -318,10 +319,10 @@
                 "shell, llm, ai, command line, cli"
             ],
             "support": {
-                "source": "https://github.com/bluefission/wise/tree/main",
-                "issues": "https://github.com/bluefission/wise/issues"
+                "source": "https://github.com/BlueFissionTech/wise/tree/main",
+                "issues": "https://github.com/BlueFissionTech/wise/issues"
             },
-            "time": "2024-08-03T04:00:52+00:00"
+            "time": "2024-08-18T02:20:00+00:00"
         },
         {
             "name": "botman/botman",
@@ -1533,16 +1534,16 @@
         },
         {
             "name": "google/gax",
-            "version": "v1.34.0",
+            "version": "v1.34.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/gax-php.git",
-                "reference": "28aa3e95969a75b278606a88448992a6396a119e"
+                "reference": "173f0a97323284f91fd453c4ed7ed8317ecf6cfa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/gax-php/zipball/28aa3e95969a75b278606a88448992a6396a119e",
-                "reference": "28aa3e95969a75b278606a88448992a6396a119e",
+                "url": "https://api.github.com/repos/googleapis/gax-php/zipball/173f0a97323284f91fd453c4ed7ed8317ecf6cfa",
+                "reference": "173f0a97323284f91fd453c4ed7ed8317ecf6cfa",
                 "shasum": ""
             },
             "require": {
@@ -1584,9 +1585,9 @@
             ],
             "support": {
                 "issues": "https://github.com/googleapis/gax-php/issues",
-                "source": "https://github.com/googleapis/gax-php/tree/v1.34.0"
+                "source": "https://github.com/googleapis/gax-php/tree/v1.34.1"
             },
-            "time": "2024-05-30T00:35:13+00:00"
+            "time": "2024-08-15T18:00:58+00:00"
         },
         {
             "name": "google/grpc-gcp",

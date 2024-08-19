@@ -9,6 +9,44 @@
 
 .input-group-navbar {
   min-width: 240px;
+
+  .form-control,
+  .btn {
+    height: $input-height-lg;
+    background: $navbar-input-bg;
+    box-shadow: none;
+    border: 0;
+    padding: $input-padding-y-lg $spacer*0.75;
+
+    &:focus {
+      background: $navbar-input-bg;
+      box-shadow: none;
+      outline: 0;
+    }
+  }
+
+  .btn {
+    color: inherit;
+    transition: none;
+
+    .lucide {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+@include color-mode(dark) {
+  .input-group-navbar {
+    .form-control,
+    .btn {
+      background: $navbar-input-bg-dark;
+  
+      &:focus {
+        background: $navbar-input-bg-dark;
+      }
+    }
+  }
 }
 
 .navbar-expand > .container,
@@ -25,11 +63,17 @@
   background: $navbar-bg;
 }
 
+@include color-mode(dark) {
+  .navbar-bg {
+    background: $navbar-bg-dark;
+  }
+}
+
 .navbar-align {
   body:not([data-sidebar-position=right]) & {
     margin-left: auto;
   }
-  body[data-sidebar-position=right] & {
+  html[data-sidebar-position=right] & {
     margin-right: auto;
   }
 }
@@ -42,7 +86,7 @@
   display: block;
 
   svg,
-  .feather {
+  .lucide {
     color: $navbar-brand-icon-color;
     height: 24px;
     width: 24px;
@@ -57,7 +101,6 @@
   padding: .1rem .8rem;
   display: block;
   font-size: 1.5rem;
-  color: $gray-600;
   transition: $transition-appearance-fast;
   line-height: 1.4;
 
@@ -71,7 +114,7 @@
   }
 
   svg,
-  .feather {
+  .lucide {
     width: 20px;
     height: 20px;
   }
@@ -152,4 +195,25 @@
 
 .navbar .form-control {
   max-width: 200px;
+}
+
+// Theme toggle icon
+.nav-theme-toggle {
+  .nav-theme-toggle-light {
+    display: none;
+  }
+  .nav-theme-toggle-dark {
+    display: inline-block;
+  }
+}
+
+@include color-mode(dark) {
+  .nav-theme-toggle {
+    .nav-theme-toggle-light {
+      display: inline-block;
+    }
+    .nav-theme-toggle-dark {
+      display: none;
+    }
+  }
 }

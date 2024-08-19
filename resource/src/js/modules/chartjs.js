@@ -1,6 +1,6 @@
 import Chart from "chart.js";
 
-Chart.defaults.global.defaultFontColor = window.theme["gray-600"];
+Chart.defaults.global.defaultFontColor = window.cssVariables.bodyColor;
 Chart.defaults.global.defaultFontFamily = "'Poppins', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
 
 // Rounded corners for barcharts

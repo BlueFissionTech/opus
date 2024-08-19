@@ -10,26 +10,20 @@ $settings-width: 320px;
 }
 
 .settings-toggle {
-  background: $white;
-  color: $black;
+  background: var(--#{$prefix}secondary-bg);
+  color: var(--#{$prefix}secondary-color);
   position: fixed;
   top: 200px;
   z-index: 10;
   right: 0;
   width: 54px;
-  height: 150px;
+  height: 166px;
   padding: $spacer*0.5;
   border-top-left-radius: $border-radius;
   border-bottom-left-radius: $border-radius;
   box-shadow: -5px 0px 10px 0px rgba(0,0,0,0.1);
   transition: all .1s ease-in-out;
   cursor: pointer;
-}
-
-body[data-theme=dark] {
-  .settings-toggle {
-    background: $gray-100;
-  }
 }
 
 .settings-toggle-option {
@@ -39,19 +33,18 @@ body[data-theme=dark] {
   font-size: 0.875rem;
   font-weight: $font-weight-bold;
   writing-mode: vertical-rl;
-  color: $black;
-  background: darken($gray-100, 2);
   padding: $spacer*0.5;
   border-radius: $border-radius;
-  height: 34px;
+  height: 36px;
+  color: var(--#{$prefix}secondary-color);
+  background: darken($gray-100, 2);
 
   &:hover {
     background: darken($gray-100, 5);
-    color: $black;
   }
   
   &:first-child {
-    color: darken($primary, 10);
+    color: $primary;
     margin-bottom: $spacer*0.5;
   }
 
@@ -60,22 +53,23 @@ body[data-theme=dark] {
   }
 }
 
-body[data-theme=dark] {
+@include color-mode(dark) {
+  .settings-toggle {
+    background: $gray-900-dark;
+  }
+
   .settings-toggle-option {
-    background: $gray-200;
+    background: $gray-800-dark;
+    color: $white;
 
     &:hover {
-      background: lighten($gray-200, 5);
-    }
-
-    &:first-child {
-      color: $static-white;
+      background: $gray-700-dark;
     }
   }
 }
 
 .settings-toggle-option-text {
-  height: 93px;
+  height: 106px;
 
   svg {
     transform: rotate(-90deg);
@@ -83,7 +77,7 @@ body[data-theme=dark] {
 }
 
 .settings-panel {
-  background: $white;
+  background: var(--#{$prefix}secondary-bg);
   border-left: $card-border-width solid $card-border-color;
   display: block;
   height: 100%;
@@ -97,7 +91,7 @@ body[data-theme=dark] {
 
   .settings.open &:before {
     content: "";
-    background: rgba($static-black, 0.325);
+    background: rgba($black, 0.325);
     position: fixed;
     left: 0;
     top: 0;
@@ -116,21 +110,21 @@ body[data-theme=dark] {
   height: 100%;
   overflow: auto;
   position: relative;
-  background: $white;
+  background: var(--#{$prefix}secondary-bg);
   display: flex;
   flex-direction: column;
 }
 
 .settings-title {
-  padding: $spacer*1.35 $spacer*1.5;
+  padding: $spacer*1.5;
   font-size: .875rem;
-  background: $white;
-  color: $black;
-  border-bottom: 1px solid $gray-200;
+  background: var(--#{$prefix}secondary-bg);
+  color: var(--#{$prefix}secondary-color);
+  border-bottom: 1px solid var(--#{$prefix}border-color);
 
   h4,
   .close {
-    color: $black;
+    color: var(--#{$prefix}emphasis-color);
   }
 }
 
@@ -155,7 +149,7 @@ body[data-theme=dark] {
   line-height: 17px;
   z-index: 1;
   border-radius: 50%;
-  color: $white;
+  color: var(--#{$prefix}secondary-bg);
   background: $primary;
   opacity: 0;
 }
@@ -168,7 +162,7 @@ body[data-theme=dark] {
 }
 
 .settings-scheme-label + .settings-scheme {
-  border: 1px solid $gray-300;
+  border: 1px solid var(--#{$prefix}border-color);
 }
 
 .settings-scheme-label:checked + .settings-scheme {
@@ -181,7 +175,7 @@ body[data-theme=dark] {
 }
 
 .settings-scheme {
-  background: $white;
+  background: var(--#{$prefix}secondary-bg);
   height: 80px;
   border-radius: $border-radius-lg;
   cursor: pointer;
@@ -195,18 +189,17 @@ body[data-theme=dark] {
 .settings-scheme-theme {
   width: 50px;
   height: 50px;
-  background: red;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px $static-white;
+  box-shadow: 0 0 0 1px $white;
   position: relative;
 }
 
 .settings-scheme-theme-default {
-  background-image: linear-gradient(-45deg, #222E3C 50%, darken($static-gray-100, 2%) 50%);
+  background-image: linear-gradient(-45deg, #222E3C 50%, darken($gray-100, 2%) 50%);
 }
 
 .settings-scheme-theme-colored {
-  background-image: linear-gradient(-45deg, $primary 50%, darken($static-gray-100, 2%) 50%);
+  background-image: linear-gradient(-45deg, $primary 50%, darken($gray-100, 2%) 50%);
 }
 
 .settings-scheme-theme-dark {
@@ -214,7 +207,7 @@ body[data-theme=dark] {
 }
 
 .settings-scheme-theme-light {
-  background: darken($static-gray-100, 2%);
+  background: darken($gray-100, 2%);
 }
 
 .settings-button-label {
@@ -225,8 +218,8 @@ body[data-theme=dark] {
 }
 
 .settings-button-label + .settings-button {
-  background: $gray-200;
-  color: $dark;
+  background: var(--#{$prefix}quaternary-bg);
+  color: var(--#{$prefix}emphasis-color);
   border-radius: 5px;
   padding: $input-btn-padding-y-lg $input-btn-padding-x-lg;
   font-size: $input-btn-font-size;
@@ -236,7 +229,7 @@ body[data-theme=dark] {
 
 .settings-button-label:checked + .settings-button {
   background: $primary;
-  color: $static-white;
+  color: $white;
 
   &:after {
     opacity: 1;

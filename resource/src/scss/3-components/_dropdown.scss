@@ -47,10 +47,6 @@
   &:last-child {
     border-radius: 0;
   }
-
-  &:hover {
-    background: $gray-100;
-  }
 }
 
 .dropdown-menu {
@@ -61,7 +57,6 @@
   padding: $spacer*0.75;
   text-align: center;
   font-weight: $font-weight-bold;
-  border-bottom: 1px solid $gray-300;
 }
 
 .dropdown-menu-footer {

@@ -11,7 +11,7 @@ body {
   opacity: 1 !important;
 }
 
-body[data-sidebar-position=right] {
+html[data-sidebar-position=right] {
   direction: rtl;
 }
 

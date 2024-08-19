@@ -9,10 +9,10 @@
     }
 
     .nav-link.done {
-      color: lighten($color, 15) !important;
+      color: lighten($color, 10) !important;
 
       &:after {
-        background: lighten($color, 15) !important;
+        background: lighten($color, 10) !important;
       }
     }
 
@@ -29,11 +29,11 @@
     }
 
     .nav-link.done {
-      border-color: lighten($color, 15) !important;
-      background: lighten($color, 15) !important;
+      border-color: lighten($color, 10) !important;
+      background: lighten($color, 10) !important;
 
       &:after {
-        border-left-color: lighten($color, 15) !important;
+        border-left-color: lighten($color, 10) !important;
       }
     }
   }

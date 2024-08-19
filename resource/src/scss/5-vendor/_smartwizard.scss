@@ -1,5 +1,9 @@
 // Inherited from https://github.com/techlab/jquery-smartwizard/blob/master/dist/css/smart_wizard_all.css
 
+.sw .nav-link {
+  transition: none !important;
+}
+
 .sw > .nav .nav-link.disabled {
   color: $gray-400 !important;
 }
@@ -19,11 +23,11 @@
 }
 
 .sw-theme-default {
-  border-color: $gray-200;
+  border-color: $body-secondary-bg;
 }
 
 .sw-theme-default .toolbar > .btn {
-  color: $static-white;
+  color: $white;
   background-color: $primary;
   border-color: $primary;
 }
@@ -69,11 +73,11 @@
 }
 
 .sw-theme-arrows {
-  border: 1px solid $gray-200;
+  border: 1px solid $body-secondary-bg;
 }
 
 .sw-theme-arrows .toolbar > .btn {
-  color: $static-white;
+  color: $white;
   background-color: $primary;
   border: 1px solid $primary;
 }
@@ -97,7 +101,7 @@
 }
 
 .sw-theme-arrows > .nav .nav-link.active {
-  color: $static-white;
+  color: $white;
   border-color: $primary;
   background: $primary;
 }
@@ -107,7 +111,7 @@
 }
 
 .sw-theme-arrows > .nav .nav-link.done {
-  color: $static-white;
+  color: $white;
   border-color: $success;
   background: $success;
 }
@@ -202,4 +206,139 @@
 
 .sw-theme-arrows.sw-dark > .nav .nav-link.danger::after {
   border-left-color: $danger;
+}
+
+@include color-mode(dark) {
+  .sw > .nav .nav-link.disabled {
+    color: $gray-600-dark !important;
+  }
+
+  .sw.sw-dark {
+    color: rgba($black, 0.95);
+    background: $white;
+  }
+
+  .sw.sw-loading::after {
+    background: rgba($black, 0.7);
+  }
+
+  .sw.sw-loading::before {
+    border-color: $body-tertiary-bg-dark;
+  }
+
+  .sw-theme-default {
+    border-color: $body-secondary-bg-dark;
+  }
+
+  .sw-theme-default > .nav .nav-link::after {
+    background: $gray-400-dark;
+  }
+
+  .sw-theme-default > .nav .nav-link.inactive {
+    color: $gray-400-dark;
+  }
+
+  .sw-theme-default > .nav .nav-link.disabled {
+    color: $gray-300-dark !important;
+  }
+
+  .sw-theme-default > .nav .nav-link.disabled::after {
+    background: $gray-300-dark;
+  }
+
+  .sw-theme-arrows {
+    border: 1px solid $body-secondary-bg-dark;
+  }
+
+  .sw-theme-arrows > .nav {
+    border-bottom-color: $body-quaternary-bg-dark;
+  }
+
+  .sw-theme-arrows > .nav .nav-link::after {
+    border-left-color: $body-tertiary-bg-dark;
+  }
+
+  .sw-theme-arrows > .nav .nav-link::before {
+    border-left-color: $body-quaternary-bg-dark;
+  }
+
+  .sw-theme-arrows > .nav .nav-link.inactive {
+    border-color: $body-tertiary-bg-dark;
+    background: $body-tertiary-bg-dark;
+  }
+
+  .sw-theme-arrows > .nav .nav-link.disabled {
+    color: $body-quaternary-bg-dark;
+    border-color: $body-tertiary-bg-dark;
+    background: $body-tertiary-bg-dark;
+  }
+
+  .sw-theme-arrows > .nav .nav-link.disabled::after {
+    border-left-color: $body-tertiary-bg-dark;
+  }
+
+  .sw-theme-arrows > .nav .nav-link.danger {
+    color: $white;
+  }
+
+  .sw-theme-arrows.sw-dark {
+    color: rgba($black, 0.95);
+    background: $white;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav {
+    border-bottom-color: $gray-400-dark;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link::after {
+    border-left-color: $gray-400-dark;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link::before {
+    border-left-color: $gray-400-dark;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link.inactive {
+    color: $white;
+    border-color: $gray-400-dark;
+    background: $gray-400-dark;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link.inactive::after {
+    border-left-color: $gray-400-dark;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link.active {
+    color: $white;
+    border-color: $gray-200-dark;
+    background: $gray-300-dark;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link.active::after {
+    border-left-color: $gray-300-dark;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link.done {
+    color: $white;
+    border-color: $white;
+    background: $white;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link.done::after {
+    border-left-color: $white;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link.disabled {
+    color: $gray-400 !important;
+    border-color: $body-tertiary-bg-dark;
+    background: $gray-300-dark;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link.disabled::after {
+    border-left-color: $gray-300-dark;
+  }
+
+  .sw-theme-arrows.sw-dark > .nav .nav-link.danger {
+    color: $white;
+  }
 }

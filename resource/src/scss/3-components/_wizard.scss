@@ -9,10 +9,9 @@
 }
 
 .wizard {
-  background: $white;
-  background-color: $card-bg;
+  background: var(--#{$prefix}secondary-bg);
   background-clip: border-box;
-  border: $card-border-width solid $card-border-color;
+  border: $card-border-width solid var(--#{$prefix}tertiary-bg);
   box-shadow: $box-shadow;
   border-radius: $card-border-radius !important;
   margin-bottom: 2rem;
@@ -24,10 +23,10 @@
 
 .wizard.sw-theme-default .sw-toolbar-bottom,
 .wizard.sw-theme-arrows .sw-toolbar-bottom {
-  background: $white;
+  background: var(--#{$prefix}secondary-bg);
   border-top-width: 1px;
   border-top-style: solid;
-  border-top-color: $gray-300;
+  border-top-color: var(--#{$prefix}tertiary-bg);
 }
 
 .wizard.sw-theme-default .step-content,

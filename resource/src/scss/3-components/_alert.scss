@@ -1,37 +1,18 @@
 .alert {
   padding: 0;
   display: flex;
-  color: $gray-900;
-  
-  b, strong {
-    color: $black;
-  }
-
-  .close:hover,
-  .close:focus {
-    color: $black;
-    opacity: 1;
-  }
+  color: var(--#{$prefix}emphasis-color);
 }
 
 .alert-outline,
 .alert-outline-coloured {
-  color: $body-color;
-  background: $white;
-
-  hr {
-    border-top-color: $gray-400;
-  }
-
-  .close:hover,
-  .close:focus {
-    color: $gray-800;
-  }
+  color: var(--#{$prefix}emphasis-color);
+  background: var(--#{$prefix}secondary-bg);
 
   .alert-message {
     @include border-end-radius($alert-border-radius);
     @include border-start-radius($alert-border-radius);
-    border: 1px solid $gray-400;
+    border: 1px solid var(--#{$prefix}border-color);
   }
 
   .alert-message:not(:nth-child(2)) {
@@ -41,7 +22,7 @@
 
   .alert-icon {
     @include border-start-radius($alert-border-radius);
-    color: $static-white;
+    color: $white;
   }
 
   @each $color, $value in $theme-colors {
@@ -68,4 +49,18 @@
   padding: $alert-padding-y $alert-padding-x;
   width: 100%;
   box-sizing: border-box;
+}
+
+@each $color, $value in $theme-colors {
+  .alert-#{$color}:not(.alert-outline):not(.alert-outline-coloured) {
+    background: shift-color($value, $alert-bg-scale);
+  }
+}
+
+@include color-mode(dark) {
+  @each $color, $value in $theme-colors {
+    .alert-#{$color}:not(.alert-outline):not(.alert-outline-coloured) {
+      background: shift-color($value, $alert-bg-scale-dark);
+    }
+  }
 }

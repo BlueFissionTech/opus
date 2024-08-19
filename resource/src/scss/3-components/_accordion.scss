@@ -8,10 +8,10 @@
   }
 
   .card-body {
-    border-top: 1px solid $card-border-color;
+    border-top: 1px solid var(--#{$prefix}border-color);
   }
 
   .card-title a {
-    color: $body-color;
+    color: var(--#{$prefix}body-color);
   }
 }

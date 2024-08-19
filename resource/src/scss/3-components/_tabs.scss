@@ -6,14 +6,14 @@
   }
 
   .nav-tabs .nav-link {
-    background: $tab-link-bg;
-    color: $tab-link-color;
-    padding: $tab-link-padding;
+    background: var(--#{$prefix}body-bg);
+    color: var(--#{$prefix}body-color);
+    padding: 0.75rem 1rem;
     border: 0;
 
     &.active {
-      background: $tab-link-active-bg;
-      color: $tab-link-active-color;
+      background: var(--#{$prefix}secondary-bg);
+      color: var(--#{$prefix}emphasis-color);
     }
 
     &:hover:not(.active) {
@@ -27,10 +27,10 @@
   }
 
   .tab-content {
-    background: $white;
-    padding: $tab-content-padding;
+    background: var(--#{$prefix}secondary-bg);
+    padding: 1.25rem;
     box-shadow: $box-shadow;
-    border-radius: $tab-content-border-radius;
+    border-radius: 0 0 0.25rem 0.25rem;
 
     p:last-child {
       margin-bottom: 0;

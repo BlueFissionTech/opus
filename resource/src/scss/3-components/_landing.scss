@@ -1,15 +1,10 @@
-.landing-bg {
-  background: $light;
-}
-
 nav.landing-navbar {
-  background: $light;
   box-shadow: none;
 
   @include media-breakpoint-down(md) {
     width: auto;
   }
-  
+
   .navbar-brand {
     color: $dark;
   }
@@ -30,10 +25,10 @@ nav.landing-navbar {
   font-size: $sidebar-brand-font-size;
 
   svg {
-    @include theme("fill", $sidebar-brand-icon-color);
+    @include sidebar-theme("fill", $sidebar-brand-icon-color);
 
     path:first-child {
-      @include theme("fill", $sidebar-brand-icon-top-color);
+      @include sidebar-theme("fill", $sidebar-brand-icon-top-color);
     }
   }
 }
@@ -45,7 +40,8 @@ nav.landing-navbar {
 
   img {
     transform: rotateY(-30deg) rotateX(10deg);
-    box-shadow: 0 0 1px 0 rgba($static-black, 0.7), 0 11px 20px -8px rgba($static-black, 0.5);
+    box-shadow: 0 11px 20px -8px rgba($black, 0.33);
+    border-radius: $border-radius-lg;
   }
 }
 

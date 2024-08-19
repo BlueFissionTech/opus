@@ -10,12 +10,12 @@ b,
 strong,
 .font-weight-bold {
   font-weight: $font-weight-bold;
-  color: $text-bold-color;
+  color: var(--#{$prefix}emphasis-color);
 }
 
 pre.snippet {
   .hljs {
-    background: $static-dark;
+    background: $dark;
     border-radius: $border-radius-lg;
     padding: $spacer;
   }

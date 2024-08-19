@@ -43,10 +43,10 @@ if (fs.existsSync(addonsDir)) {
 
 module.exports = {
   entry: {
-    light: "./resource/src/scss/light.scss",
-    dark: "./resource/src/scss/dark.scss",
     app: "./resource/src/js/app.js",
     // settings: "./resource/src/js/settings/index.js",
+    // light: "./resource/src/scss/light.scss",
+    // dark: "./resource/src/scss/dark.scss",
     main: "./resource/src/js/pages/admin/main.js",
     'login-page': "./resource/src/js/modules/app/login-page.js",
     'module-dashboard': "./resource/src/js/modules/app/module-dashboard.js",

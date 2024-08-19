@@ -53,7 +53,7 @@
 
 .daterangepicker td.active, .daterangepicker td.active:hover {
   background-color: $primary;
-  color: $static-white;
+  color: $white;
 }
 
 .daterangepicker td.disabled, .daterangepicker option.disabled {
@@ -97,4 +97,105 @@
 .daterangepicker .ranges li.active {
   background-color: $primary;
   color: $white;
+}
+
+@include color-mode(dark) {
+  .daterangepicker {
+    background-color: $body-secondary-bg-dark;
+    border-color: $gray-700-dark;
+  }
+  
+  .daterangepicker:before, .daterangepicker:after {
+    border-bottom-color: rgba($white, 0.2);
+  }
+  
+  .daterangepicker:before {
+    border-bottom-color: $gray-600-dark;
+  }
+  
+  .daterangepicker:after {
+    border-bottom-color: $body-secondary-bg-dark;
+  }
+  
+  .daterangepicker.drop-up:before {
+    border-top-color: $gray-600-dark;
+  }
+  
+  .daterangepicker.drop-up:after {
+    border-top-color: $body-secondary-bg-dark;
+  }
+  
+  .daterangepicker .calendar-table .next span, .daterangepicker .calendar-table .prev span {
+    color: $body-secondary-bg-dark;
+    border-color: $white;
+  }
+  
+  .daterangepicker .calendar-table {
+    border-color: $body-secondary-bg-dark;
+    background-color: $body-secondary-bg-dark;
+  }
+  
+  .daterangepicker td.available:hover, .daterangepicker th.available:hover {
+    background-color: $gray-800-dark;
+  }
+  
+  .daterangepicker td.week, .daterangepicker th.week {
+    color: $gray-600-dark;
+  }
+  
+  .daterangepicker td.off, .daterangepicker td.off.in-range, .daterangepicker td.off.start-date, .daterangepicker td.off.end-date {
+    background-color: $body-secondary-bg-dark;
+    color: $gray-500-dark;
+  }
+  
+  .daterangepicker td.in-range {
+    background-color: $gray-800-dark;
+    color: $white;
+  }
+  
+  .daterangepicker td.active, .daterangepicker td.active:hover {
+    color: $body-secondary-bg-dark;
+  }
+  
+  .daterangepicker td.disabled, .daterangepicker option.disabled {
+    color: $gray-500-dark;
+  }
+  
+  .daterangepicker select.hourselect, .daterangepicker select.minuteselect, .daterangepicker select.secondselect, .daterangepicker select.ampmselect {
+    background: $gray-800-dark;
+    border-color: $gray-800-dark;
+    color: $white;
+  }
+  
+  .daterangepicker .calendar-time select.disabled {
+    color: $gray-600-dark;
+  }
+  
+  .daterangepicker .drp-buttons {
+    border-top-color: $gray-700-dark;
+  }
+  
+  .daterangepicker.show-ranges.single.rtl .drp-calendar.left {
+    border-right-color: $gray-700-dark;
+  }
+  
+  .daterangepicker.show-ranges.single.ltr .drp-calendar.left {
+    border-left-color: $gray-700-dark;
+  }
+  
+  .daterangepicker.show-ranges.rtl .drp-calendar.right {
+    border-right-color: $gray-700-dark;
+  }
+  
+  .daterangepicker.show-ranges.ltr .drp-calendar.left {
+    border-left-color: $gray-700-dark;
+  }
+  
+  .daterangepicker .ranges li:hover {
+    background-color: $gray-800-dark;
+  }
+  
+  .daterangepicker .ranges li.active {
+    color: $body-secondary-bg-dark;
+  }
 }

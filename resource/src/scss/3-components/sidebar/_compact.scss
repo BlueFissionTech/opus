@@ -1,4 +1,4 @@
-body[data-sidebar-behavior=compact] {
+html[data-sidebar-behavior=compact] {
   // Hide elements
   .sidebar-header,
   .sidebar-brand span,
@@ -114,7 +114,7 @@ body[data-sidebar-behavior=compact] {
 }
 
 // Collapse behavior if compact sidebar is on left side
-body[data-sidebar-behavior=compact]:not([data-sidebar-position=right]) {
+html[data-sidebar-behavior=compact]:not([data-sidebar-position=right]) {
   .sidebar-nav > .sidebar-item > .sidebar-dropdown {
     left: $sidebar-compact-width + 12px;;
 
@@ -145,7 +145,7 @@ body[data-sidebar-behavior=compact]:not([data-sidebar-position=right]) {
 }
 
 // Collapse behavior if compact sidebar is on right side
-body[data-sidebar-behavior=compact][data-sidebar-position=right] {
+html[data-sidebar-behavior=compact][data-sidebar-position=right] {
   .sidebar-nav > .sidebar-item > .sidebar-dropdown {
     right: $sidebar-compact-width + 12px;
 

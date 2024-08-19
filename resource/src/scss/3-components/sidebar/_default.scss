@@ -3,15 +3,15 @@
   max-width: $sidebar-width;
   transition: $sidebar-transition;
   direction: ltr;
-  @include theme("background", $sidebar-bg);
+  @include sidebar-theme("background", $sidebar-bg);
 }
 
 .sidebar-content {
   transition: $sidebar-transition;
-  @include theme("background", $sidebar-bg);
+  @include sidebar-theme("background", $sidebar-bg);
 }
 
-body[data-sidebar-behavior=sticky] {
+html[data-sidebar-behavior=sticky] {
   .sidebar-content[data-simplebar] {
     height: 100vh;
     position: sticky;
@@ -36,12 +36,12 @@ a.sidebar-link {
   text-decoration: none;
   cursor: pointer;
 
-  @include theme("color", $sidebar-link-color);
+  @include sidebar-theme("color", $sidebar-link-color);
 
   i,
   svg {
     margin-right: .75rem;
-    @include theme("color", $sidebar-link-icon-color);
+    @include sidebar-theme("color", $sidebar-link-icon-color);
   }
 }
 
@@ -65,21 +65,21 @@ a.sidebar-link {
 }
 
 .sidebar-link:hover {
-  @include theme("color", $sidebar-link-hover-color);
+  @include sidebar-theme("color", $sidebar-link-hover-color);
 
   i,
   svg {
-    @include theme("color", $sidebar-link-icon-hover-color);
+    @include sidebar-theme("color", $sidebar-link-icon-hover-color);
   }
 }
 
 .sidebar-item.active > .sidebar-link,
 .sidebar-item.active .sidebar-link:hover {
-  @include theme("color", $sidebar-link-active-color);
+  @include sidebar-theme("color", $sidebar-link-active-color);
 
   i,
   svg {
-    @include theme("color", $sidebar-link-icon-active-color);
+    @include sidebar-theme("color", $sidebar-link-icon-active-color);
   }
 }
 
@@ -87,17 +87,17 @@ a.sidebar-link {
 .sidebar-dropdown .sidebar-link {
   padding: $sidebar-link-child-padding;
   font-weight: $sidebar-link-child-font-weight;
-  @include theme("color", $sidebar-link-child-color);
+  @include sidebar-theme("color", $sidebar-link-child-color);
 }
 
 .sidebar-dropdown .sidebar-item .sidebar-link:hover {
   font-weight: $sidebar-link-hover-font-weight;
-  @include theme("color", $sidebar-link-child-hover-color);
+  @include sidebar-theme("color", $sidebar-link-child-hover-color);
 }
 
 .sidebar-dropdown .sidebar-item.active .sidebar-link {
   font-weight: $sidebar-link-active-font-weight;
-  @include theme("color", $sidebar-link-child-active-color);
+  @include sidebar-theme("color", $sidebar-link-child-active-color);
 }
 
 // Chevron
@@ -140,11 +140,11 @@ a.sidebar-link {
   padding: $sidebar-brand-padding-y $sidebar-brand-padding-x;
   display: block;
   text-align: center;
-  @include theme("color", $sidebar-brand-color);
+  @include sidebar-theme("color", $sidebar-brand-color);
 
   &:hover {
     text-decoration: none;
-    @include theme("color", $sidebar-brand-color);
+    @include sidebar-theme("color", $sidebar-brand-color);
   }
 
   &:focus {
@@ -152,13 +152,13 @@ a.sidebar-link {
   }
 
   svg {
-    @include theme("fill", $sidebar-brand-icon-color);
+    @include sidebar-theme("fill", $sidebar-brand-icon-color);
     height: 24px;
     width: 24px;
     margin-right: 0.15rem;
 
     path:first-child {
-      @include theme("fill", $sidebar-brand-icon-top-color);
+      @include sidebar-theme("fill", $sidebar-brand-icon-top-color);
     }
   }
 }
@@ -175,7 +175,7 @@ body:not([data-sidebar-position=right]) .sidebar-toggle {
   margin-right: $spacer;
 }
 
-body[data-sidebar-position=right] .sidebar-toggle {
+html[data-sidebar-position=right] .sidebar-toggle {
   margin-left: $spacer;
 }
 
@@ -184,7 +184,7 @@ body[data-sidebar-position=right] .sidebar-toggle {
   background: transparent;
   padding: $sidebar-header-padding;
   font-size: $sidebar-header-font-size;
-  @include theme("color", $sidebar-header-color);
+  @include sidebar-theme("color", $sidebar-header-color);
 }
 
 // Badge
@@ -203,13 +203,13 @@ body[data-sidebar-position=right] .sidebar-toggle {
 }
 
 .badge-sidebar-primary {
-  @include theme("background", $sidebar-badge-primary-bg);
-  @include theme("color", $sidebar-badge-primary-color);
+  @include sidebar-theme("background", $sidebar-badge-primary-bg);
+  @include sidebar-theme("color", $sidebar-badge-primary-color);
 }
 
 .badge-sidebar-secondary {
-  @include theme("background", $sidebar-badge-secondary-bg);
-  @include theme("color", $sidebar-badge-secondary-color);
+  @include sidebar-theme("background", $sidebar-badge-secondary-bg);
+  @include sidebar-theme("color", $sidebar-badge-secondary-color);
 }
 
 // Collapse behavior if sidebar is on left side
@@ -239,7 +239,7 @@ body:not([data-sidebar-position=right]) {
 }
 
 // Collapse behavior if sidebar is on right side
-body[data-sidebar-position=right] {
+html[data-sidebar-position=right] {
   .sidebar {
     &.collapsed {
       margin-right: -$sidebar-width;
@@ -274,10 +274,10 @@ body[data-sidebar-position=right] {
   padding: $sidebar-cta-padding;
   margin: $sidebar-cta-margin;
   border-radius: $sidebar-cta-border-radius;
-  @include theme("background", $sidebar-cta-bg);
+  @include sidebar-theme("background", $sidebar-cta-bg);
   
   &,
   strong {
-    @include theme("color", $sidebar-cta-color);
+    @include sidebar-theme("color", $sidebar-cta-color);
   }
 }

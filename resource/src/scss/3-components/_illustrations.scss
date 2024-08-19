@@ -7,6 +7,17 @@
   color: $illustration-color;
 }
 
+@include color-mode(dark) {
+  .illustration {
+    background: $illustration-bg-dark;
+    color: $illustration-color-dark;
+  }
+  
+  .illustration-text {
+    color: $illustration-color-dark;
+  }
+}
+
 .illustration-img {
   max-width: 150px;
   width: 100%;

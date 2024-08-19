@@ -10,45 +10,28 @@
   border-radius: 0;
 }
 
-.btn .feather {
+.btn .lucide {
   width: 14px;
   height: 14px;
 }
 
-.btn-lg .feather {
+.btn-lg .lucide {
   width: 15px;
   height: 15px;
-}
-
-@each $color, $value in $theme-colors {
-  .btn-#{$color} {
-    @include button-color($static-white);
-    @include button-color-hover($static-white);
-    @include button-color-active($static-white);
-  }
-
-  .btn-outline-#{$color} {
-    @include button-color-hover($static-white);
-    @include button-color-active($static-white);
-  }
 }
 
 @each $color, $value in $social-colors {
   .btn-#{$color} {
     @include button-variant($value, $value);
-    @include button-color($static-white);
-    @include button-color-hover($static-white);
   }
 }
 
-.btn-light,
-.btn-white {
-  @include button-color($gray-800);
-  @include button-color-hover($gray-800);
-}
-
-.btn-outline-light,
-.btn-outline-white {
-  @include button-color-hover($gray-800);
-  @include button-color-active($gray-800);
+// Secondary button for dark mode
+@include color-mode(dark) {
+  .btn-secondary {
+    @include button-variant($gray-400, $gray-400);
+  }
+  .btn-outline-secondary {
+    @include button-outline-variant($gray-400, $gray-400);
+  }
 }
