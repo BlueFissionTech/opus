@@ -4,12 +4,8 @@ namespace App\Registration;
 use BlueFission\BlueCore\Business\Managers\NavMenuManager;
 use BlueFission\BlueCore\Business\Managers\DatasourceManager;
 use BlueFission\BlueCore\Business\Managers\AddOnManager;
-use BlueFission\BlueCore\Business\Managers\SkillManager;
 use App\Business\MysqlConnector;
-use BlueFission\Automata\LLM\Clients\OpenAIClient;
-use BlueFission\Automata\LLM\Clients\GoogleGeminiClient;
 use BlueFission\Data\Storage\Session;
-use BlueFission\Automata\Intent\Matcher;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\Theme;
 use BlueFission\BlueCore\IExtension;
@@ -74,10 +70,8 @@ class AppRegistration implements IExtension {
 		// $this->delegate('cmd', CommandManager::class);
 		$this->delegate('nav', NavMenuManager::class);
 		$this->delegate('addons', AddOnManager::class);
-		$this->delegate('skill', SkillManager::class);
 		$this->delegate('datasource', DatasourceManager::class);
 
-		$this->delegate('intentmatcher', Matcher::class);
 		$this->delegate('mysql', MysqlConnector::class);
 	}
 
@@ -95,9 +89,6 @@ class AppRegistration implements IExtension {
 		$this->bind('BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository', 'BlueFission\BlueCore\Domain\AddOn\Repositories\AddOnRepositorySql');
 
 		$this->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
-
-		$this->bind('BlueFission\Automata\LLM\Clients\IClient', OpenAIClient::class);
-		$this->bind('BlueFission\Automata\Analysis\IAnalyzer', 'BlueFission\Automata\Intent\KeywordIntentAnalyzer');
 	}
 
 	/**
@@ -108,13 +99,8 @@ class AppRegistration implements IExtension {
 		$this->bindArgs( ['session'=>new Session()], 'BlueFission\BlueCore\Auth');
 
 		$this->bindArgs( ['config'=>$this->configuration('database')['mysql']], 'BlueFission\Connections\Database\MySQLLink');
-
-		$this->bindArgs( ['modelDirPath'=>$this->configuration('paths')['ml']['models']], 'BlueFission\Automata\Analysis\KeywordTopicAnalyzer');
-		$this->bindArgs( ['modelDirPath'=>$this->configuration('paths')['ml']['models']], 'BlueFission\Automata\Intent\KeywordIntentAnalyzer');
 		
 		$this->bindArgs( ['storage'=>new Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');
-		$this->bindArgs( ['apiKey'=>env('OPEN_AI_API_KEY')], OpenAIClient::class);
-		$this->bindArgs( ['apiKey'=>env('GOOGLE_GEMINI_API_KEY')], GoogleGeminiClient::class);
 	}
 
 	public function addons()
