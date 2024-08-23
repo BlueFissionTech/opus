@@ -18,11 +18,11 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/bluefission/develation"
+            "url": "https://github.com/bluefissiontech/develation"
         },
         {
             "type": "vcs",
-            "url": "https://github.com/bluefission/bluecore"
+            "url": "https://github.com/bluefissiontech/bluecore"
         }
     ],
     "require": {
