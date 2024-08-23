@@ -22,28 +22,6 @@ ini_set("error_log", OPUS_ROOT."/storage/error.log");
 error_reporting(E_ALL);
 set_time_limit(3000);
 
-if(!function_exists('import_env_vars')) {
-	function import_env_vars( $file ) {
-		$variables = file($file);
-		foreach ($variables as $var) {
-			putenv(trim($var));
-			list($name, $value) = explode("=", $var);
-			$_ENV[$name] = $value;
-		}
-	}
-}
-
-if(!function_exists('env')) {
-  function env($key, $default = null)
-  {
-      $value = getenv($key);
-
-      if ($value === false) {
-          return $default;
-      }
-      return $value;
-  }
-}
 
 if(file_exists( OPUS_ROOT.'/.env' )) {
  	import_env_vars( OPUS_ROOT.'/.env' );
