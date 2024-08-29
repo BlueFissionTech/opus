@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/bluecore.git",
-                "reference": "f7c932a13bf9756f0688f6bf03594d1ac57a92fe"
+                "reference": "f22c00d1c922469935bc7fa3a7fa15e29c6ed576"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/bluecore/zipball/f7c932a13bf9756f0688f6bf03594d1ac57a92fe",
-                "reference": "f7c932a13bf9756f0688f6bf03594d1ac57a92fe",
+                "url": "https://api.github.com/repos/BlueFissionTech/bluecore/zipball/f22c00d1c922469935bc7fa3a7fa15e29c6ed576",
+                "reference": "f22c00d1c922469935bc7fa3a7fa15e29c6ed576",
                 "shasum": ""
             },
             "require": {
@@ -74,7 +74,7 @@
                 "source": "https://github.com/BlueFissionTech/bluecore/tree/main",
                 "issues": "https://github.com/BlueFissionTech/bluecore/issues"
             },
-            "time": "2024-08-22T13:01:41+00:00"
+            "time": "2024-08-23T03:42:05+00:00"
         },
         {
             "name": "bluefission/develation",

@@ -9,11 +9,11 @@ use BlueFission\Utils\Loader;
 use BlueFission\Utils\Util;
 use BlueFission\BlueCore\Engine as App;
 
-require '../common/config/settings.php';
 // Require the autoloader for composer-based dependencies
 require '../vendor/autoload.php';
-// Require the autoloader for non-composer based scripts
+require '../common/config/settings.php';
 
+// Require the autoloader for non-composer based scripts
 // Initialize the Loader utility for non-composer compatible scripts
 $loader = Loader::instance();
 $loader->addPath(dirname(getcwd()));
