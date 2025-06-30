@@ -29,13 +29,13 @@ var ModuleDashboard = function() {
 					data: [1602, 1253, 2465, 541],
 					backgroundColor: [
 						"#E8EAED",
-						window.theme.warning,
-						window.theme.primary,
-						window.theme.danger
+						window.cssVariables.warning,
+						window.cssVariables.primary,
+						window.cssVariables.danger
 					],
 					borderWidth: 5,
 					borderColor: "transparent"
-					// borderColor: window.theme.white
+					// borderColor: window.cssVariables.white
 				}]
 			},
 			options: {
@@ -54,19 +54,19 @@ var ModuleDashboard = function() {
 	      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
 	      datasets: [{
 	        label: "Last year",
-	        backgroundColor: window.theme.primary,
-	        borderColor: window.theme.primary,
-	        hoverBackgroundColor: window.theme.primary,
-	        hoverBorderColor: window.theme.primary,
+	        backgroundColor: window.cssVariables.primary,
+	        borderColor: window.cssVariables.primary,
+	        hoverBackgroundColor: window.cssVariables.primary,
+	        hoverBorderColor: window.cssVariables.primary,
 	        data: [54, 67, 41, 55, 62, 45, 55, 73, 60, 76, 48, 79],
 	        barPercentage: .325,
 	        categoryPercentage: .5
 	      }, {
 	        label: "This year",
-	        backgroundColor: window.theme["primary-light"],
-	        borderColor: window.theme["primary-light"],
-	        hoverBackgroundColor: window.theme["primary-light"],
-	        hoverBorderColor: window.theme["primary-light"],
+	        backgroundColor: window.cssVariables["primary-light"],
+	        borderColor: window.cssVariables["primary-light"],
+	        hoverBackgroundColor: window.cssVariables["primary-light"],
+	        hoverBorderColor: window.cssVariables["primary-light"],
 	        data: [69, 66, 24, 48, 52, 51, 44, 53, 62, 79, 51, 68],
 	        barPercentage: .325,
 	        categoryPercentage: .5
@@ -104,7 +104,7 @@ var ModuleDashboard = function() {
         init: function () {
         	
 					drawCharts();
-					feather.replace();
+					// feather.replace();
 					// onFirstLoad();
 
         }

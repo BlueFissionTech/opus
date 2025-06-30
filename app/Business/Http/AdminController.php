@@ -13,6 +13,8 @@ class AdminController extends Service {
     {
         $auth = new Authenticator( $session, $datasource );
 
+        // die(var_dump($auth->isAuthenticated()));
+
         if ( $auth->isAuthenticated() ) {
             // globals('sideNav', $navMenuManager->renderMenu('sideNav'));
             $navMenuManager = instance('nav');

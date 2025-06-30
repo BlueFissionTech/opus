@@ -23,12 +23,23 @@
         {
             "type": "vcs",
             "url": "https://github.com/bluefissiontech/bluecore"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/automata"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/simpleclients"
         }
     ],
     "require": {
         "php": "^8.0",
         "bluefission/bluecore": "dev-main",
         "bluefission/develation": "^1.0.0-alpha",
+        "bluefission/simpleclients": "dev-master",
+        "bluefission/automata": "dev-master",
+        "fakerphp/faker": "^1.24",
         "php-http/discovery": "^1.19"
     },
     "require-dev": {
@@ -40,8 +51,8 @@
         "sort-packages": true,
         "allow-plugins": {
             "composer/installers": true,
-            "bluefission/bluecore": true,
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "bluefission/bluecore": true
         }
     },
     "autoload": {

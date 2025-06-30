@@ -22,7 +22,6 @@ ini_set("error_log", OPUS_ROOT."/storage/error.log");
 error_reporting(E_ALL);
 set_time_limit(3000);
 
-
 if(file_exists( OPUS_ROOT.'/.env' )) {
  	import_env_vars( OPUS_ROOT.'/.env' );
 }

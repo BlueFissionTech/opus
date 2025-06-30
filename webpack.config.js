@@ -50,7 +50,7 @@ module.exports = {
     main: "./resource/src/js/pages/admin/main.js",
     'login-page': "./resource/src/js/modules/app/login-page.js",
     'module-dashboard': "./resource/src/js/modules/app/module-dashboard.js",
-    'module-dashboard': "./resource/src/js/modules/app/module-dashboard.js",
+    // 'module-dashboard': "./resource/src/js/modules/app/module-dashboard.js",
     'module-user': "./resource/src/js/modules/app/module-user.js",
     'module-addons': "./resource/src/js/modules/app/module-addons.js",
     'module-terminal': "./resource/src/js/modules/app/module-terminal.js",

@@ -22,12 +22,12 @@ $app->register('database', 'delta', 'runMigrations');
 $app->register('database', 'revert', 'revertMigrations');
 $app->register('database', 'populate', 'populate');
 
-$app->delegate('addons', AddOnManager::class);
-$app->register('addons', 'install', 'install');
-$app->register('addons', 'uninstall', 'uninstall');
-$app->register('addons', 'activate', 'activate');
-$app->register('addons', 'deactivate', 'deactivate');
-$app->register('addons', 'show', 'showAll');
+$app->delegate('addon', AddOnManager::class);
+$app->register('addon', 'install', 'install');
+$app->register('addon', 'uninstall', 'uninstall');
+$app->register('addon', 'activate', 'activate');
+$app->register('addon', 'deactivate', 'deactivate');
+$app->register('addon', 'show', 'showAll');
 
 // $app->delegate('code', CodeManager::class );
 // $app->register('code', 'generate', 'generate');

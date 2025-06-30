@@ -8,6 +8,22 @@ import "./modules/lucide";
 import "./modules/sidebar";
 import "./modules/theme-toggle";
 
+// API and Endpoints
+import BlueFissionAPI from "./modules/app/bluefission-api.js";
+
+// Dashboard UI (requires jQuery)
+import DashboardUI from "./modules/dashboard-ui/dashboard-ui.js";
+import "./modules/dashboard-ui/dashboard-form.js";
+import "./modules/dashboard-ui/record-set.js";
+import "./modules/dashboard-ui/dashboard-response.js";
+import "./modules/dashboard-ui/dashboard-storage.js";
+import "./modules/dashboard-ui/dashboard-module.js";
+import "./modules/dashboard-ui/portlet-ui.js";
+import "./modules/dashboard-ui/convert-colors.js";
+
+// Framework utils
+import { computed, get, set, assign } from "./modules/scripts/reactive_template.js";
+
 // Common (optional)
 import "./modules/moment";
 import "./modules/dragula";
@@ -32,3 +48,15 @@ import "./modules/vector-maps";
 
 // Tables (optional)
 import "./modules/datatables"; // requires jQuery
+
+const App = {
+  api: BlueFissionAPI,
+  ui: DashboardUI,
+  get: get,
+  set: set,
+  assign: assign,
+  computed: computed,
+};
+
+window.app = App;
+export default App;

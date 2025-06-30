@@ -39,7 +39,7 @@ var ModuleAddOns = function() {
 
 	var ready = function() {
 		$('#addon-edit-screen').hide();
-		feather.replace();
+		// feather.replace();
 	};
 	
 	var showEditScreen = function() {
