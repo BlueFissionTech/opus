@@ -35,12 +35,13 @@
     ],
     "require": {
         "php": "^8.0",
-        "bluefission/bluecore": "dev-main",
-        "bluefission/develation": "^1.0.0-alpha",
-        "bluefission/simpleclients": "dev-master",
         "bluefission/automata": "dev-master",
+        "bluefission/bluecore": "dev-main",
+        "bluefission/develation": "^1.1.1-alpha",
+        "bluefission/simpleclients": "dev-master",
         "fakerphp/faker": "^1.24",
-        "php-http/discovery": "^1.19"
+        "php-http/discovery": "^1.19",
+        "symfony/http-client": "^7.3"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5"

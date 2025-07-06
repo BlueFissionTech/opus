@@ -25,6 +25,11 @@ function BlueFissionCrud( endpoint ) {
 		}
 		return processed;
 	};
+
+	this.call = function(endpoint, data, callback, method = 'GET') {
+		endpoint = _endpoint + '/' + endpoint;
+		this._transaction(endpoint, data, method, callback);
+	};
 	
 	this.list = function(callback) {
 		var data = {};

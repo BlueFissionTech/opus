@@ -99,6 +99,8 @@ class AppRegistration implements IExtension {
 		$this->bindArgs( ['session'=>new Session()], 'BlueFission\BlueCore\Auth');
 
 		$this->bindArgs( ['config'=>$this->configuration('database')['mysql']], 'BlueFission\Connections\Database\MySQLLink');
+
+		$this->bindArgs( ['link'=>\App::makeInstance('BlueFission\Connections\Database\MySQLLink'), 'storage'=>\App::makeInstance('BlueFission\Data\Storage\MySQLBulk')], 'BlueFission\BlueCore\Business\Managers\DatasourceManager');
 		
 		$this->bindArgs( ['storage'=>new Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');
 	}

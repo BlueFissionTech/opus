@@ -8,6 +8,16 @@ use BlueFission\Data\Storage\Structure\MySQLScaffold as Scaffold;
 class ScaffoldFrameworkTables extends Delta
 {
 	public function change() {
+		Scaffold::create('migrations', function( Structure $entity ) {
+			$entity->incrementer('migration_id');
+			$entity->text('name')->unique();
+			$entity->text('batch');
+			$entity->numeric('iteration');
+			$entity->numeric('status')->default(0);
+			$entity->timestamps();
+			$entity->comment("The table holding the migration history for the application.");
+		});
+		
 		Scaffold::create('users', function( Structure $entity ) {
 			$entity->incrementer('user_id');
 			$entity->text('realname');
@@ -54,5 +64,6 @@ class ScaffoldFrameworkTables extends Delta
 		Scaffold::delete('credentials');
 		Scaffold::delete('credential_statuses');
 		Scaffold::delete('users');
+		Scaffold::delete('migrations');
 	}
 }
