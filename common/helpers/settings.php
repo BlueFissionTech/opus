@@ -7,7 +7,7 @@ if (!defined("APP_ROOT") ){
 	define('APP_ROOT', dirname(dirname(dirname(__FILE__))).'/');	
 }
 if (!defined("PROJECT_ROOT") ){
-	define('PROJECT_ROOT', APP_ROOT . 'project');
+	define('PROJECT_ROOT', APP_ROOT . 'core');
 }
 if (!defined("SITE_ROOT") ){
 	define('SITE_ROOT', APP_ROOT.'public');	

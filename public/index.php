@@ -12,7 +12,7 @@ use BlueFission\BlueCore\Engine as App;
 // Require the autoloader for composer-based dependencies
 require '../vendor/autoload.php';
 require '../common/helpers/functions.php';
-require '../common/config/settings.php';
+require '../common/helpers/settings.php';
 
 // Require the autoloader for non-composer based scripts
 // Initialize the Loader utility for non-composer compatible scripts
