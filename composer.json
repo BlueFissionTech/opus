@@ -1,7 +1,7 @@
 {
     "name": "bluefission/opus",
-    "type": "project",
-    "description": "Opus - The Blue Fission Platform Framework.",
+    "type": "library",
+    "description": "Opus - The Blue Fission Development Platform.",
     "keywords": [
         "opus",
         "eidolon"
