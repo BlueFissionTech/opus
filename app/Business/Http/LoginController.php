@@ -13,7 +13,7 @@ class LoginController extends Service {
 
     public function login( )
     {
-        return template('app/ezdatta', 'login.html');
+        return template('app/ezdatta', 'login.html', ['app_name'=>env('APP_NAME')]);
     }
 
     public function registration( )

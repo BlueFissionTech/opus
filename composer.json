@@ -58,13 +58,19 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\": "app/"
+            "App\\": "app/",
+            "BlueFission\\": "core/"
         }
     },
     "autoload-dev": {
         "psr-4": {
             "Tests\\": "tests/"
         }
+    },
+    "archive": {
+      "exclude": [
+        ".babelrc"
+      ]
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

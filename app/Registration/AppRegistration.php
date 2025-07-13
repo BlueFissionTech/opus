@@ -100,6 +100,9 @@ class AppRegistration implements IExtension {
 
 		$this->bindArgs( ['config'=>$this->configuration('database')['mysql']], 'BlueFission\Connections\Database\MySQLLink');
 
+		$this->bindArgs( ['apiKey'=>$this->configuration('ai')['openai']['apiKey']], 'BlueFission\Automata\LLM\Connectors\OpenAI');
+
+
 		$this->bindArgs( ['link'=>\App::makeInstance('BlueFission\Connections\Database\MySQLLink'), 'storage'=>\App::makeInstance('BlueFission\Data\Storage\MySQLBulk')], 'BlueFission\BlueCore\Business\Managers\DatasourceManager');
 		
 		$this->bindArgs( ['storage'=>new Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');

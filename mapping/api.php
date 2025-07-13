@@ -2,12 +2,12 @@
 use BlueFission\Services\Mapping;
 
 // Users
-Mapping::add('/api/users/$user_id', ['App\Business\Api\UserController', 'find'], 'api.users.find', 'get')->gateway('auth');
+Mapping::add('/api/users/$user_id', ['App\Business\Http\Api\UserController', 'find'], 'api.users.find', 'get')->gateway('auth');
 
 Mapping::add('/api/chat', ['App\Business\Http\Api\ChatController', 'send'], 'api.chat', 'post')->gateway('nocsrf');
 
 
-Mapping::add('/login', ['App\Business\Http\Api\AuthenticationController', 'login'], 'api.login', 'post');
+Mapping::add('/login', ['App\Business\Http\Api\AuthenticationController', 'login'], 'api.login', 'post')->gateway('nocsrf');
 Mapping::add('/logout', ['App\Business\Http\Api\AuthenticationController', 'logout'], 'api.logout', 'post')->gateway('auth');
 
 ///

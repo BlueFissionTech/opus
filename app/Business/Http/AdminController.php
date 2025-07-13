@@ -19,9 +19,9 @@ class AdminController extends Service {
             // globals('sideNav', $navMenuManager->renderMenu('sideNav'));
             $navMenuManager = instance('nav');
             $sideNav = $navMenuManager->renderMenu('sidebar');
-            return template('admin', 'default.html', ['csrf_token'=>store('_token'), 'side-nav'=>$sideNav, 'title'=>env('APP_NAME')." Admin"]);
+            return template('admin', 'default.html', ['csrf_token'=>store('_token'), 'side-nav'=>$sideNav, 'app_name' => env('APP_NAME'), 'title'=>env('APP_NAME')." Admin"]);
         } else {
-            return template('admin', 'login.html', ['csrf_token'=>store('_token')]);
+            return template('admin', 'login.html', ['csrf_token'=>store('_token'), 'app_name' => env('APP_NAME')]);
         }
     }
 
