@@ -1,6 +1,6 @@
 {
     "name": "bluefission/opus",
-    "type": "library",
+    "type": "opus-project",
     "description": "Opus - The Blue Fission Development Platform.",
     "keywords": [
         "opus",
