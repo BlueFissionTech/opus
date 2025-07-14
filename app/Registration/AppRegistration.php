@@ -52,7 +52,7 @@ class AppRegistration implements IExtension {
 	 * Initialize the registrations
 	 */
 	public function init() {
-		$this->webRoot(SITE_ROOT);
+		$this->_app->webRoot(SITE_ROOT);
 		$this->bindings();
 		$this->arguments();
 		$this->registrations();
