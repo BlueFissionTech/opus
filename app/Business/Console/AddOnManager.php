@@ -28,6 +28,12 @@ class AddOnManager extends Service
         echo "Installation completed with status: $status\n";
     }
 
+    public function install_all()
+    {
+        $status = $this->_addonManager->installAll();
+        echo "Installation of all addons completed with status: $status\n";
+    }
+
     public function uninstall($behavior)
     {
         $addonName = $behavior?->context['data'] ?? null;
@@ -64,6 +70,12 @@ class AddOnManager extends Service
 
         $status = $this->_addonManager->activate($addon->addon_id);
         echo "Activation completed with status: $status\n";
+    }
+
+    public function activate_all()
+    {
+        $status = $this->_addonManager->activateAll();
+        echo "Activation of all addons completed with status: $status\n";
     }
 
     public function deactivate($behavior)
