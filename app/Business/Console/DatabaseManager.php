@@ -25,8 +25,13 @@ class DatabaseManager extends Service implements IDispatcher {
 		$deltas = $this->_mgr->revertMigrations();
 	}
 
-	public function populate()
+	public function populate( $args )
 	{
-		$this->_mgr->populate();
+		$arg = $args->context['data'] ?: null;
+		$auto = false;
+		if ($arg == 'auto') {
+			$auto = true;
+		}
+		$this->_mgr->populate($auto);
 	}
 }
