@@ -18,6 +18,8 @@ require '../common/helpers/settings.php';
 // Initialize the Loader utility for non-composer compatible scripts
 $loader = Loader::instance();
 $loader->addPath(dirname(getcwd()));
+$loader->addPath(dirname(getcwd()).DIRECTORY_SEPARATOR."core");
+$loader->addPath(dirname(getcwd()).DIRECTORY_SEPARATOR."mod");
 $loader->addPath(dirname(getcwd()).DIRECTORY_SEPARATOR."app");
 
 // Start a session

@@ -23,6 +23,8 @@ require 'vendor/autoload.php';
 // Loader utility for non-composer compatible scripts
 $loader = Loader::instance();
 $loader->addPath(getcwd());
+$loader->addPath(getcwd().DIRECTORY_SEPARATOR."core");
+$loader->addPath(getcwd().DIRECTORY_SEPARATOR."mod");
 $loader->addPath(getcwd().DIRECTORY_SEPARATOR."app");
 
 /**

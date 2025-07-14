@@ -10,7 +10,7 @@ use App\Domain\User\CredentialStatus;
 
 class InitialUserData extends Generator
 {
-	public function populate() {
+	public function populate($auto = false) {
 		$statuses = [
 			'Unverified'=>CredentialStatus::UNVERIFIED,
 			'Verified'=>CredentialStatus::VERIFIED,
@@ -33,8 +33,8 @@ class InitialUserData extends Generator
 		$status->name = CredentialStatus::VERIFIED;
 		$status->read();
 
-		$password = Str::rand(null, 16, true);
-		if ( defined('STDIN') ) {
+		$password = env('DEFAULT_PASSWORD', Str::rand(null, 16, true));
+		if ( defined('STDIN') && !$auto ) {
 			$password = prompt_silent("Enter an admin password: ");
 		}
 
