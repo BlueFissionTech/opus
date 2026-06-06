@@ -4,6 +4,7 @@ use App\Business\Console\CliManager;
 use App\Business\Console\UserManager;
 use App\Business\Console\DatabaseManager;
 use App\Business\Console\AddOnManager;
+use App\Business\Console\RuntimeContractManager;
 
 if ( !defined('STDIN') ) return;
 
@@ -28,6 +29,11 @@ $app->register('addon', 'uninstall', 'uninstall');
 $app->register('addon', 'activate', 'activate');
 $app->register('addon', 'deactivate', 'deactivate');
 $app->register('addon', 'show', 'showAll');
+
+$app->delegate('contract', RuntimeContractManager::class);
+$app->register('contract', 'proof', 'proof');
+$app->register('contract', 'targets', 'targets');
+$app->register('contract', 'validate', 'validate');
 
 // $app->delegate('code', CodeManager::class );
 // $app->register('code', 'generate', 'generate');

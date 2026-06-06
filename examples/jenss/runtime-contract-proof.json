@@ -1,0 +1,54 @@
+{
+  "name": "opus-runtime-contract-proof",
+  "description": "Source-first scripts for package-neutral Opus runtime contracts.",
+  "runtime": "jenerator",
+  "fixture": "examples/jenss/fixtures/opus-runtime-contract.json",
+  "scripts": [
+    {
+      "path": "examples/jenss/opus-runtime-host.jss",
+      "mode": "execute",
+      "required": true,
+      "capabilities": [
+        "develation.data.json",
+        "intelligence.domain",
+        "intelligence.statement",
+        "intelligence.comprehension"
+      ]
+    },
+    {
+      "path": "examples/jenss/opus-addon-lifecycle.jss",
+      "mode": "execute",
+      "required": true,
+      "capabilities": [
+        "intelligence.feedback",
+        "intelligence.statement"
+      ]
+    },
+    {
+      "path": "examples/jenss/opus-intelligence-feedback.jss",
+      "mode": "execute",
+      "required": true,
+      "capabilities": [
+        "intelligence.feedback",
+        "intelligence.goal"
+      ]
+    },
+    {
+      "path": "examples/jenss/targets/opus-resource-map-target.jss",
+      "mode": "parse",
+      "required": false,
+      "capabilities": [
+        "resource-map"
+      ]
+    },
+    {
+      "path": "examples/jenss/targets/opus-linqr-target.jss",
+      "mode": "parse",
+      "required": false,
+      "capabilities": [
+        "linqr-block",
+        "callable-linqr"
+      ]
+    }
+  ]
+}
