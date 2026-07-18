@@ -18,10 +18,6 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/bluefissiontech/develation"
-        },
-        {
-            "type": "vcs",
             "url": "https://github.com/bluefissiontech/bluecore"
         },
         {
@@ -30,14 +26,19 @@
         },
         {
             "type": "vcs",
+            "url": "https://github.com/bluefissiontech/chronicler"
+        },
+        {
+            "type": "vcs",
             "url": "https://github.com/bluefissiontech/simpleclients"
         }
     ],
     "require": {
-        "php": "^8.0",
-        "bluefission/automata": "dev-master",
+        "php": "^8.2",
+        "bluefission/automata": "v1.0.0-alpha.2 as dev-master",
         "bluefission/bluecore": "dev-main",
-        "bluefission/develation": "^1.1.1-alpha",
+        "bluefission/chronicler": "v0.1.2-alpha as dev-main",
+        "bluefission/develation": "v1.3.39 as dev-master",
         "bluefission/simpleclients": "dev-master",
         "fakerphp/faker": "^1.24",
         "php-http/discovery": "^1.19",
