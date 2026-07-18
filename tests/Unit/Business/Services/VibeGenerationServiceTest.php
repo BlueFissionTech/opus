@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Business\Services;
 
-use App\Business\Services\VibratoGenerationService;
+use App\Business\Services\VibeGenerationService;
 use PHPUnit\Framework\TestCase;
 
-class VibratoGenerationServiceTest extends TestCase
+class VibeGenerationServiceTest extends TestCase
 {
     public function testItValidatesVibeSyntax(): void
     {
-        $service = new VibratoGenerationService();
+        $service = new VibeGenerationService();
 
         $result = $service->validateSource('{#if ready}missing close');
 
@@ -21,7 +21,7 @@ class VibratoGenerationServiceTest extends TestCase
 
     public function testItRendersSourceThroughVibrato(): void
     {
-        $service = new VibratoGenerationService();
+        $service = new VibeGenerationService();
 
         $result = $service->renderSource('Opus kernel: {$kernel}', [
             'kernel' => 'Wise',
@@ -34,12 +34,12 @@ class VibratoGenerationServiceTest extends TestCase
 
     public function testItWritesRenderedFilesInsideWorkspace(): void
     {
-        $service = new VibratoGenerationService();
+        $service = new VibeGenerationService();
         $source = tempnam(sys_get_temp_dir(), 'opus-vibe-');
         $this->assertIsString($source);
         file_put_contents($source, 'Addon agent: {$agent}');
 
-        $target = 'tests/tmp/vibrato-generation-test.txt';
+        $target = 'tests/tmp/vibe-generation-test.txt';
         if (is_file($target)) {
             unlink($target);
         }

@@ -119,7 +119,7 @@ Acceptance criteria:
 - Added Vibrato, Wise, Presence, Synematic, and supporting Blue Fission
   repositories to the Composer graph.
 - Added Reactor to the npm graph.
-- Added `VibratoGenerationService` as the Opus-owned generation facade.
+- Added `VibeGenerationService` as the Opus-owned generation facade.
 - Updated `CodeManager` to use the Vibrato service instead of the incomplete
   scaffold factory placeholder.
 - Added focused PHPUnit coverage for Vibrato validation, rendering, and bounded

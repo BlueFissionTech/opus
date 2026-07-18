@@ -2,16 +2,16 @@
 
 namespace App\Business\Console;
 
-use App\Business\Services\VibratoGenerationService;
+use App\Business\Services\VibeGenerationService;
 use BlueFission\Services\Service;
 
 class CodeManager extends Service
 {
-    protected VibratoGenerationService $generationService;
+    protected VibeGenerationService $generationService;
 
-    public function __construct(?VibratoGenerationService $generationService = null)
+    public function __construct(?VibeGenerationService $generationService = null)
     {
-        $this->generationService = $generationService ?? new VibratoGenerationService();
+        $this->generationService = $generationService ?? new VibeGenerationService();
 
         parent::__construct();
     }

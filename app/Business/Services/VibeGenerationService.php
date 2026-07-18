@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Business\Services;
 
+use BlueFission\Arr;
 use BlueFission\Automata\LLM\Clients\IClient;
+use BlueFission\Data\FileSystem;
 use BlueFission\Services\Service;
+use BlueFission\Str;
 use BlueFission\Vibrato\Reader;
 use BlueFission\Vibrato\Validation\VibeSyntaxValidator;
 use InvalidArgumentException;
 use Throwable;
 
-class VibratoGenerationService extends Service
+class VibeGenerationService extends Service
 {
     private ?IClient $llmClient;
     private VibeSyntaxValidator $validator;
@@ -31,12 +34,12 @@ class VibratoGenerationService extends Service
 
     public function validateFile(string $path): array
     {
-        if (!is_file($path)) {
+        if (!FileSystem::fileExists($path)) {
             return $this->failure("Vibe source file was not found.");
         }
 
-        $source = file_get_contents($path);
-        if ($source === false) {
+        $source = FileSystem::fileContents($path);
+        if ($source === null) {
             return $this->failure("Vibe source file could not be read.");
         }
 
@@ -77,7 +80,7 @@ class VibratoGenerationService extends Service
 
     public function renderFile(string $path, array $variables = [], array $includePaths = [], array $options = []): array
     {
-        if (!is_file($path)) {
+        if (!FileSystem::fileExists($path)) {
             return $this->failure("Vibe source file was not found.") + [
                 'output' => '',
                 'variables' => [],
@@ -95,7 +98,7 @@ class VibratoGenerationService extends Service
         try {
             $includePaths[] = dirname($path);
 
-            $reader = $this->reader($variables, array_values(array_unique($includePaths)));
+            $reader = $this->reader($variables, Arr::make($includePaths)->unique()->values()->val());
             $reader->inputFile($path);
             $resolvedVariables = $reader->run([
                 'run_backend' => (bool)($options['run_backend'] ?? false),
@@ -127,14 +130,22 @@ class VibratoGenerationService extends Service
             $target = $this->resolveWorkspacePath($outputPath);
             $directory = dirname($target);
 
-            if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            if (!FileSystem::directoryExists($directory) && !mkdir($directory, 0775, true) && !FileSystem::directoryExists($directory)) {
                 return $this->failure("Rendered output directory could not be created.") + [
                     'output' => $result['output'],
                     'variables' => $result['variables'],
                 ];
             }
 
-            if (file_put_contents($target, $result['output']) === false) {
+            $file = new FileSystem([
+                'root' => $directory,
+                'mode' => 'w',
+                'filter' => 'file',
+                'doNotConfirm' => true,
+            ]);
+            $file->open((string)FileSystem::fileBasename($target))->contents($result['output'])->write()->close();
+
+            if (FileSystem::fileContents($target) !== $result['output']) {
                 return $this->failure("Rendered output file could not be written.") + [
                     'output' => $result['output'],
                     'variables' => $result['variables'],
@@ -194,46 +205,46 @@ class VibratoGenerationService extends Service
         $normalizedRoot = rtrim($this->normalizePath($root), '/') . '/';
         $normalizedTarget = $this->normalizePath($target);
 
-        if (!str_starts_with($normalizedTarget, $normalizedRoot)) {
+        if (!Str::startsWith($normalizedTarget, $normalizedRoot)) {
             throw new InvalidArgumentException("Output path must stay inside the application workspace.");
         }
 
-        return str_replace('/', DIRECTORY_SEPARATOR, $normalizedTarget);
+        return Str::replace($normalizedTarget, '/', DIRECTORY_SEPARATOR);
     }
 
     private function isAbsolutePath(string $path): bool
     {
-        return str_starts_with($path, DIRECTORY_SEPARATOR)
+        return Str::startsWith($path, DIRECTORY_SEPARATOR)
             || preg_match('/^[A-Za-z]:[\/\\\\]/', $path) === 1;
     }
 
     private function normalizePath(string $path): string
     {
-        $path = str_replace('\\', '/', $path);
+        $path = Str::replace($path, '\\', '/');
         $prefix = '';
 
         if (preg_match('/^[A-Za-z]:\//', $path) === 1) {
-            $prefix = substr($path, 0, 3);
-            $path = substr($path, 3);
-        } elseif (str_starts_with($path, '/')) {
+            $prefix = Str::sub($path, 0, 3);
+            $path = Str::sub($path, 3);
+        } elseif (Str::startsWith($path, '/')) {
             $prefix = '/';
-            $path = ltrim($path, '/');
+            $path = Str::make($path)->trim('/')->val();
         }
 
-        $segments = [];
-        foreach (explode('/', $path) as $segment) {
+        $segments = Arr::make([]);
+        foreach (Str::make($path)->split('/')->val() as $segment) {
             if ($segment === '' || $segment === '.') {
                 continue;
             }
 
             if ($segment === '..') {
-                array_pop($segments);
+                $segments->pop();
                 continue;
             }
 
-            $segments[] = $segment;
+            $segments->push($segment);
         }
 
-        return $prefix . implode('/', $segments);
+        return $prefix . $segments->join('/')->val();
     }
 }

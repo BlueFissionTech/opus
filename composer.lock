@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6882c3478845be46e99f003c0d40fc2a",
+    "content-hash": "a019d8c97e833237526b6a6ff7bc730f",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:BlueFissionTech/annex-php-sdk.git",
-                "reference": "e6380799871271dc558304ceb53de05daeff4b6a"
+                "reference": "68d109548791e8dd9d54b3fd8e3542495f0e5ee7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/annex-php-sdk/zipball/e6380799871271dc558304ceb53de05daeff4b6a",
-                "reference": "e6380799871271dc558304ceb53de05daeff4b6a",
+                "url": "https://api.github.com/repos/BlueFissionTech/annex-php-sdk/zipball/68d109548791e8dd9d54b3fd8e3542495f0e5ee7",
+                "reference": "68d109548791e8dd9d54b3fd8e3542495f0e5ee7",
                 "shasum": ""
             },
             "require": {
@@ -52,38 +52,39 @@
                 "source": "https://github.com/BlueFissionTech/annex-php-sdk/tree/main",
                 "issues": "https://github.com/BlueFissionTech/annex-php-sdk/issues"
             },
-            "time": "2026-06-24T15:45:25+00:00"
+            "time": "2026-06-27T01:27:16+00:00"
         },
         {
             "name": "bluefission/automata",
-            "version": "dev-master",
+            "version": "v1.0.0-alpha.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/automata.git",
-                "reference": "983867cbd9db0a737649fa4545aa42ab081f5bca"
+                "reference": "17c752c46720fe4bd43aae84864b9fa71f7c69a5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/automata/zipball/983867cbd9db0a737649fa4545aa42ab081f5bca",
-                "reference": "983867cbd9db0a737649fa4545aa42ab081f5bca",
+                "url": "https://api.github.com/repos/BlueFissionTech/automata/zipball/17c752c46720fe4bd43aae84864b9fa71f7c69a5",
+                "reference": "17c752c46720fe4bd43aae84864b9fa71f7c69a5",
                 "shasum": ""
             },
             "require": {
-                "bluefission/develation": "^1.2.0-alpha",
+                "bluefission/chronicler": "dev-main",
+                "bluefission/develation": "^1.3.39",
                 "bluefission/simpleclients": "dev-master",
                 "google-gemini-php/client": "dev-main",
+                "nyholm/psr7": "^1.8@dev",
                 "orhanerday/open-ai": "^2.2",
+                "php": ">=8.2",
                 "php-ai/php-ml": "^0.10.0",
                 "symfony/http-client": "^7.4@dev"
             },
             "require-dev": {
-                "php": ">=8.0.0",
                 "phpunit/phpunit": "^11.5"
             },
             "suggest": {
                 "ext-ds": "Improves performance for collection types (Deque, Map, Set, Stack, PriorityQueue, Vector). Optional; Automata falls back when absent."
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -121,10 +122,10 @@
                 "nlp"
             ],
             "support": {
-                "source": "https://github.com/BlueFissionTech/automata/tree/master",
+                "source": "https://github.com/BlueFissionTech/automata/tree/v1.0.0-alpha.2",
                 "issues": "https://github.com/BlueFissionTech/automata/issues"
             },
-            "time": "2026-06-23T22:19:02+00:00"
+            "time": "2026-07-08T21:36:31+00:00"
         },
         {
             "name": "bluefission/bluecore",
@@ -214,17 +215,68 @@
             "time": "2026-06-25T02:26:38+00:00"
         },
         {
-            "name": "bluefission/develation",
-            "version": "dev-master",
+            "name": "bluefission/chronicler",
+            "version": "v0.1.2-alpha",
             "source": {
                 "type": "git",
-                "url": "https://github.com/BlueFissionTech/develation.git",
-                "reference": "5ed8613af223394421edb36781cf8d2e0a750f5d"
+                "url": "https://github.com/BlueFissionTech/chronicler.git",
+                "reference": "450582e557a86cdf049e1bf6c324ac30d286c49e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/develation/zipball/5ed8613af223394421edb36781cf8d2e0a750f5d",
-                "reference": "5ed8613af223394421edb36781cf8d2e0a750f5d",
+                "url": "https://api.github.com/repos/BlueFissionTech/chronicler/zipball/450582e557a86cdf049e1bf6c324ac30d286c49e",
+                "reference": "450582e557a86cdf049e1bf6c324ac30d286c49e",
+                "shasum": ""
+            },
+            "require": {
+                "bluefission/develation": "^1.3.39",
+                "ext-json": "*",
+                "php": ">=8.2"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^10.5"
+            },
+            "suggest": {
+                "ext-ds": "Provides native Vector, Set, Map, Deque, Stack, and PriorityQueue backing stores for root data-structure primitives."
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "BlueFission\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "BlueFission\\Chronicler\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/phpunit --do-not-cache-result"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "DevElation-oriented storage objects, connectors, and query helpers for Kafka, Neo4j, GraphQL, and related data systems.",
+            "support": {
+                "source": "https://github.com/BlueFissionTech/chronicler/tree/v0.1.2-alpha",
+                "issues": "https://github.com/BlueFissionTech/chronicler/issues"
+            },
+            "time": "2026-07-08T17:16:34+00:00"
+        },
+        {
+            "name": "bluefission/develation",
+            "version": "v1.3.39",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/BlueFissionTech/develation.git",
+                "reference": "ee0a240d2d0cff2f15cb243411e2f1e7d0c0b2c1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/BlueFissionTech/develation/zipball/ee0a240d2d0cff2f15cb243411e2f1e7d0c0b2c1",
+                "reference": "ee0a240d2d0cff2f15cb243411e2f1e7d0c0b2c1",
                 "shasum": ""
             },
             "require": {
@@ -242,9 +294,11 @@
             "suggest": {
                 "cboden/ratchet": "Install to use the optional BlueFission\\Async\\Sock Ratchet websocket transport."
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
+                "files": [
+                    "src/functions.php"
+                ],
                 "psr-4": {
                     "BlueFission\\": "src"
                 },
@@ -252,11 +306,7 @@
                     "src/"
                 ]
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "BlueFission\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -268,20 +318,24 @@
                     "role": "Developer"
                 }
             ],
-            "description": "Core Framework for BlueFission.com internal PHP Projects",
+            "description": "DevElation primitives, behaviors, data, service, and framework utilities for Blue Fission PHP projects",
             "homepage": "https://github.com/BlueFissionTech/develation",
             "keywords": [
+                "behaviors",
                 "bluefission",
-                "core",
+                "data",
                 "develation",
                 "framework",
-                "php"
+                "materia",
+                "php",
+                "primitives",
+                "services"
             ],
             "support": {
                 "issues": "https://github.com/BlueFissionTech/develation/issues",
                 "source": "https://github.com/BlueFissionTech/develation"
             },
-            "time": "2026-06-25T00:36:03+00:00"
+            "time": "2026-07-05T19:08:43+00:00"
         },
         {
             "name": "bluefission/jenerator",
@@ -506,24 +560,28 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/simpleclients.git",
-                "reference": "858ea3575b5eb725879c0066d152e07538019392"
+                "reference": "94e4ff1bb3ac19e52d2de753a787a045d2744688"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/simpleclients/zipball/858ea3575b5eb725879c0066d152e07538019392",
-                "reference": "858ea3575b5eb725879c0066d152e07538019392",
+                "url": "https://api.github.com/repos/BlueFissionTech/simpleclients/zipball/94e4ff1bb3ac19e52d2de753a787a045d2744688",
+                "reference": "94e4ff1bb3ac19e52d2de753a787a045d2744688",
                 "shasum": ""
             },
             "require": {
                 "bluefission/develation": "^1.0.0-alpha",
+                "php": ">=8.2",
                 "simplehtmldom/simplehtmldom": "^2.0@RC"
             },
             "require-dev": {
-                "php": ">=8.0.0",
-                "phpunit/phpunit": "^11.1@dev"
+                "phpunit/phpunit": "^11.5"
+            },
+            "suggest": {
+                "bluefission/automata": "Enables Automata-backed LLM provider clients such as OpenAIClient.",
+                "gemini-api-php/client": "Provide a Gemini SDK implementation when using GoogleGeminiClient without an injected test double."
             },
             "default-branch": true,
-            "type": "package",
+            "type": "library",
             "autoload": {
                 "psr-4": {
                     "BlueFission\\": "src/"
@@ -543,7 +601,7 @@
                     "role": "Developer"
                 }
             ],
-            "description": "Simple Client Wrappers For BlueFission",
+            "description": "Simple client wrappers for Blue Fission provider integrations",
             "keywords": [
                 "api",
                 "clients",
@@ -554,7 +612,7 @@
                 "source": "https://github.com/BlueFissionTech/simpleclients/tree/master",
                 "issues": "https://github.com/BlueFissionTech/simpleclients/issues"
             },
-            "time": "2026-06-22T02:58:21+00:00"
+            "time": "2026-07-06T00:26:29+00:00"
         },
         {
             "name": "bluefission/synematic",
@@ -562,12 +620,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:BlueFissionTech/synematic.git",
-                "reference": "b2ef58810c05dfad57b7591b546f9f76bbc1953f"
+                "reference": "ca21f4415a55b5662899c3a191a42e2d8f8d9873"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/synematic/zipball/b2ef58810c05dfad57b7591b546f9f76bbc1953f",
-                "reference": "b2ef58810c05dfad57b7591b546f9f76bbc1953f",
+                "url": "https://api.github.com/repos/BlueFissionTech/synematic/zipball/ca21f4415a55b5662899c3a191a42e2d8f8d9873",
+                "reference": "ca21f4415a55b5662899c3a191a42e2d8f8d9873",
                 "shasum": ""
             },
             "require": {
@@ -604,7 +662,7 @@
                 "source": "https://github.com/BlueFissionTech/synematic/tree/main",
                 "issues": "https://github.com/BlueFissionTech/synematic/issues"
             },
-            "time": "2026-06-25T00:33:02+00:00"
+            "time": "2026-07-06T03:36:00+00:00"
         },
         {
             "name": "bluefission/synthetiq",
@@ -612,12 +670,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:BlueFissionTech/synthetiq.git",
-                "reference": "c1632ccb353827bc5fbda3b7fbca6a1cabffe466"
+                "reference": "790e7671b43eeba7c4a46de3bd120ebd17435c91"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/synthetiq/zipball/c1632ccb353827bc5fbda3b7fbca6a1cabffe466",
-                "reference": "c1632ccb353827bc5fbda3b7fbca6a1cabffe466",
+                "url": "https://api.github.com/repos/BlueFissionTech/synthetiq/zipball/790e7671b43eeba7c4a46de3bd120ebd17435c91",
+                "reference": "790e7671b43eeba7c4a46de3bd120ebd17435c91",
                 "shasum": ""
             },
             "require": {
@@ -668,7 +726,7 @@
                 "source": "https://github.com/BlueFissionTech/synthetiq/tree/main",
                 "issues": "https://github.com/BlueFissionTech/synthetiq/issues"
             },
-            "time": "2026-06-26T19:14:51+00:00"
+            "time": "2026-06-26T22:44:42+00:00"
         },
         {
             "name": "bluefission/vibrato",
@@ -739,12 +797,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/wise.git",
-                "reference": "19127a9a4718cf1904ccbfd6ba98526ce97e9391"
+                "reference": "8c2131a49d87ca978e885b2a596108333b729bd8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/wise/zipball/19127a9a4718cf1904ccbfd6ba98526ce97e9391",
-                "reference": "19127a9a4718cf1904ccbfd6ba98526ce97e9391",
+                "url": "https://api.github.com/repos/BlueFissionTech/wise/zipball/8c2131a49d87ca978e885b2a596108333b729bd8",
+                "reference": "8c2131a49d87ca978e885b2a596108333b729bd8",
                 "shasum": ""
             },
             "require": {
@@ -816,7 +874,7 @@
                 "source": "https://github.com/BlueFissionTech/wise/tree/main",
                 "issues": "https://github.com/BlueFissionTech/wise/issues"
             },
-            "time": "2026-06-25T17:38:02+00:00"
+            "time": "2026-06-26T22:46:55+00:00"
         },
         {
             "name": "brick/math",
@@ -1485,16 +1543,16 @@
         },
         {
             "name": "google/cloud-core",
-            "version": "v1.72.3",
+            "version": "v1.72.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/google-cloud-php-core.git",
-                "reference": "2be1708d7a1f425551ec420e96f17cdbd0962497"
+                "reference": "d46317d5a9e779189513f89bfc3e4e9364b5eaf2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/google-cloud-php-core/zipball/2be1708d7a1f425551ec420e96f17cdbd0962497",
-                "reference": "2be1708d7a1f425551ec420e96f17cdbd0962497",
+                "url": "https://api.github.com/repos/googleapis/google-cloud-php-core/zipball/d46317d5a9e779189513f89bfc3e4e9364b5eaf2",
+                "reference": "d46317d5a9e779189513f89bfc3e4e9364b5eaf2",
                 "shasum": ""
             },
             "require": {
@@ -1546,9 +1604,9 @@
             ],
             "description": "Google Cloud PHP shared dependency, providing functionality useful to all components.",
             "support": {
-                "source": "https://github.com/googleapis/google-cloud-php-core/tree/v1.72.3"
+                "source": "https://github.com/googleapis/google-cloud-php-core/tree/v1.72.4"
             },
-            "time": "2026-06-17T23:07:32+00:00"
+            "time": "2026-07-07T16:28:46+00:00"
         },
         {
             "name": "google/cloud-language",
@@ -1668,21 +1726,21 @@
         },
         {
             "name": "google/gax",
-            "version": "v1.43.2",
+            "version": "v1.45.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/gax-php.git",
-                "reference": "274943381e30ec88aea9f486de27a11054ee27fb"
+                "reference": "9310034e6fcf94ff1e71d54204720d6607751bff"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/gax-php/zipball/274943381e30ec88aea9f486de27a11054ee27fb",
-                "reference": "274943381e30ec88aea9f486de27a11054ee27fb",
+                "url": "https://api.github.com/repos/googleapis/gax-php/zipball/9310034e6fcf94ff1e71d54204720d6607751bff",
+                "reference": "9310034e6fcf94ff1e71d54204720d6607751bff",
                 "shasum": ""
             },
             "require": {
-                "google/auth": "^1.49",
-                "google/common-protos": "^4.4",
+                "google/auth": "^1.52",
+                "google/common-protos": "^4.9",
                 "google/grpc-gcp": "^0.4",
                 "google/longrunning": "~0.4",
                 "google/protobuf": "^4.31||^5.34",
@@ -1726,9 +1784,9 @@
             ],
             "support": {
                 "issues": "https://github.com/googleapis/gax-php/issues",
-                "source": "https://github.com/googleapis/gax-php/tree/v1.43.2"
+                "source": "https://github.com/googleapis/gax-php/tree/v1.45.0"
             },
-            "time": "2026-06-17T23:07:32+00:00"
+            "time": "2026-07-17T19:39:21+00:00"
         },
         {
             "name": "google/grpc-gcp",
@@ -1927,16 +1985,16 @@
         },
         {
             "name": "grpc/grpc",
-            "version": "1.81.0",
+            "version": "1.82.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/grpc/grpc-php.git",
-                "reference": "47046d6b2a6cc7e68806a287d6a1fee57e0c40da"
+                "reference": "be984cb608f21e96453b3cfe54c748cc7b192250"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/grpc/grpc-php/zipball/47046d6b2a6cc7e68806a287d6a1fee57e0c40da",
-                "reference": "47046d6b2a6cc7e68806a287d6a1fee57e0c40da",
+                "url": "https://api.github.com/repos/grpc/grpc-php/zipball/be984cb608f21e96453b3cfe54c748cc7b192250",
+                "reference": "be984cb608f21e96453b3cfe54c748cc7b192250",
                 "shasum": ""
             },
             "require": {
@@ -1965,28 +2023,28 @@
                 "rpc"
             ],
             "support": {
-                "source": "https://github.com/grpc/grpc-php/tree/v1.81.0"
+                "source": "https://github.com/grpc/grpc-php/tree/v1.82.0"
             },
-            "time": "2026-05-20T09:30:50+00:00"
+            "time": "2026-07-03T09:39:53+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "7.12.3",
+            "version": "7.15.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "9aa17bcdd777ee31df9fc83c337ca4ca2340def3"
+                "reference": "61443dfb33c62f308ee8add20f45b4d6e4bf8d2f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/9aa17bcdd777ee31df9fc83c337ca4ca2340def3",
-                "reference": "9aa17bcdd777ee31df9fc83c337ca4ca2340def3",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/61443dfb33c62f308ee8add20f45b4d6e4bf8d2f",
+                "reference": "61443dfb33c62f308ee8add20f45b4d6e4bf8d2f",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "guzzlehttp/promises": "^2.5",
-                "guzzlehttp/psr7": "^2.12.3",
+                "guzzlehttp/promises": "^2.5.1",
+                "guzzlehttp/psr7": "^2.13",
                 "php": "^7.2.5 || ^8.0",
                 "psr/http-client": "^1.0",
                 "symfony/deprecation-contracts": "^2.5 || ^3.0",
@@ -1998,8 +2056,8 @@
             "require-dev": {
                 "bamarni/composer-bin-plugin": "^1.8.2",
                 "ext-curl": "*",
-                "guzzle/client-integration-tests": "3.0.2",
-                "guzzlehttp/test-server": "^0.5.1",
+                "guzzle/client-integration-tests": "3.0.3",
+                "guzzlehttp/test-server": "^0.7",
                 "php-http/message-factory": "^1.1",
                 "phpunit/phpunit": "^8.5.52 || ^9.6.34",
                 "psr/log": "^1.1 || ^2.0 || ^3.0"
@@ -2079,7 +2137,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
-                "source": "https://github.com/guzzle/guzzle/tree/7.12.3"
+                "source": "https://github.com/guzzle/guzzle/tree/7.15.1"
             },
             "funding": [
                 {
@@ -2095,20 +2153,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-23T15:29:02+00:00"
+            "time": "2026-07-18T11:23:11+00:00"
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "2.5.0",
+            "version": "2.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "4360e982f87f5f258bf872d094647791db2f4c8e"
+                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/4360e982f87f5f258bf872d094647791db2f4c8e",
-                "reference": "4360e982f87f5f258bf872d094647791db2f4c8e",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/9ad1e4fc607446a055b95870c7f668e93b5cff29",
+                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29",
                 "shasum": ""
             },
             "require": {
@@ -2163,7 +2221,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
-                "source": "https://github.com/guzzle/promises/tree/2.5.0"
+                "source": "https://github.com/guzzle/promises/tree/2.5.1"
             },
             "funding": [
                 {
@@ -2179,20 +2237,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-02T12:23:43+00:00"
+            "time": "2026-07-08T15:48:39+00:00"
         },
         {
             "name": "guzzlehttp/psr7",
-            "version": "2.12.3",
+            "version": "2.13.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/psr7.git",
-                "reference": "7ec62dc3f44aa218487dbed81a9bf9bc647be55d"
+                "reference": "dad89620b7a6edb60c15858442eb2e408b45d8f4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/psr7/zipball/7ec62dc3f44aa218487dbed81a9bf9bc647be55d",
-                "reference": "7ec62dc3f44aa218487dbed81a9bf9bc647be55d",
+                "url": "https://api.github.com/repos/guzzle/psr7/zipball/dad89620b7a6edb60c15858442eb2e408b45d8f4",
+                "reference": "dad89620b7a6edb60c15858442eb2e408b45d8f4",
                 "shasum": ""
             },
             "require": {
@@ -2282,7 +2340,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/psr7/issues",
-                "source": "https://github.com/guzzle/psr7/tree/2.12.3"
+                "source": "https://github.com/guzzle/psr7/tree/2.13.0"
             },
             "funding": [
                 {
@@ -2298,7 +2356,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-23T15:21:08+00:00"
+            "time": "2026-07-16T22:23:49+00:00"
         },
         {
             "name": "maennchen/zipstream-php",
@@ -2587,6 +2645,84 @@
                 }
             ],
             "time": "2026-01-02T08:56:05+00:00"
+        },
+        {
+            "name": "nyholm/psr7",
+            "version": "1.8.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Nyholm/psr7.git",
+                "reference": "a71f2b11690f4b24d099d6b16690a90ae14fc6f3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Nyholm/psr7/zipball/a71f2b11690f4b24d099d6b16690a90ae14fc6f3",
+                "reference": "a71f2b11690f4b24d099d6b16690a90ae14fc6f3",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.2",
+                "psr/http-factory": "^1.0",
+                "psr/http-message": "^1.1 || ^2.0"
+            },
+            "provide": {
+                "php-http/message-factory-implementation": "1.0",
+                "psr/http-factory-implementation": "1.0",
+                "psr/http-message-implementation": "1.0"
+            },
+            "require-dev": {
+                "http-interop/http-factory-tests": "^0.9",
+                "php-http/message-factory": "^1.0",
+                "php-http/psr7-integration-tests": "^1.0",
+                "phpunit/phpunit": "^7.5 || ^8.5 || ^9.4",
+                "symfony/error-handler": "^4.4"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.8-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Nyholm\\Psr7\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Tobias Nyholm",
+                    "email": "tobias.nyholm@gmail.com"
+                },
+                {
+                    "name": "Martijn van der Ven",
+                    "email": "martijn@vanderven.se"
+                }
+            ],
+            "description": "A fast PHP7 implementation of PSR-7",
+            "homepage": "https://tnyholm.se",
+            "keywords": [
+                "psr-17",
+                "psr-7"
+            ],
+            "support": {
+                "issues": "https://github.com/Nyholm/psr7/issues",
+                "source": "https://github.com/Nyholm/psr7/tree/1.8.2"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/Zegnat",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nyholm",
+                    "type": "github"
+                }
+            ],
+            "time": "2024-09-09T07:06:30+00:00"
         },
         {
             "name": "orhanerday/open-ai",
@@ -2900,16 +3036,16 @@
         },
         {
             "name": "phpoffice/phpspreadsheet",
-            "version": "5.8.0",
+            "version": "5.9.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PHPOffice/PhpSpreadsheet.git",
-                "reference": "01964d92536edf1a3a874b9580a52824bebf6fbb"
+                "reference": "05e99ebf61238a70227b4d9cc02d0030d34f6339"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PHPOffice/PhpSpreadsheet/zipball/01964d92536edf1a3a874b9580a52824bebf6fbb",
-                "reference": "01964d92536edf1a3a874b9580a52824bebf6fbb",
+                "url": "https://api.github.com/repos/PHPOffice/PhpSpreadsheet/zipball/05e99ebf61238a70227b4d9cc02d0030d34f6339",
+                "reference": "05e99ebf61238a70227b4d9cc02d0030d34f6339",
                 "shasum": ""
             },
             "require": {
@@ -2931,7 +3067,7 @@
                 "maennchen/zipstream-php": "^2.1 || ^3.0",
                 "markbaker/complex": "^3.0",
                 "markbaker/matrix": "^3.0",
-                "php": "^8.1",
+                "php": "^8.2",
                 "psr/simple-cache": "^1.0 || ^2.0 || ^3.0"
             },
             "require-dev": {
@@ -2945,7 +3081,7 @@
                 "phpstan/phpstan": "^1.1 || ^2.0",
                 "phpstan/phpstan-deprecation-rules": "^1.0 || ^2.0",
                 "phpstan/phpstan-phpunit": "^1.0 || ^2.0",
-                "phpunit/phpunit": "^10.5",
+                "phpunit/phpunit": "^10.5 || ^11.0",
                 "squizlabs/php_codesniffer": "^3.7",
                 "tecnickcom/tcpdf": "^6.5"
             },
@@ -3003,9 +3139,9 @@
             ],
             "support": {
                 "issues": "https://github.com/PHPOffice/PhpSpreadsheet/issues",
-                "source": "https://github.com/PHPOffice/PhpSpreadsheet/tree/5.8.0"
+                "source": "https://github.com/PHPOffice/PhpSpreadsheet/tree/5.9.0"
             },
-            "time": "2026-06-07T03:51:10+00:00"
+            "time": "2026-07-12T19:17:39+00:00"
         },
         {
             "name": "phpoption/phpoption",
@@ -4402,16 +4538,16 @@
         },
         {
             "name": "symfony/deprecation-contracts",
-            "version": "v3.7.0",
+            "version": "v3.7.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/deprecation-contracts.git",
-                "reference": "50f59d1f3ca46d41ac911f97a78626b6756af35b"
+                "reference": "f3202fa1b5097b0af062dc978b32ecf63404e31d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/deprecation-contracts/zipball/50f59d1f3ca46d41ac911f97a78626b6756af35b",
-                "reference": "50f59d1f3ca46d41ac911f97a78626b6756af35b",
+                "url": "https://api.github.com/repos/symfony/deprecation-contracts/zipball/f3202fa1b5097b0af062dc978b32ecf63404e31d",
+                "reference": "f3202fa1b5097b0af062dc978b32ecf63404e31d",
                 "shasum": ""
             },
             "require": {
@@ -4449,7 +4585,7 @@
             "description": "A generic function and convention to trigger deprecation notices",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/deprecation-contracts/tree/v3.7.0"
+                "source": "https://github.com/symfony/deprecation-contracts/tree/v3.7.1"
             },
             "funding": [
                 {
@@ -4469,7 +4605,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-04-13T15:52:40+00:00"
+            "time": "2026-06-05T06:23:12+00:00"
         },
         {
             "name": "symfony/http-client",
@@ -4574,16 +4710,16 @@
         },
         {
             "name": "symfony/http-client-contracts",
-            "version": "v3.7.0",
+            "version": "v3.7.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-client-contracts.git",
-                "reference": "4a2d00c37651c0bdc2b9e1c773487a8bf4edb12d"
+                "reference": "41fc42d276aeff21192465331ebbab7d83a743c0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-client-contracts/zipball/4a2d00c37651c0bdc2b9e1c773487a8bf4edb12d",
-                "reference": "4a2d00c37651c0bdc2b9e1c773487a8bf4edb12d",
+                "url": "https://api.github.com/repos/symfony/http-client-contracts/zipball/41fc42d276aeff21192465331ebbab7d83a743c0",
+                "reference": "41fc42d276aeff21192465331ebbab7d83a743c0",
                 "shasum": ""
             },
             "require": {
@@ -4632,7 +4768,7 @@
                 "standards"
             ],
             "support": {
-                "source": "https://github.com/symfony/http-client-contracts/tree/v3.7.0"
+                "source": "https://github.com/symfony/http-client-contracts/tree/v3.7.1"
             },
             "funding": [
                 {
@@ -4652,20 +4788,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-03-06T13:17:50+00:00"
+            "time": "2026-06-05T06:23:12+00:00"
         },
         {
             "name": "symfony/http-foundation",
-            "version": "v6.4.41",
+            "version": "v6.4.42",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-foundation.git",
-                "reference": "48d76c29a67a301e0f7779a512bf76417395ffef"
+                "reference": "23dcf8e0f59cbbfa9d2894f58fd8be6833794372"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/48d76c29a67a301e0f7779a512bf76417395ffef",
-                "reference": "48d76c29a67a301e0f7779a512bf76417395ffef",
+                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/23dcf8e0f59cbbfa9d2894f58fd8be6833794372",
+                "reference": "23dcf8e0f59cbbfa9d2894f58fd8be6833794372",
                 "shasum": ""
             },
             "require": {
@@ -4713,7 +4849,7 @@
             "description": "Defines an object-oriented layer for the HTTP specification",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/http-foundation/tree/v6.4.41"
+                "source": "https://github.com/symfony/http-foundation/tree/v6.4.42"
             },
             "funding": [
                 {
@@ -4733,7 +4869,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-05-24T10:54:17+00:00"
+            "time": "2026-06-16T10:12:24+00:00"
         },
         {
             "name": "symfony/polyfill-ctype",
@@ -5156,16 +5292,16 @@
         },
         {
             "name": "symfony/service-contracts",
-            "version": "v3.7.0",
+            "version": "v3.7.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/service-contracts.git",
-                "reference": "d25d82433a80eba6aa0e6c24b61d7370d99e444a"
+                "reference": "c0a284bab1ed8aa0417e3d69250ab437739563a0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/service-contracts/zipball/d25d82433a80eba6aa0e6c24b61d7370d99e444a",
-                "reference": "d25d82433a80eba6aa0e6c24b61d7370d99e444a",
+                "url": "https://api.github.com/repos/symfony/service-contracts/zipball/c0a284bab1ed8aa0417e3d69250ab437739563a0",
+                "reference": "c0a284bab1ed8aa0417e3d69250ab437739563a0",
                 "shasum": ""
             },
             "require": {
@@ -5219,7 +5355,7 @@
                 "standards"
             ],
             "support": {
-                "source": "https://github.com/symfony/service-contracts/tree/v3.7.0"
+                "source": "https://github.com/symfony/service-contracts/tree/v3.7.1"
             },
             "funding": [
                 {
@@ -5239,20 +5375,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-03-28T09:44:51+00:00"
+            "time": "2026-06-16T09:55:08+00:00"
         },
         {
             "name": "vlucas/phpdotenv",
-            "version": "v5.6.3",
+            "version": "v5.6.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/vlucas/phpdotenv.git",
-                "reference": "955e7815d677a3eaa7075231212f2110983adecc"
+                "reference": "416df702837983f8d5ff48c9c3fee4f5f57b980b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/vlucas/phpdotenv/zipball/955e7815d677a3eaa7075231212f2110983adecc",
-                "reference": "955e7815d677a3eaa7075231212f2110983adecc",
+                "url": "https://api.github.com/repos/vlucas/phpdotenv/zipball/416df702837983f8d5ff48c9c3fee4f5f57b980b",
+                "reference": "416df702837983f8d5ff48c9c3fee4f5f57b980b",
                 "shasum": ""
             },
             "require": {
@@ -5311,7 +5447,7 @@
             ],
             "support": {
                 "issues": "https://github.com/vlucas/phpdotenv/issues",
-                "source": "https://github.com/vlucas/phpdotenv/tree/v5.6.3"
+                "source": "https://github.com/vlucas/phpdotenv/tree/v5.6.4"
             },
             "funding": [
                 {
@@ -5323,7 +5459,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-12-27T19:49:13+00:00"
+            "time": "2026-07-06T19:11:50+00:00"
         }
     ],
     "packages-dev": [
@@ -5459,20 +5595,19 @@
         },
         {
             "name": "nikic/php-parser",
-            "version": "v5.7.0",
+            "version": "v5.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nikic/PHP-Parser.git",
-                "reference": "dca41cd15c2ac9d055ad70dbfd011130757d1f82"
+                "reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/dca41cd15c2ac9d055ad70dbfd011130757d1f82",
-                "reference": "dca41cd15c2ac9d055ad70dbfd011130757d1f82",
+                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
+                "reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
                 "shasum": ""
             },
             "require": {
-                "ext-ctype": "*",
                 "ext-json": "*",
                 "ext-tokenizer": "*",
                 "php": ">=7.4"
@@ -5511,9 +5646,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nikic/PHP-Parser/issues",
-                "source": "https://github.com/nikic/PHP-Parser/tree/v5.7.0"
+                "source": "https://github.com/nikic/PHP-Parser/tree/v5.8.0"
             },
-            "time": "2025-12-06T11:56:16+00:00"
+            "time": "2026-07-04T14:30:18+00:00"
         },
         {
             "name": "phar-io/manifest",
@@ -5954,25 +6089,25 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "9.6.34",
+            "version": "9.6.35",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "b36f02317466907a230d3aa1d34467041271ef4a"
+                "reference": "0edba2f3a0c48df3553cb9b640810b30df60302b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/b36f02317466907a230d3aa1d34467041271ef4a",
-                "reference": "b36f02317466907a230d3aa1d34467041271ef4a",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/0edba2f3a0c48df3553cb9b640810b30df60302b",
+                "reference": "0edba2f3a0c48df3553cb9b640810b30df60302b",
                 "shasum": ""
             },
             "require": {
                 "doctrine/instantiator": "^1.5.0 || ^2",
                 "ext-dom": "*",
+                "ext-filter": "*",
                 "ext-json": "*",
                 "ext-libxml": "*",
                 "ext-mbstring": "*",
-                "ext-xml": "*",
                 "ext-xmlwriter": "*",
                 "myclabs/deep-copy": "^1.13.4",
                 "phar-io/manifest": "^2.0.4",
@@ -6037,31 +6172,15 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/9.6.34"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/9.6.35"
             },
             "funding": [
                 {
-                    "url": "https://phpunit.de/sponsors.html",
-                    "type": "custom"
-                },
-                {
-                    "url": "https://github.com/sebastianbergmann",
-                    "type": "github"
-                },
-                {
-                    "url": "https://liberapay.com/sebastianbergmann",
-                    "type": "liberapay"
-                },
-                {
-                    "url": "https://thanks.dev/u/gh/sebastianbergmann",
-                    "type": "thanks_dev"
-                },
-                {
-                    "url": "https://tidelift.com/funding/github/packagist/phpunit/phpunit",
-                    "type": "tidelift"
+                    "url": "https://phpunit.de/sponsoring.html",
+                    "type": "other"
                 }
             ],
-            "time": "2026-01-27T05:45:00+00:00"
+            "time": "2026-07-06T14:48:07+00:00"
         },
         {
             "name": "sebastian/cli-parser",
@@ -7127,17 +7246,27 @@
     ],
     "aliases": [
         {
+            "package": "bluefission/automata",
+            "version": "1.0.0.0-alpha2",
+            "alias": "dev-master",
+            "alias_normalized": "dev-master"
+        },
+        {
+            "package": "bluefission/chronicler",
+            "version": "0.1.2.0-alpha",
+            "alias": "dev-main",
+            "alias_normalized": "dev-main"
+        },
+        {
             "package": "bluefission/develation",
-            "version": "9999999-dev",
-            "alias": "1.3.36-alpha",
-            "alias_normalized": "1.3.36.0-alpha"
+            "version": "1.3.39.0",
+            "alias": "dev-master",
+            "alias_normalized": "dev-master"
         }
     ],
     "minimum-stability": "dev",
     "stability-flags": {
-        "bluefission/automata": 20,
         "bluefission/bluecore": 20,
-        "bluefission/develation": 20,
         "bluefission/opus-addon-hoom": 20,
         "bluefission/opus-addon-kapsle": 20,
         "bluefission/presence": 20,
