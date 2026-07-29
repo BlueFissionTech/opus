@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "defaults": {
+    "laravel": { "mode": "laravel", "services": ["mysql", "redis"], "http_port": 8080 },
+    "opus":    { "mode": "opus",    "services": ["mysql", "redis"], "http_port": 8080 },
+    "frontend": { "mode": "frontend", "services": [],               "http_port": null },
+    "lib":     { "mode": "lib",     "services": [],                 "http_port": null },
+    "php-web": { "mode": "php-web", "services": ["mysql", "redis"], "http_port": 8080 },
+    "php-lib": { "mode": "php-lib", "services": [],                 "http_port": null }
+  },
+  "ports": {
+    "mysql": 33060,
+    "redis": 63790,
+    "memcached": 11211,
+    "mongo": 27018,
+    "postgres": 54320,
+    "elastic": 9200
+  },
+  "docker_env": {
+    "laravel": {
+      "DB_CONNECTION": "mysql",
+      "DB_HOST": "mysql",
+      "DB_PORT": "3306",
+      "DB_DATABASE": "app",
+      "DB_USERNAME": "root",
+      "DB_PASSWORD": "root"
+    },
+    "opus": {
+      "MYSQL_DB_HOST": "mysql",
+      "MYSQL_DB_PORT": "3306",
+      "MYSQL_DB_NAME": "app",
+      "MYSQL_DB_USERNAME": "root",
+      "MYSQL_DB_PASSWORD": "root"
+    },
+    "frontend": { },
+    "lib": { },
+    "php-web": {
+      "DB_CONNECTION": "mysql",
+      "DB_HOST": "mysql",
+      "DB_PORT": "3306",
+      "DB_DATABASE": "app",
+      "DB_USERNAME": "root",
+      "DB_PASSWORD": "root"
+    },
+    "php-lib": { }
+  }
+}

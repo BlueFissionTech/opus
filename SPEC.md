@@ -93,6 +93,20 @@ Acceptance criteria:
 - Legacy dashboard modules are migrated in focused slices with build coverage.
 - Webpack remains a bundler detail, not the source of UI contracts.
 
+### Local Runtime
+
+The Opus runtime must have a supported local Compose mode so the application
+surface can be verified against its service dependencies before release.
+
+Acceptance criteria:
+
+- `BF_MODE=opus` resolves an Opus-specific Compose overlay.
+- The web runtime uses the existing Nginx and PHP service pattern.
+- Opus database configuration resolves to the local MySQL service through the
+  established `MYSQL_DB_*` environment contract.
+- Startup is reported successful only after a published application endpoint is
+  reachable.
+
 ## Known Gaps
 
 - Hoom currently emits Composer optimized-autoload warnings for many classes
