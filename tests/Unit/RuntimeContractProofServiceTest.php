@@ -46,7 +46,11 @@ class RuntimeContractProofServiceTest extends TestCase
         $report = Arr::make($service->readinessReport());
 
         $this->assertFalse($report->get('ready'));
+        $this->assertSame('opus-runtime-contract-proof', $report->get('name'));
+        $this->assertSame('jenerator', $report->get('runtime'));
         $this->assertSame([
+            'manifest name must be a nonempty string',
+            'manifest runtime must be a nonempty string',
             'script entry is not an object',
             'script entry is missing a path',
             'script entry is missing a path',
@@ -58,6 +62,7 @@ class RuntimeContractProofServiceTest extends TestCase
             'examples/jenss/missing-required.jss',
             'examples/jenss/fixtures/missing.json',
         ], $report->get('missing'));
+        $this->assertSame([], $service->optionalTargets());
     }
 
     public function testReadinessReportRejectsAnEmptyScriptManifest(): void

@@ -7,6 +7,7 @@ namespace App\Business\Console;
 use App\Business\Services\RuntimeContractProofService;
 use BlueFission\Arr;
 use BlueFission\Services\Service;
+use BlueFission\Str;
 use Throwable;
 
 class RuntimeContractManager extends Service
@@ -69,7 +70,11 @@ class RuntimeContractManager extends Service
         echo "Optional contract target scripts:\n";
         foreach ($targets as $target) {
             $target = Arr::make($target);
-            $path = (string) ($target->get('path') ?? '');
+            $path = $target->get('path');
+            if (!Str::is($path) || Str::make($path)->trim()->isEmpty()) {
+                continue;
+            }
+            $path = Str::make($path)->trim()->val();
             $capabilities = $target->get('capabilities');
             $capabilityList = Arr::is($capabilities)
                 ? Arr::make($capabilities)->join(', ')->val()

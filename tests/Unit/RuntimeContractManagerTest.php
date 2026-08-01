@@ -70,6 +70,27 @@ class RuntimeContractManagerTest extends TestCase
         );
     }
 
+    public function testTargetsSkipsMalformedOptionalEntries(): void
+    {
+        $service = new class extends RuntimeContractProofService {
+            public function optionalTargets(): array
+            {
+                return [
+                    ['path' => ['invalid'], 'required' => false],
+                    ['path' => 'examples/jenss/target.jss', 'required' => false],
+                ];
+            }
+        };
+        $manager = new RuntimeContractManager($service);
+
+        ob_start();
+        $manager->targets();
+        $output = (string) ob_get_clean();
+
+        $this->assertStringNotContainsString('Array', $output);
+        $this->assertStringContainsString('examples/jenss/target.jss', $output);
+    }
+
     public function testValidateReportsUnavailableContractManifest(): void
     {
         $manager = $this->managerWithMissingManifest();

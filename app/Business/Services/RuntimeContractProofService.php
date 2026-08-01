@@ -48,7 +48,7 @@ class RuntimeContractProofService extends Service
     public function optionalTargets(): array
     {
         return Arr::make($this->scripts())
-            ->filter(fn ($script) => Arr::is($script) && !$this->isRequiredScript($script))
+            ->filter(fn ($script) => $this->isRenderableTarget($script))
             ->values()
             ->val();
     }
@@ -59,6 +59,22 @@ class RuntimeContractProofService extends Service
         $scripts = Arr::make($this->scripts());
         $missing = Arr::make([]);
         $invalid = Arr::make([]);
+
+        $name = $manifest->get('name') ?? 'opus-runtime-contract-proof';
+        if (!Str::is($name) || Str::make($name)->trim()->isEmpty()) {
+            $invalid->push('manifest name must be a nonempty string');
+            $name = 'opus-runtime-contract-proof';
+        } else {
+            $name = Str::make($name)->trim()->val();
+        }
+
+        $runtime = $manifest->get('runtime') ?? 'jenerator';
+        if (!Str::is($runtime) || Str::make($runtime)->trim()->isEmpty()) {
+            $invalid->push('manifest runtime must be a nonempty string');
+            $runtime = 'jenerator';
+        } else {
+            $runtime = Str::make($runtime)->trim()->val();
+        }
 
         foreach ($scripts as $script) {
             if (!Arr::is($script)) {
@@ -102,8 +118,8 @@ class RuntimeContractProofService extends Service
         }
 
         return [
-            'name' => (string) ($manifest->get('name') ?? 'opus-runtime-contract-proof'),
-            'runtime' => (string) ($manifest->get('runtime') ?? 'jenerator'),
+            'name' => $name,
+            'runtime' => $runtime,
             'script_count' => $scripts->count(),
             'required_count' => Arr::make($this->requiredScripts())->count(),
             'optional_count' => Arr::make($this->optionalTargets())->count(),
@@ -126,6 +142,24 @@ class RuntimeContractProofService extends Service
             ->val();
 
         return $this->_root . DIRECTORY_SEPARATOR . $path;
+    }
+
+    private function isRenderableTarget($script): bool
+    {
+        if (!Arr::is($script)) {
+            return false;
+        }
+
+        $script = Arr::make($script);
+        $path = $script->get('path');
+        $mode = $script->get('mode') ?? 'execute';
+
+        return Str::is($path)
+            && Str::make($path)->trim()->isNotEmpty()
+            && Str::is($mode)
+            && Arr::make(['parse', 'execute'])->has($mode, true)
+            && $script->hasKey('required')
+            && $script->get('required') === false;
     }
 
     private function readJson(string $path): array
