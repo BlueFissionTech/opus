@@ -12,6 +12,7 @@ use BlueFission\Str;
 use BlueFission\Vibrato\Reader;
 use BlueFission\Vibrato\Validation\VibeSyntaxValidator;
 use InvalidArgumentException;
+use RuntimeException;
 use Throwable;
 
 class VibeGenerationService extends Service
@@ -149,37 +150,26 @@ class VibeGenerationService extends Service
 
     private function replaceFile(string $target, string $contents): bool
     {
-        $lockName = Str::make($this->workspace)->encrypt('sha256')->val();
-        $lockPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR
-            . 'opus-generation-' . $lockName . '.lock';
-        $lock = fopen($lockPath, 'c');
-        if (!is_resource($lock)) {
-            return false;
-        }
-
         try {
-            if (!flock($lock, LOCK_EX)) {
-                return false;
-            }
-
             $verifiedTarget = $this->resolveWorkspacePath($target);
             if ($this->normalizePath($verifiedTarget) !== $this->normalizePath($target)) {
                 return false;
             }
 
-            $directory = dirname($verifiedTarget);
-            $temporary = tempnam($directory, '.opus-');
-            if (!Str::is($temporary) || $temporary === '') {
+            [$temporary, $handle] = $this->createTemporaryFile(dirname($verifiedTarget));
+            if (!$this->temporaryPathIsSafe($temporary, $handle, $verifiedTarget)) {
                 return false;
             }
 
             try {
                 return $this->publishTemporaryFile(
                     $temporary,
+                    $handle,
                     $verifiedTarget,
                     $contents
                 );
             } finally {
+                fclose($handle);
                 if (
                     $temporary !== ''
                     && (FileSystem::fileExists($temporary) || is_link($temporary))
@@ -187,48 +177,116 @@ class VibeGenerationService extends Service
                     unlink($temporary);
                 }
             }
-        } finally {
-            flock($lock, LOCK_UN);
-            fclose($lock);
+        } catch (Throwable $exception) {
+            return false;
         }
+    }
+
+    private function createTemporaryFile(string $directory): array
+    {
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $path = $directory . DIRECTORY_SEPARATOR
+                . '.opus-' . bin2hex(random_bytes(16));
+            $handle = @fopen($path, 'x+b');
+            if (is_resource($handle)) {
+                return [$path, $handle];
+            }
+        }
+
+        throw new RuntimeException("Rendered output temporary file could not be created.");
     }
 
     private function publishTemporaryFile(
         string &$temporary,
+        $handle,
         string $target,
         string $contents
     ): bool
     {
-        $directory = dirname($temporary);
-        try {
-            $file = new FileSystem([
-                'root' => $directory,
-                'mode' => 'w',
-                'filter' => 'file',
-                'doNotConfirm' => true,
-            ]);
-            $file->open((string) FileSystem::fileBasename($temporary))
-                ->contents($contents)
-                ->write()
-                ->close();
-
-            if (FileSystem::fileContents($temporary) !== $contents) {
-                return false;
-            }
-
-            if (!chmod($temporary, 0644)) {
-                return false;
-            }
-
-            if (!rename($temporary, $target)) {
-                return false;
-            }
-            $temporary = '';
-
-            return FileSystem::fileContents($target) === $contents;
-        } catch (Throwable $exception) {
+        if (!$this->writeTemporaryFile($handle, $contents)) {
             return false;
         }
+
+        if (!$this->temporaryPathIsSafe($temporary, $handle, $target)) {
+            return false;
+        }
+
+        if (!rename($temporary, $target)) {
+            return false;
+        }
+        $temporary = '';
+
+        return $this->pathMatchesHandle($target, $handle)
+            && FileSystem::fileContents($target) === $contents;
+    }
+
+    private function writeTemporaryFile($handle, string $contents): bool
+    {
+        if (!ftruncate($handle, 0) || !rewind($handle)) {
+            return false;
+        }
+
+        $offset = 0;
+        $length = strlen($contents);
+        while ($offset < $length) {
+            $written = fwrite($handle, substr($contents, $offset));
+            if ($written === false || $written === 0) {
+                return false;
+            }
+            $offset += $written;
+        }
+
+        if (!fflush($handle)) {
+            return false;
+        }
+        if (function_exists('fchmod') && !fchmod($handle, 0644)) {
+            return false;
+        }
+
+        return !function_exists('fsync') || fsync($handle);
+    }
+
+    private function temporaryPathIsSafe(
+        string $temporary,
+        $handle,
+        string $target
+    ): bool
+    {
+        if (!$this->pathMatchesHandle($temporary, $handle)) {
+            return false;
+        }
+
+        $resolvedTemporary = realpath($temporary);
+        if (!Str::is($resolvedTemporary) || $resolvedTemporary === '') {
+            return false;
+        }
+
+        $normalizedRoot = Str::make($this->normalizePath($this->workspace));
+        if (!$normalizedRoot->endsWith('/')) {
+            $normalizedRoot->append('/');
+        }
+        $this->assertInsideWorkspace(
+            $this->normalizePath($resolvedTemporary),
+            $normalizedRoot->val()
+        );
+
+        return $this->normalizePath($this->resolveWorkspacePath($target))
+            === $this->normalizePath($target);
+    }
+
+    private function pathMatchesHandle(string $path, $handle): bool
+    {
+        if (is_link($path)) {
+            return false;
+        }
+
+        $pathStatus = lstat($path);
+        $handleStatus = fstat($handle);
+
+        return Arr::is($pathStatus)
+            && Arr::is($handleStatus)
+            && $pathStatus['dev'] === $handleStatus['dev']
+            && $pathStatus['ino'] === $handleStatus['ino'];
     }
 
     private function reader(array $variables, array $includePaths): Reader

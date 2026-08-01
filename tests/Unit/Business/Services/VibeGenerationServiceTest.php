@@ -113,15 +113,19 @@ class VibeGenerationServiceTest extends TestCase
             $this->markTestSkipped('Hard links are unavailable in this environment.');
         }
 
-        $result = $service->writeRenderedFile($source, $target);
+        try {
+            $result = $service->writeRenderedFile($source, $target);
 
-        $this->assertTrue($result['valid'], json_encode($result['errors']));
-        $this->assertSame('Replacement content', FileSystem::fileContents($target));
-        $this->assertSame('Outside original', FileSystem::fileContents($outside));
-
-        unlink($source);
-        unlink($target);
-        unlink($outside);
+            $this->assertTrue($result['valid'], json_encode($result['errors']));
+            $this->assertSame('Replacement content', FileSystem::fileContents($target));
+            $this->assertSame('Outside original', FileSystem::fileContents($outside));
+        } finally {
+            unlink($source);
+            if (FileSystem::fileExists($target)) {
+                unlink($target);
+            }
+            unlink($outside);
+        }
     }
 
     public function testItAppliesConsumerReadableTargetPermissions(): void
