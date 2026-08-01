@@ -62,7 +62,7 @@ The current manager scans each immediate directory under `addons/`. A discoverab
 
 The primary file is required for runtime loading and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Installation and uninstallation load that same file and call `<name>_install()` or `<name>_uninstall()` when the corresponding function exists. Declare both hook functions in the global namespace; the current manager performs an unqualified lookup and does not resolve namespaced functions.
 
-Installation configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/` unconditionally, so both directories must exist. Each structure file must expose a discoverable class with `change()` and `revert()` methods. Each generator file must expose a discoverable class with `populate()`. A `RootSeeder.php` class may instead provide `seeders()` to select and order the remaining generator classes. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
+Installation configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/` unconditionally, so both directories must exist. Each structure file must expose a global-namespace class with `change()` and `revert()` methods. Each generator file must expose a global-namespace class with `populate()`. A global-namespace `RootSeeder.php` class may instead provide `seeders()` to select and order the remaining generator classes. The locked loader resolves extracted short class names without their declared namespace. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
 
 The `libraries` list executes root-level Composer require commands during installation and remove commands during uninstallation. Because root requirements are shared by every add-on, removal must be coordinated so one package does not remove a dependency still owned by another.
 
@@ -122,7 +122,7 @@ Prefer explicit contracts for shared interfaces:
 An add-on is ready for review when it demonstrates the lifecycle and package boundary in automated tests.
 
 - Unit-test package-owned domain behavior and configuration validation.
-- Verify a clean install and a repeated install produce the same usable state.
+- Verify package-owned migrations, generators, and hooks are safe to repeat. The current manager may create duplicate registration records, so manager-level repeated installation is not an idempotency guarantee.
 - Verify activation exposes only the intended runtime behavior.
 - Verify deactivation removes runtime behavior without deleting retained data.
 - Verify uninstall follows the documented data policy.
@@ -132,4 +132,4 @@ An add-on is ready for review when it demonstrates the lifecycle and package bou
 
 ## Review questions
 
-Before accepting an add-on change, confirm that the capability belongs in a reusable package, the package has no direct platform-core edits, lifecycle actions are idempotent, configuration and persistence boundaries are explicit, and compatibility is documented. When an integration need is shared, extend the relevant upstream package through its public contract instead of embedding a one-off adapter in the add-on.
+Before accepting an add-on change, confirm that the capability belongs in a reusable package, the package has no direct platform-core edits, package-owned lifecycle resource actions are idempotent, configuration and persistence boundaries are explicit, and compatibility is documented. When an integration need is shared, extend the relevant upstream package through its public contract instead of embedding a one-off adapter in the add-on.
