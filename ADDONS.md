@@ -24,7 +24,7 @@ Keep these responsibilities separate:
 
 ## Package layout
 
-Use a conventional Composer package with a clear PSR-4 namespace. An installed package currently occupies `addons/<directory>/`, where `<directory>` is the manager's discovery key. The following layout includes the files consumed directly by the BlueCore manager; omit optional directories that do not serve the add-on's scope.
+Use a conventional Composer package with a clear PSR-4 namespace. An installed package currently occupies `addons/<directory>/`, where `<directory>` is the manager's discovery key. The following layout includes the files consumed directly by the BlueCore manager. Both datasource directories are required even when empty.
 
 ```text
 composer.json
@@ -42,8 +42,8 @@ resource/
     templates/
     translations/
 datasources/
-    generator/
-    structure/
+    generator/     # required; may be empty
+    structure/     # required; may be empty
 tests/
 ```
 
@@ -57,14 +57,14 @@ The current manager scans each immediate directory under `addons/`. A discoverab
 - a nonempty `version` identifying the add-on release;
 - a nonempty `namespace` identifying the add-on's PHP namespace;
 - an optional `description`;
-- an optional `libraries` array of Composer package names used to report explicit dependency commands; and
-- an optional `primary_file`, which defaults to `main.php`.
+- an optional `libraries` array of Composer package names installed into or removed from the application root; and
+- a nonempty `primary_file`, normally `main.php`.
 
 The primary file is required for runtime loading and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Installation and uninstallation load that same file and call `<name>_install()` or `<name>_uninstall()` when the corresponding function exists. Declare both hook functions in the global namespace; the current manager performs an unqualified lookup and does not resolve namespaced functions.
 
-Installation configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/`; the current manager skips either area when its directory is absent. When present, each structure file must expose a discoverable class with `change()` and `revert()` methods. Each generator file must expose a discoverable class with `populate(bool $auto)`. A `RootSeeder.php` class may instead provide `seeders()` to select and order the remaining generator classes. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
+Installation configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/` unconditionally, so both directories must exist. Each structure file must expose a discoverable class with `change()` and `revert()` methods. Each generator file must expose a discoverable class with `populate()`. A `RootSeeder.php` class may instead provide `seeders()` to select and order the remaining generator classes. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
 
-The `libraries` list produces root-level Composer require or remove commands. The manager reports those commands by default and executes them only when dependency mutation is explicitly enabled for install or uninstall. Because root requirements are shared by every add-on, removal must be coordinated so one package does not remove a dependency still owned by another.
+The `libraries` list executes root-level Composer require commands during installation and remove commands during uninstallation. Because root requirements are shared by every add-on, removal must be coordinated so one package does not remove a dependency still owned by another.
 
 Composer metadata remains the package and dependency boundary, but it is not currently the runtime discovery mechanism. A package installer or deployment process must place the package in the required `addons/<directory>/` layout without modifying application source files.
 
