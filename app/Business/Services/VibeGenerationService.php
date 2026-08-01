@@ -238,17 +238,60 @@ class VibeGenerationService extends Service
             ? $path
             : $root . DIRECTORY_SEPARATOR . $path;
 
-        $normalizedRoot = Str::make($this->normalizePath($root))
-            ->trim('/')
-            ->append('/')
-            ->val();
-        $normalizedTarget = $this->normalizePath($target);
-
-        if (!Str::startsWith($normalizedTarget, $normalizedRoot)) {
-            throw new InvalidArgumentException("Output path must stay inside the application workspace.");
+        $normalizedRoot = Str::make($this->normalizePath($root));
+        if (!$normalizedRoot->endsWith('/')) {
+            $normalizedRoot->append('/');
         }
 
-        return Str::replace($normalizedTarget, '/', DIRECTORY_SEPARATOR);
+        $normalizedTarget = $this->normalizePath($target);
+        $this->assertInsideWorkspace($normalizedTarget, $normalizedRoot->val());
+
+        $resolvedTarget = $this->resolveExistingPath($normalizedTarget);
+        $this->assertInsideWorkspace($resolvedTarget, $normalizedRoot->val());
+
+        return Str::replace($resolvedTarget, '/', DIRECTORY_SEPARATOR);
+    }
+
+    private function assertInsideWorkspace(string $path, string $root): void
+    {
+        if (!Str::startsWith($path, $root)) {
+            throw new InvalidArgumentException("Output path must stay inside the application workspace.");
+        }
+    }
+
+    private function resolveExistingPath(string $path): string
+    {
+        $candidate = Str::replace($path, '/', DIRECTORY_SEPARATOR);
+        $remaining = Arr::make([]);
+
+        while (
+            !FileSystem::fileExists($candidate)
+            && !FileSystem::directoryExists($candidate)
+            && !is_link($candidate)
+        ) {
+            $parent = dirname($candidate);
+            if ($parent === $candidate) {
+                throw new InvalidArgumentException("Output path could not be resolved.");
+            }
+
+            $remaining->unshift((string) FileSystem::fileBasename($candidate));
+            $candidate = $parent;
+        }
+
+        $resolved = realpath($candidate);
+        if (!Str::is($resolved) || $resolved === '') {
+            throw new InvalidArgumentException("Output path could not be resolved.");
+        }
+
+        $resolved = $this->normalizePath($resolved);
+        if ($remaining->isEmpty()) {
+            return $resolved;
+        }
+
+        return Str::make($resolved)
+            ->append('/')
+            ->append($remaining->join('/')->val())
+            ->val();
     }
 
     private function isAbsolutePath(string $path): bool

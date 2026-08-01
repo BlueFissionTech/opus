@@ -76,6 +76,52 @@ class VibeGenerationServiceTest extends TestCase
         unlink($source);
     }
 
+    public function testItRejectsRenderedFilesThroughWorkspaceSymlinks(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {
+            $this->markTestSkipped('Directory symlinks are unavailable in this environment.');
+        }
+
+        $service = new VibeGenerationService();
+        $source = $this->writeTempSource('Blocked symlink output');
+        $workspaceDirectory = 'tests' . DIRECTORY_SEPARATOR . 'tmp';
+        $outsideDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR
+            . 'opus-vibe-symlink-' . getmypid();
+        $link = $workspaceDirectory . DIRECTORY_SEPARATOR . 'outside-' . getmypid();
+        $outsideTarget = $outsideDirectory . DIRECTORY_SEPARATOR . 'escape.txt';
+        $ownsWorkspaceDirectory = false;
+
+        if (!FileSystem::directoryExists($workspaceDirectory)) {
+            mkdir($workspaceDirectory, 0777, true);
+            $ownsWorkspaceDirectory = true;
+        }
+        if (!FileSystem::directoryExists($outsideDirectory)) {
+            mkdir($outsideDirectory, 0777, true);
+        }
+
+        if (!@symlink($outsideDirectory, $link)) {
+            unlink($source);
+            rmdir($outsideDirectory);
+            $this->markTestSkipped('Directory symlinks are unavailable in this environment.');
+        }
+
+        $result = $service->writeRenderedFile(
+            $source,
+            $link . DIRECTORY_SEPARATOR . 'escape.txt'
+        );
+
+        $this->assertFalse($result['valid']);
+        $this->assertStringContainsString('inside the application workspace', $result['errors'][0]['message']);
+        $this->assertFalse(FileSystem::fileExists($outsideTarget));
+
+        unlink($source);
+        unlink($link);
+        rmdir($outsideDirectory);
+        if ($ownsWorkspaceDirectory && FileSystem::directoryExists($workspaceDirectory)) {
+            rmdir($workspaceDirectory);
+        }
+    }
+
     private function writeTempSource(string $contents): string
     {
         $source = tempnam(sys_get_temp_dir(), 'opus-vibe-');
