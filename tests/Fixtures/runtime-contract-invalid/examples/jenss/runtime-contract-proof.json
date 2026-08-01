@@ -6,6 +6,9 @@
     "invalid entry",
     {},
     {
+      "path": ["invalid"]
+    },
+    {
       "path": "examples/jenss/missing.jss",
       "required": true
     }

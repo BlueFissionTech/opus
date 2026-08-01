@@ -49,6 +49,7 @@ class RuntimeContractProofServiceTest extends TestCase
         $this->assertSame([
             'script entry is not an object',
             'script entry is missing a path',
+            'script entry is missing a path',
         ], $report->get('invalid'));
         $this->assertSame([
             'examples/jenss/missing.jss',
@@ -64,6 +65,7 @@ class RuntimeContractProofServiceTest extends TestCase
         $report = Arr::make($service->readinessReport());
 
         $this->assertSame(0, $report->get('script_count'));
+        $this->assertSame(['fixture entry is missing a path'], $report->get('invalid'));
         $this->assertFalse($report->get('ready'));
     }
 

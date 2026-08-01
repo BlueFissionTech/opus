@@ -67,20 +67,26 @@ class RuntimeContractProofService extends Service
             }
 
             $script = Arr::make($script);
-            $path = (string) ($script->get('path') ?? '');
-            if ($path === '') {
+            $path = $script->get('path');
+            if (!Str::is($path) || Str::make($path)->trim()->isEmpty()) {
                 $invalid->push('script entry is missing a path');
                 continue;
             }
+            $path = Str::make($path)->trim()->val();
 
             if (!FileSystem::fileExists($this->path($path))) {
                 $missing->push($path);
             }
         }
 
-        $fixture = (string) ($manifest->get('fixture') ?? '');
-        if ($fixture !== '' && !FileSystem::fileExists($this->path($fixture))) {
-            $missing->push($fixture);
+        $fixture = $manifest->get('fixture');
+        if (!Str::is($fixture) || Str::make($fixture)->trim()->isEmpty()) {
+            $invalid->push('fixture entry is missing a path');
+        } else {
+            $fixture = Str::make($fixture)->trim()->val();
+            if (!FileSystem::fileExists($this->path($fixture))) {
+                $missing->push($fixture);
+            }
         }
 
         return [

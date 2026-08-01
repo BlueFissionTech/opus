@@ -49,8 +49,12 @@ if ($scripts->isEmpty()) {
 
 $failures = 0;
 $gaps = 0;
-$fixture = (string) ($manifest->get('fixture') ?? '');
-if ($fixture !== '') {
+$fixture = $manifest->get('fixture');
+if (!Str::is($fixture) || Str::make($fixture)->trim()->isEmpty()) {
+    $failures++;
+    echo "[fail] Fixture path is missing.\n";
+} else {
+    $fixture = Str::make($fixture)->trim()->val();
     $normalizedFixture = Str::make($fixture)
         ->replace('/', DIRECTORY_SEPARATOR)
         ->replace('\\', DIRECTORY_SEPARATOR)
@@ -71,7 +75,13 @@ foreach ($scripts as $script) {
     }
 
     $script = Arr::make($script);
-    $relativePath = (string) ($script->get('path') ?? '');
+    $relativePath = $script->get('path');
+    if (!Str::is($relativePath) || Str::make($relativePath)->trim()->isEmpty()) {
+        $failures++;
+        echo "[fail] Script entry is missing a string path.\n";
+        continue;
+    }
+    $relativePath = Str::make($relativePath)->trim()->val();
     $mode = (string) ($script->get('mode') ?? 'execute');
     $required = !$script->hasKey('required') || (bool) $script->get('required');
     $normalizedPath = Str::make($relativePath)
