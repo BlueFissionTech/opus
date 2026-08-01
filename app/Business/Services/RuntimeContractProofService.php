@@ -91,7 +91,7 @@ class RuntimeContractProofService extends Service
             'optional_count' => Arr::make($this->optionalTargets())->count(),
             'missing' => $missing->val(),
             'invalid' => $invalid->val(),
-            'ready' => $missing->isEmpty() && $invalid->isEmpty(),
+            'ready' => $scripts->isNotEmpty() && $missing->isEmpty() && $invalid->isEmpty(),
         ];
     }
 

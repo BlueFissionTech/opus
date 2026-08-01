@@ -47,6 +47,8 @@ $gaps = 0;
 
 foreach ($scripts as $script) {
     if (!Arr::is($script)) {
+        $failures++;
+        echo "[fail] Script entry is not an object.\n";
         continue;
     }
 

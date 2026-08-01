@@ -56,6 +56,17 @@ class RuntimeContractProofServiceTest extends TestCase
         ], $report->get('missing'));
     }
 
+    public function testReadinessReportRejectsAnEmptyScriptManifest(): void
+    {
+        $root = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'Fixtures'
+            . DIRECTORY_SEPARATOR . 'runtime-contract-empty';
+        $service = new RuntimeContractProofService($root);
+        $report = Arr::make($service->readinessReport());
+
+        $this->assertSame(0, $report->get('script_count'));
+        $this->assertFalse($report->get('ready'));
+    }
+
     public function testMissingManifestRaisesAContractError(): void
     {
         $service = new RuntimeContractProofService(
