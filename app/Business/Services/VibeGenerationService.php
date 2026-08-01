@@ -242,8 +242,6 @@ class VibeGenerationService extends Service
         }
 
         $normalizedTarget = $this->normalizePath($target);
-        $this->assertInsideWorkspace($normalizedTarget, $normalizedRoot->val());
-
         $resolvedTarget = $this->resolveExistingPath($normalizedTarget);
         $this->assertInsideWorkspace($resolvedTarget, $normalizedRoot->val());
 
@@ -252,14 +250,7 @@ class VibeGenerationService extends Service
 
     private function assertInsideWorkspace(string $path, string $root): void
     {
-        $comparisonPath = Str::make($path);
-        $comparisonRoot = Str::make($root);
-        if (PHP_OS_FAMILY === 'Windows') {
-            $comparisonPath->lower();
-            $comparisonRoot->lower();
-        }
-
-        if (!$comparisonPath->startsWith($comparisonRoot->val())) {
+        if (!Str::startsWith($path, $root)) {
             throw new InvalidArgumentException("Output path must stay inside the application workspace.");
         }
     }
@@ -304,6 +295,8 @@ class VibeGenerationService extends Service
         $path = Str::make($path);
 
         return $path->startsWith(DIRECTORY_SEPARATOR)
+            || $path->startsWith('\\\\')
+            || $path->startsWith('/')
             || $path->matches('/^[A-Za-z]:[\/\\\\]/');
     }
 
@@ -312,7 +305,10 @@ class VibeGenerationService extends Service
         $path = Str::replace($path, '\\', '/');
         $prefix = '';
 
-        if (Str::make($path)->matches('/^[A-Za-z]:\//')) {
+        if (Str::startsWith($path, '//')) {
+            $prefix = '//';
+            $path = Str::make($path)->trim('/')->val();
+        } elseif (Str::make($path)->matches('/^[A-Za-z]:\//')) {
             $prefix = Str::sub($path, 0, 3);
             $path = Str::sub($path, 3);
         } elseif (Str::startsWith($path, '/')) {

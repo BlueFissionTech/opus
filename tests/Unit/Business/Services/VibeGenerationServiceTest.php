@@ -189,6 +189,17 @@ class VibeGenerationServiceTest extends TestCase
         rmdir($directory);
     }
 
+    public function testItPreservesUncPrefixesDuringNormalization(): void
+    {
+        $service = $this->workspaceService();
+        $normalized = (fn (string $path): string => $this->normalizePath($path))->call(
+            $service,
+            '\\\\server\\share\\opus\\output.php'
+        );
+
+        $this->assertSame('//server/share/opus/output.php', $normalized);
+    }
+
     private function writeTempSource(string $contents): string
     {
         $source = tempnam(sys_get_temp_dir(), 'opus-vibe-');
