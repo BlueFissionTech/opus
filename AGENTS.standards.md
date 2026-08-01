@@ -1,4 +1,34 @@
-# AGENTS.standards.md - DevElation-Based Coding Standards
+# AGENTS.standards.md - Project-Specific Coding Standards
+
+This file is reserved for project-specific coding standards and repository rules
+that should override the base harness standards in `AGENTS.md` without being
+overwritten when the harness is refreshed.
+
+Guidelines:
+
+- Keep global, reusable standards in `AGENTS.md`.
+- Put repo-specific coding rules here, for example:
+  - Language, framework, or runtime version constraints.
+  - Preferred first-party libraries, helpers, or framework services.
+  - Formatting, naming, typing, or testing conventions.
+  - Architecture boundaries and module ownership rules.
+  - Security, configuration, and dependency policies that are specific to this
+    repository.
+- When Codex or skills need to write or update project-specific coding
+  standards, they should prefer editing `AGENTS.standards.md` instead of
+  `AGENTS.md`.
+- Keep standards focused on this repository's own implementation contracts,
+  public APIs, and maintainability rules.
+- Do not use this file to encode downstream-consumer-specific promises or
+  one-off implementation mandates. If a consumer need is valid for this repo,
+  describe it as a neutral, reusable capability within this repo's scope.
+- Keep local scratchpad details, secrets, machine paths, and private workflow
+  context out of this file.
+
+If both files exist, rules in `AGENTS.standards.md` should take precedence over
+conflicting coding standards in `AGENTS.md` for this repository.
+
+# DevElation-Based Coding Standards
 
 This file is portable guidance for DevElation and projects built on or with it.
 It describes design standards, not temporary refactor instructions. Local
