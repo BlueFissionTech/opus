@@ -94,35 +94,18 @@ class VibeGenerationService extends Service
             return $this->withRenderingContext($this->failure("Vibe source file was not found."));
         }
 
-        $validation = Arr::make($this->validateFile($path));
-        if (!$validation->get('valid')) {
-            return $this->withRenderingContext($validation->val());
+        $source = FileSystem::fileContents($path);
+        if ($source === null) {
+            return $this->withRenderingContext($this->failure("Vibe source file could not be read."));
         }
 
-        try {
-            $includePaths = Arr::make($includePaths)
-                ->push(dirname($path))
-                ->unique()
-                ->values()
-                ->val();
+        $includePaths = Arr::make($includePaths)
+            ->push(dirname($path))
+            ->unique()
+            ->values()
+            ->val();
 
-            $reader = $this->reader($variables, $includePaths);
-            $reader->inputFile($path);
-            $options = Arr::make($options);
-            $resolvedVariables = $reader->run([
-                'run_backend' => (bool) ($options->get('run_backend') ?? false),
-                'validate_syntax' => false,
-            ]);
-
-            return [
-                'valid' => true,
-                'errors' => [],
-                'output' => $reader->output(),
-                'variables' => $resolvedVariables,
-            ];
-        } catch (Throwable $exception) {
-            return $this->withRenderingContext($this->failure($exception->getMessage()));
-        }
+        return $this->renderSource($source, $variables, $includePaths, $options);
     }
 
     public function writeRenderedFile(string $sourcePath, string $outputPath, array $variables = [], array $includePaths = [], array $options = []): array
@@ -241,6 +224,11 @@ class VibeGenerationService extends Service
     {
         if ($path === '') {
             throw new InvalidArgumentException("Output path must not be empty.");
+        }
+
+        $pathSegments = Str::make(Str::replace($path, '\\', '/'))->split('/');
+        if ($pathSegments->has('..', true)) {
+            throw new InvalidArgumentException("Output path must not contain parent directory traversal.");
         }
 
         $root = $this->workspace;

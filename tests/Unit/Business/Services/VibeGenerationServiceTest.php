@@ -77,6 +77,22 @@ class VibeGenerationServiceTest extends TestCase
         unlink($source);
     }
 
+    public function testItRejectsParentDirectoryTraversal(): void
+    {
+        $service = $this->workspaceService();
+        $source = $this->writeTempSource('Blocked traversal output');
+        $target = 'tests' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR
+            . 'vibe-traversal-' . getmypid() . '.txt';
+
+        $result = $service->writeRenderedFile($source, $target);
+
+        $this->assertFalse($result['valid']);
+        $this->assertStringContainsString('parent directory traversal', $result['errors'][0]['message']);
+        $this->assertFalse(FileSystem::fileExists('vibe-traversal-' . getmypid() . '.txt'));
+
+        unlink($source);
+    }
+
     public function testItRejectsRenderedFilesThroughWorkspaceSymlinks(): void
     {
         if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {
