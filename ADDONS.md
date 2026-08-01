@@ -66,11 +66,12 @@ Installation configures datasource migrations from `datasources/structure/` and 
 
 The `libraries` list executes root-level Composer require commands during installation and remove commands during uninstallation. Because root requirements are shared by every add-on, removal must be coordinated so one package does not remove a dependency still owned by another.
 
-Composer metadata remains the package and dependency boundary, but it is not currently the runtime discovery mechanism. A package installer or deployment process must place the package in the required `addons/<directory>/` layout without modifying application source files.
+Composer metadata remains the package and dependency boundary, but it is not currently the runtime discovery mechanism. Install the package as an application-root Composer dependency with `type: opus-addon`. The locked BlueCore Composer plugin then places it under `addons/<package-name>/` while Composer registers the package's autoload metadata. Copying a package into `addons/` without Composer installation does not register its PSR-4 namespace.
 
 `composer.json` should:
 
 - declare a stable, package-owned name and description;
+- declare `type: opus-addon` so the BlueCore Composer plugin selects the add-on install path;
 - define PSR-4 autoloading for the package namespace;
 - require PHP 8.2 or later;
 - require compatible, published versions of Opus and the Blue Fission packages used directly by the add-on; and
