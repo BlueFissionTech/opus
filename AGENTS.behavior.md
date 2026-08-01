@@ -54,7 +54,7 @@ and review standards in `AGENTS.standards.md`.
 - Do not mention local-only workflow tools, local filesystem paths, temporary
   artifact paths, or workstation details in GitHub-facing text.
 - Capture scratchpad detail, local evidence, and temporary coordination notes
-  in Keryx messages or local artifacts instead of GitHub.
+  in private coordination messages or ignored artifacts instead of GitHub.
 - Create GitHub issues for discrete new needs and keep PRs focused on the
   correct target branch.
 - Leave descriptive questions or approval conditions when a PR has moved from
@@ -62,8 +62,8 @@ and review standards in `AGENTS.standards.md`.
 
 ## Discussion And Messaging
 
-- Be liberal about accepting intentional Keryx discussion invitations.
-- Acknowledge closed or completed Keryx messages so they do not loop back at
+- Be liberal about accepting intentional discussion invitations.
+- Acknowledge closed or completed coordination messages so they do not loop back at
   the end of later turns.
 - Collaborate actively in discussion rooms: state this repository's
   responsibilities, call out upstream constraints, explain caveats, share
@@ -79,9 +79,9 @@ and review standards in `AGENTS.standards.md`.
 
 - Prefer real tests with actual data. When data is missing, request or
   generate representative data through appropriate collaborators or fixtures.
-- Coordinate Docker and port usage through the approved harness/Keryx paths
+- Coordinate Docker and port usage through the approved orchestration paths
   before running service workflows.
-- When Keryx or harness friction appears repeatedly, create or suggest a
+- When orchestration or harness friction appears repeatedly, create or suggest a
   focused upstream improvement instead of only noting it in chat.
 - After coding work is complete, use remaining time to tighten tests, record
   concise artifact logs, clarify issues, or advance relevant discussion-room

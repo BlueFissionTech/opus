@@ -48,19 +48,17 @@ class VibeGenerationService extends Service
 
     public function renderSource(string $source, array $variables = [], array $includePaths = [], array $options = []): array
     {
-        $validation = $this->validateSource($source);
-        if (!$validation['valid']) {
-            return $validation + [
-                'output' => '',
-                'variables' => [],
-            ];
+        $validation = Arr::make($this->validateSource($source));
+        if (!$validation->get('valid')) {
+            return $this->withRenderingContext($validation->val());
         }
 
         try {
             $reader = $this->reader($variables, $includePaths);
             $reader->input($source);
+            $options = Arr::make($options);
             $resolvedVariables = $reader->run([
-                'run_backend' => (bool)($options['run_backend'] ?? false),
+                'run_backend' => (bool) ($options->get('run_backend') ?? false),
                 'validate_syntax' => false,
             ]);
 
@@ -71,37 +69,33 @@ class VibeGenerationService extends Service
                 'variables' => $resolvedVariables,
             ];
         } catch (Throwable $exception) {
-            return $this->failure($exception->getMessage()) + [
-                'output' => '',
-                'variables' => [],
-            ];
+            return $this->withRenderingContext($this->failure($exception->getMessage()));
         }
     }
 
     public function renderFile(string $path, array $variables = [], array $includePaths = [], array $options = []): array
     {
         if (!FileSystem::fileExists($path)) {
-            return $this->failure("Vibe source file was not found.") + [
-                'output' => '',
-                'variables' => [],
-            ];
+            return $this->withRenderingContext($this->failure("Vibe source file was not found."));
         }
 
-        $validation = $this->validateFile($path);
-        if (!$validation['valid']) {
-            return $validation + [
-                'output' => '',
-                'variables' => [],
-            ];
+        $validation = Arr::make($this->validateFile($path));
+        if (!$validation->get('valid')) {
+            return $this->withRenderingContext($validation->val());
         }
 
         try {
-            $includePaths[] = dirname($path);
+            $includePaths = Arr::make($includePaths)
+                ->push(dirname($path))
+                ->unique()
+                ->values()
+                ->val();
 
-            $reader = $this->reader($variables, Arr::make($includePaths)->unique()->values()->val());
+            $reader = $this->reader($variables, $includePaths);
             $reader->inputFile($path);
+            $options = Arr::make($options);
             $resolvedVariables = $reader->run([
-                'run_backend' => (bool)($options['run_backend'] ?? false),
+                'run_backend' => (bool) ($options->get('run_backend') ?? false),
                 'validate_syntax' => false,
             ]);
 
@@ -112,29 +106,27 @@ class VibeGenerationService extends Service
                 'variables' => $resolvedVariables,
             ];
         } catch (Throwable $exception) {
-            return $this->failure($exception->getMessage()) + [
-                'output' => '',
-                'variables' => [],
-            ];
+            return $this->withRenderingContext($this->failure($exception->getMessage()));
         }
     }
 
     public function writeRenderedFile(string $sourcePath, string $outputPath, array $variables = [], array $includePaths = [], array $options = []): array
     {
-        $result = $this->renderFile($sourcePath, $variables, $includePaths, $options);
-        if (!$result['valid']) {
-            return $result;
+        $result = Arr::make($this->renderFile($sourcePath, $variables, $includePaths, $options));
+        if (!$result->get('valid')) {
+            return $result->val();
         }
 
         try {
             $target = $this->resolveWorkspacePath($outputPath);
             $directory = dirname($target);
 
-            if (!FileSystem::directoryExists($directory) && !mkdir($directory, 0775, true) && !FileSystem::directoryExists($directory)) {
-                return $this->failure("Rendered output directory could not be created.") + [
-                    'output' => $result['output'],
-                    'variables' => $result['variables'],
-                ];
+            if (!$this->ensureDirectory($directory)) {
+                return $this->withRenderingContext(
+                    $this->failure("Rendered output directory could not be created."),
+                    (string) $result->get('output'),
+                    Arr::make($result->get('variables'))->val()
+                );
             }
 
             $file = new FileSystem([
@@ -143,35 +135,43 @@ class VibeGenerationService extends Service
                 'filter' => 'file',
                 'doNotConfirm' => true,
             ]);
-            $file->open((string)FileSystem::fileBasename($target))->contents($result['output'])->write()->close();
+            $file->open((string) FileSystem::fileBasename($target))
+                ->contents($result->get('output'))
+                ->write()
+                ->close();
 
-            if (FileSystem::fileContents($target) !== $result['output']) {
-                return $this->failure("Rendered output file could not be written.") + [
-                    'output' => $result['output'],
-                    'variables' => $result['variables'],
-                ];
+            if (FileSystem::fileContents($target) !== $result->get('output')) {
+                return $this->withRenderingContext(
+                    $this->failure("Rendered output file could not be written."),
+                    (string) $result->get('output'),
+                    Arr::make($result->get('variables'))->val()
+                );
             }
 
-            $result['path'] = $target;
-            return $result;
+            $result->set('path', $target);
+
+            return $result->val();
         } catch (Throwable $exception) {
-            return $this->failure($exception->getMessage()) + [
-                'output' => $result['output'],
-                'variables' => $result['variables'],
-            ];
+            return $this->withRenderingContext(
+                $this->failure($exception->getMessage()),
+                (string) $result->get('output'),
+                Arr::make($result->get('variables'))->val()
+            );
         }
     }
 
     private function reader(array $variables, array $includePaths): Reader
     {
         $reader = new Reader($this->llmClient);
+        $variables = Arr::make($variables);
+        $includePaths = Arr::make($includePaths);
 
-        if ($variables !== []) {
-            $reader->setVariables($variables);
+        if ($variables->isNotEmpty()) {
+            $reader->setVariables($variables->val());
         }
 
-        if ($includePaths !== []) {
-            $reader->setIncludePaths($includePaths);
+        if ($includePaths->isNotEmpty()) {
+            $reader->setIncludePaths($includePaths->val());
         }
 
         return $reader;
@@ -191,18 +191,57 @@ class VibeGenerationService extends Service
         ];
     }
 
+    private function withRenderingContext(array $result, string $output = '', array $variables = []): array
+    {
+        $result = Arr::make($result);
+        $result->set('output', $output);
+        $result->set('variables', $variables);
+
+        return $result->val();
+    }
+
+    private function ensureDirectory(string $directory): bool
+    {
+        if (FileSystem::directoryExists($directory)) {
+            return true;
+        }
+
+        $parent = dirname($directory);
+        if ($parent === $directory || !$this->ensureDirectory($parent)) {
+            return false;
+        }
+
+        $filesystem = new FileSystem([
+            'root' => $parent,
+            'mode' => 'w',
+            'filter' => 'file',
+            'doNotConfirm' => true,
+        ]);
+        $filesystem->mkdir((string) FileSystem::fileBasename($directory));
+
+        return FileSystem::directoryExists($directory);
+    }
+
     private function resolveWorkspacePath(string $path): string
     {
         if ($path === '') {
             throw new InvalidArgumentException("Output path must not be empty.");
         }
 
-        $root = realpath(getcwd()) ?: getcwd();
+        $workingDirectory = getcwd();
+        if (!Str::is($workingDirectory) || $workingDirectory === '') {
+            throw new InvalidArgumentException("Application workspace could not be resolved.");
+        }
+
+        $root = realpath($workingDirectory) ?: $workingDirectory;
         $target = $this->isAbsolutePath($path)
             ? $path
             : $root . DIRECTORY_SEPARATOR . $path;
 
-        $normalizedRoot = rtrim($this->normalizePath($root), '/') . '/';
+        $normalizedRoot = Str::make($this->normalizePath($root))
+            ->trim('/')
+            ->append('/')
+            ->val();
         $normalizedTarget = $this->normalizePath($target);
 
         if (!Str::startsWith($normalizedTarget, $normalizedRoot)) {
@@ -214,8 +253,10 @@ class VibeGenerationService extends Service
 
     private function isAbsolutePath(string $path): bool
     {
-        return Str::startsWith($path, DIRECTORY_SEPARATOR)
-            || preg_match('/^[A-Za-z]:[\/\\\\]/', $path) === 1;
+        $path = Str::make($path);
+
+        return $path->startsWith(DIRECTORY_SEPARATOR)
+            || $path->matches('/^[A-Za-z]:[\/\\\\]/');
     }
 
     private function normalizePath(string $path): string
@@ -223,7 +264,7 @@ class VibeGenerationService extends Service
         $path = Str::replace($path, '\\', '/');
         $prefix = '';
 
-        if (preg_match('/^[A-Za-z]:\//', $path) === 1) {
+        if (Str::make($path)->matches('/^[A-Za-z]:\//')) {
             $prefix = Str::sub($path, 0, 3);
             $path = Str::sub($path, 3);
         } elseif (Str::startsWith($path, '/')) {

@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Business\Console;
 
 use App\Business\Services\VibeGenerationService;
+use BlueFission\Arr;
 use BlueFission\Services\Service;
+use BlueFission\Str;
 
 class CodeManager extends Service
 {
@@ -16,24 +20,24 @@ class CodeManager extends Service
         parent::__construct();
     }
 
-    public function generate($type, $name, $prompt): array
+    public function generate(string $type, string $name, string $prompt): array
     {
         print "Please wait...\n";
-        $result = $this->generationService->renderSource($prompt, [
+        $result = Arr::make($this->generationService->renderSource($prompt, [
             'type' => $type,
             'name' => $name,
-        ]);
+        ]));
 
-        if ($result['valid']) {
-            if ($result['output'] !== '') {
-                print $result['output'] . "\n";
+        if ($result->get('valid')) {
+            if ($result->get('output') !== '') {
+                print $result->get('output') . "\n";
             }
             print "Generation completed.\n";
         } else {
-            print $this->formatErrors($result['errors']);
+            print $this->formatErrors(Arr::make($result->get('errors'))->val());
         }
 
-        return $result;
+        return $result->val();
     }
 
     public function render(string $source, array $variables = []): array
@@ -43,7 +47,7 @@ class CodeManager extends Service
 
     public function renderFile(string $sourcePath, ?string $outputPath = null, array $variables = []): array
     {
-        if ($outputPath) {
+        if (Str::isNotEmpty($outputPath)) {
             return $this->generationService->writeRenderedFile($sourcePath, $outputPath, $variables);
         }
 
@@ -52,15 +56,17 @@ class CodeManager extends Service
 
     private function formatErrors(array $errors): string
     {
-        if ($errors === []) {
+        $errors = Arr::make($errors);
+        if ($errors->isEmpty()) {
             return "Generation failed.\n";
         }
 
-        $lines = ["Generation failed:"];
+        $lines = Arr::make(["Generation failed:"]);
         foreach ($errors as $error) {
-            $lines[] = '- ' . ($error['message'] ?? 'Unknown error');
+            $error = Arr::make($error);
+            $lines->push('- ' . ($error->get('message') ?? 'Unknown error'));
         }
 
-        return implode("\n", $lines) . "\n";
+        return $lines->join("\n")->append("\n")->val();
     }
 }

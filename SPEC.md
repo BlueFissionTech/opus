@@ -11,8 +11,8 @@ activation and service contracts.
 ## Current Integration State
 
 - DevElation, BlueCore, Automata, Wise, Vibrato, Presence, Synematic,
-  SimpleClients, and the current Hoom and Kapsle add-ons are declared through
-  Composer VCS repositories.
+  SimpleClients, and the currently installed add-on packages are declared
+  through Composer VCS repositories.
 - The Composer lock resolves these packages on PHP 8.2 with Opus-owned
   websocket dependencies kept explicit for the terminal surface.
 - Reactor is declared as the Blue Fission frontend package for the JavaScript
@@ -95,12 +95,9 @@ Acceptance criteria:
 
 ## Known Gaps
 
-- Hoom currently emits Composer optimized-autoload warnings for many classes
-  whose namespaces do not match their installed paths.
-- Hoom currently constrains `firebase/php-jwt` to the affected 6.x line
-  reported by Composer audit; the package needs a 7.x compatibility review.
-- Kapsle currently emits an ambiguous enum class mapping warning during
-  optimized autoload generation.
+- Installed add-on packages currently emit optimized-autoload warnings, and one
+  transitive authentication dependency has a reported advisory. Compatibility
+  fixes are tracked in the packages that own those constraints.
 - Composer validation still reports the existing `Exclusive` license metadata
   as a non-SPDX value. The package license should be confirmed before changing
   public metadata.
@@ -115,7 +112,7 @@ Acceptance criteria:
 ## Implemented In This Slice
 
 - Refreshed Composer dependencies for the current Blue Fission package graph.
-- Added current Hoom and Kapsle add-ons as Composer-managed Opus add-ons.
+- Added the current add-on packages as Composer-managed Opus add-ons.
 - Added Vibrato, Wise, Presence, Synematic, and supporting Blue Fission
   repositories to the Composer graph.
 - Added Reactor to the npm graph.
