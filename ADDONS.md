@@ -60,7 +60,7 @@ The current manager scans each immediate directory under `addons/`. A discoverab
 - an optional `libraries` array of Composer package names used to report explicit dependency commands; and
 - an optional `primary_file`, which defaults to `main.php`.
 
-The primary file is required for runtime loading and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Installation and uninstallation load that same file and call `<name>_install()` or `<name>_uninstall()` when the corresponding function exists.
+The primary file is required for runtime loading and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Installation and uninstallation load that same file and call `<name>_install()` or `<name>_uninstall()` when the corresponding function exists. Declare both hook functions in the global namespace; the current manager performs an unqualified lookup and does not resolve namespaced functions.
 
 Installation configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/`; the current manager skips either area when its directory is absent. When present, each structure file must expose a discoverable class with `change()` and `revert()` methods. Each generator file must expose a discoverable class with `populate(bool $auto)`. A `RootSeeder.php` class may instead provide `seeders()` to select and order the remaining generator classes. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
 
