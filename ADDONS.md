@@ -8,7 +8,7 @@ Build an add-on around a durable capability. Its public API and configuration sh
 
 ## Package boundary
 
-An add-on must keep its implementation inside its own package. Do not patch Opus application files, write directly to platform add-on state, or depend on an installation path convention as part of the package contract.
+An add-on must keep its implementation inside its own package. Do not patch Opus application files or write directly to platform add-on state. The current BlueCore manager discovers installed add-ons through the application-owned `addons/` directory, so package installation must preserve the runtime layout described below.
 
 Use the platform add-on manager for lifecycle operations. In the current application, the manager owns install, activate, deactivate, uninstall, and active-package loading; add-on state is persisted through the BlueCore add-on query and repository contracts.
 
@@ -24,10 +24,12 @@ Keep these responsibilities separate:
 
 ## Package layout
 
-Use a conventional Composer package with a clear PSR-4 namespace. The following layout is a neutral starting point; omit directories that do not serve the add-on's scope.
+Use a conventional Composer package with a clear PSR-4 namespace. An installed package currently occupies `addons/<directory>/`, where `<directory>` is the manager's discovery key. The following layout includes the files consumed directly by the BlueCore manager; omit optional directories that do not serve the add-on's scope.
 
 ```text
 composer.json
+definition.json
+main.php
 README.md
 src/
     Application/
@@ -39,8 +41,27 @@ resource/
     migrations/
     templates/
     translations/
+datasources/
+    generator/
+    structure/
 tests/
 ```
+
+### Runtime discovery contract
+
+The current manager scans each immediate directory under `addons/`. A discoverable add-on must therefore provide:
+
+- `addons/<directory>/definition.json`, containing valid JSON metadata;
+- a nonempty `name`, or acceptance of `<directory>` as the default name;
+- an optional `description`;
+- an optional `libraries` array of Composer package names used to report explicit dependency commands; and
+- an optional `primary_file`, which defaults to `main.php`.
+
+The primary file is required for runtime loading and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Installation and uninstallation load that same file and call `<name>_install()` or `<name>_uninstall()` when the corresponding function exists.
+
+Installation also configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/`. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
+
+Composer metadata remains the package and dependency boundary, but it is not currently the runtime discovery mechanism. A package installer or deployment process must place the package in the required `addons/<directory>/` layout without modifying application source files.
 
 `composer.json` should:
 
@@ -48,9 +69,9 @@ tests/
 - define PSR-4 autoloading for the package namespace;
 - require PHP 8.2 or later;
 - require compatible, published versions of Opus and the Blue Fission packages used directly by the add-on; and
-- declare the metadata required by the supported add-on discovery contract.
+- declare package metadata and direct dependencies independently of the runtime `definition.json` metadata.
 
-Treat package metadata as the discovery boundary. Do not rely on a package's local directory name, manually scan arbitrary directories, or modify the platform's Composer configuration from inside the add-on.
+Do not scan arbitrary directories or modify the platform's Composer configuration from inside the add-on. Treat the documented `addons/<directory>/definition.json` layout as a compatibility contract until the platform exposes a package-owned discovery registry.
 
 ## Coding and public standards
 
@@ -64,19 +85,19 @@ Lifecycle operations must be repeatable, observable, and safe to retry after a p
 
 ### Install
 
-Installation prepares package-owned resources and records only the state needed to make those resources usable. Schema setup, seed data, and configuration defaults must be idempotent. Installation must not silently activate unrelated capabilities.
+Installation prepares package-owned resources and records only the state needed to make those resources usable. The current manager runs datasource migrations, populates datasource state, invokes the optional `<name>_install()` hook, and records the add-on. Schema setup, seed data, configuration defaults, and hook behavior must be idempotent. Installation must not silently activate unrelated capabilities.
 
 ### Activate
 
-Activation registers the add-on's runtime behavior through the supported extension points. It should validate required configuration and fail with a clear, actionable error when prerequisites are unavailable. An activated package must not take ownership of global behavior outside its declared capability.
+Activation marks an installed add-on active so the manager can load its configured primary file during runtime bootstrap. Runtime registration performed by that file should validate required configuration and fail with a clear, actionable error when prerequisites are unavailable. An activated package must not take ownership of global behavior outside its declared capability.
 
 ### Deactivate
 
-Deactivation removes runtime registrations and stops work initiated by the add-on. It should preserve package data by default so that reactivation is safe. Any exception to that retention policy must be explicit in the package documentation and require deliberate operator action.
+Deactivation marks the add-on inactive so it is omitted from later active-add-on loading. Add-on runtime behavior should make shutdown and repeated bootstrap safe, and package data should be preserved by default so reactivation is safe. Any exception to that retention policy must be explicit in the package documentation and require deliberate operator action.
 
 ### Uninstall
 
-Uninstallation removes package registration and resources only after the add-on's data-retention policy has been applied. Destructive data removal must be explicit, documented, and independently confirmable; it must never be an implicit side effect of deactivation.
+Uninstallation invokes the optional `<name>_uninstall()` hook, removes package registration, and reverts the add-on's datasource migration batch. Destructive data removal must be explicit, documented, and independently confirmable; it must never be an implicit side effect of deactivation.
 
 ## Integrations and configuration
 
