@@ -10,7 +10,12 @@
     },
     {
       "path": "examples/jenss/missing.jss",
+      "mode": "prase",
       "required": true
+    },
+    {
+      "path": "examples/jenss/missing-required.jss",
+      "required": "yes"
     }
   ]
 }

@@ -74,6 +74,18 @@ class RuntimeContractProofService extends Service
             }
             $path = Str::make($path)->trim()->val();
 
+            $mode = $script->get('mode') ?? 'execute';
+            if (
+                !Str::is($mode)
+                || !Arr::make(['parse', 'execute'])->has($mode, true)
+            ) {
+                $invalid->push('script entry has an unsupported mode');
+            }
+
+            if ($script->hasKey('required') && !is_bool($script->get('required'))) {
+                $invalid->push('script entry has a non-boolean required flag');
+            }
+
             if (!FileSystem::fileExists($this->path($path))) {
                 $missing->push($path);
             }

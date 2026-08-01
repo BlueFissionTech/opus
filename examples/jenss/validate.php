@@ -82,19 +82,36 @@ foreach ($scripts as $script) {
         continue;
     }
     $relativePath = Str::make($relativePath)->trim()->val();
-    $mode = (string) ($script->get('mode') ?? 'execute');
-    $required = !$script->hasKey('required') || (bool) $script->get('required');
+    $mode = $script->get('mode') ?? 'execute';
+    if (
+        !Str::is($mode)
+        || !Arr::make(['parse', 'execute'])->has($mode, true)
+    ) {
+        $failures++;
+        echo "[fail] {$relativePath}: unsupported script mode.\n";
+        continue;
+    }
+
+    $required = $script->get('required') ?? true;
+    if (!is_bool($required)) {
+        $failures++;
+        echo "[fail] {$relativePath}: required must be boolean.\n";
+        continue;
+    }
+
     $normalizedPath = Str::make($relativePath)
         ->replace('/', DIRECTORY_SEPARATOR)
         ->replace('\\', DIRECTORY_SEPARATOR)
         ->val();
     $scriptPath = $root . DIRECTORY_SEPARATOR . $normalizedPath;
 
-    try {
-        if (!FileSystem::fileExists($scriptPath)) {
-            throw new RuntimeException("Script not found: {$relativePath}");
-        }
+    if (!FileSystem::fileExists($scriptPath)) {
+        $failures++;
+        echo "[fail] Script not found: {$relativePath}\n";
+        continue;
+    }
 
+    try {
         $ast = $parser->parseFile($scriptPath);
         $messages = Arr::make([]);
 
