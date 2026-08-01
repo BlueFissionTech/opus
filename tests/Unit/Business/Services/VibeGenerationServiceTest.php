@@ -6,6 +6,7 @@ namespace Tests\Unit\Business\Services;
 
 use App\Business\Services\VibeGenerationService;
 use BlueFission\Data\FileSystem;
+use BlueFission\Str;
 use PHPUnit\Framework\TestCase;
 
 class VibeGenerationServiceTest extends TestCase
@@ -35,7 +36,7 @@ class VibeGenerationServiceTest extends TestCase
 
     public function testItWritesRenderedFilesInsideWorkspace(): void
     {
-        $service = new VibeGenerationService();
+        $service = $this->workspaceService();
         $source = $this->writeTempSource('Add-on agent: {$agent}');
 
         $target = 'tests/tmp/vibe-generation-test.txt';
@@ -58,7 +59,7 @@ class VibeGenerationServiceTest extends TestCase
 
     public function testItRejectsRenderedFilesOutsideWorkspace(): void
     {
-        $service = new VibeGenerationService();
+        $service = $this->workspaceService();
         $source = $this->writeTempSource('Blocked output');
         $target = sys_get_temp_dir() . DIRECTORY_SEPARATOR
             . 'opus-vibe-outside-' . getmypid() . '.txt';
@@ -82,7 +83,7 @@ class VibeGenerationServiceTest extends TestCase
             $this->markTestSkipped('Directory symlinks are unavailable in this environment.');
         }
 
-        $service = new VibeGenerationService();
+        $service = $this->workspaceService();
         $source = $this->writeTempSource('Blocked symlink output');
         $workspaceDirectory = 'tests' . DIRECTORY_SEPARATOR . 'tmp';
         $outsideDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR
@@ -122,6 +123,56 @@ class VibeGenerationServiceTest extends TestCase
         }
     }
 
+    public function testItAnchorsRelativeOutputsToTheConfiguredWorkspace(): void
+    {
+        $workspace = dirname(__DIR__, 4);
+        $service = $this->workspaceService();
+        $source = $this->writeTempSource('Stable workspace output');
+        $relativeDirectory = 'tests' . DIRECTORY_SEPARATOR . 'tmp-workspace-' . getmypid();
+        $relativeTarget = $relativeDirectory . DIRECTORY_SEPARATOR . 'output.txt';
+        $expectedTarget = $workspace . DIRECTORY_SEPARATOR . $relativeTarget;
+        $originalDirectory = getcwd();
+        $this->assertIsString($originalDirectory);
+
+        try {
+            chdir(sys_get_temp_dir());
+            $result = $service->writeRenderedFile($source, $relativeTarget);
+        } finally {
+            chdir($originalDirectory);
+        }
+
+        $this->assertTrue($result['valid'], json_encode($result['errors']));
+        $this->assertSame($expectedTarget, $result['path']);
+        $this->assertTrue(FileSystem::fileExists($expectedTarget));
+
+        unlink($source);
+        unlink($expectedTarget);
+        rmdir(dirname($expectedTarget));
+    }
+
+    public function testItComparesWindowsWorkspacePathsWithoutCaseSensitivity(): void
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $this->markTestSkipped('Windows path comparison is platform-specific.');
+        }
+
+        $workspace = dirname(__DIR__, 4);
+        $service = $this->workspaceService();
+        $source = $this->writeTempSource('Case-insensitive workspace output');
+        $directory = $workspace . DIRECTORY_SEPARATOR . 'tests'
+            . DIRECTORY_SEPARATOR . 'tmp-case-' . getmypid();
+        $target = Str::lower($directory . DIRECTORY_SEPARATOR . 'output.txt');
+
+        $result = $service->writeRenderedFile($source, $target);
+
+        $this->assertTrue($result['valid'], json_encode($result['errors']));
+        $this->assertTrue(FileSystem::fileExists($target));
+
+        unlink($source);
+        unlink($target);
+        rmdir($directory);
+    }
+
     private function writeTempSource(string $contents): string
     {
         $source = tempnam(sys_get_temp_dir(), 'opus-vibe-');
@@ -138,5 +189,10 @@ class VibeGenerationServiceTest extends TestCase
             ->close();
 
         return $source;
+    }
+
+    private function workspaceService(): VibeGenerationService
+    {
+        return new VibeGenerationService(null, null, dirname(__DIR__, 4));
     }
 }

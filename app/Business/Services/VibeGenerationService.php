@@ -18,11 +18,26 @@ class VibeGenerationService extends Service
 {
     private ?IClient $llmClient;
     private VibeSyntaxValidator $validator;
+    private string $workspace;
 
-    public function __construct(?IClient $llmClient = null, ?VibeSyntaxValidator $validator = null)
+    public function __construct(
+        ?IClient $llmClient = null,
+        ?VibeSyntaxValidator $validator = null,
+        ?string $workspace = null
+    )
     {
         $this->llmClient = $llmClient;
         $this->validator = $validator ?? new VibeSyntaxValidator();
+        $workspace = $workspace ?? (
+            defined('APP_ROOT')
+                ? (string) constant('APP_ROOT')
+                : dirname(__DIR__, 3)
+        );
+        $resolvedWorkspace = realpath($workspace);
+        if (!Str::is($resolvedWorkspace) || $resolvedWorkspace === '') {
+            throw new InvalidArgumentException("Application workspace could not be resolved.");
+        }
+        $this->workspace = $resolvedWorkspace;
 
         parent::__construct();
     }
@@ -228,12 +243,7 @@ class VibeGenerationService extends Service
             throw new InvalidArgumentException("Output path must not be empty.");
         }
 
-        $workingDirectory = getcwd();
-        if (!Str::is($workingDirectory) || $workingDirectory === '') {
-            throw new InvalidArgumentException("Application workspace could not be resolved.");
-        }
-
-        $root = realpath($workingDirectory) ?: $workingDirectory;
+        $root = $this->workspace;
         $target = $this->isAbsolutePath($path)
             ? $path
             : $root . DIRECTORY_SEPARATOR . $path;
@@ -254,7 +264,14 @@ class VibeGenerationService extends Service
 
     private function assertInsideWorkspace(string $path, string $root): void
     {
-        if (!Str::startsWith($path, $root)) {
+        $comparisonPath = Str::make($path);
+        $comparisonRoot = Str::make($root);
+        if (PHP_OS_FAMILY === 'Windows') {
+            $comparisonPath->lower();
+            $comparisonRoot->lower();
+        }
+
+        if (!$comparisonPath->startsWith($comparisonRoot->val())) {
             throw new InvalidArgumentException("Output path must stay inside the application workspace.");
         }
     }
