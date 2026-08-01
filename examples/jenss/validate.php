@@ -34,7 +34,13 @@ foreach (Arr::make([JenssParser::class, Interpreter::class, CollectingIo::class]
     }
 }
 
-$manifest = Arr::make(readJson($manifestPath));
+try {
+    $manifest = Arr::make(readJson($manifestPath));
+} catch (Throwable $error) {
+    fwrite(STDERR, "[fail] {$error->getMessage()}\n");
+    exit(1);
+}
+
 $scripts = Arr::make($manifest->get('scripts'));
 if ($scripts->isEmpty()) {
     fwrite(STDERR, "No JenSS scripts are listed in the proof manifest.\n");
