@@ -46,10 +46,17 @@ tests/
 
 - declare a stable, package-owned name and description;
 - define PSR-4 autoloading for the package namespace;
+- require PHP 8.2 or later;
 - require compatible, published versions of Opus and the Blue Fission packages used directly by the add-on; and
 - declare the metadata required by the supported add-on discovery contract.
 
 Treat package metadata as the discovery boundary. Do not rely on a package's local directory name, manually scan arbitrary directories, or modify the platform's Composer configuration from inside the add-on.
+
+## Coding and public standards
+
+Use strict types in new PHP files unless an established package boundary requires otherwise. Prefer DevElation primitives, behaviors, services, data objects, connections, and helpers where the Blue Fission ecosystem already owns the capability. Keep raw native operations at implementation or external-contract boundaries where wrapping would hide important semantics.
+
+Public APIs, documentation, issues, and pull requests must remain package-owned and collaborator-facing. Do not expose workstation paths, private coordination details, or scratch artifacts. Describe reusable acceptance criteria instead of justifying a capability around one consumer-specific request.
 
 ## Lifecycle design
 
@@ -94,7 +101,7 @@ An add-on is ready for review when it demonstrates the lifecycle and package bou
 - Verify deactivation removes runtime behavior without deleting retained data.
 - Verify uninstall follows the documented data policy.
 - Verify the package can be discovered and managed through the supported Opus add-on lifecycle.
-- Run `composer validate --strict` and the full package test suite before release.
+- Run `composer validate --strict` and `vendor/bin/phpunit --do-not-cache-result` before release.
 - Declare the tested Opus and direct dependency versions in the release notes.
 
 ## Review questions
