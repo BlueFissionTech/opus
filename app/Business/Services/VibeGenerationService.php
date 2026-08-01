@@ -171,10 +171,11 @@ class VibeGenerationService extends Service
                 return false;
             }
 
-            if (FileSystem::fileExists($target) || is_link($target)) {
-                if (!unlink($target)) {
-                    return false;
-                }
+            $permissions = FileSystem::fileExists($target)
+                ? fileperms($target)
+                : 0666 & ~umask();
+            if ($permissions === false || !chmod($temporary, $permissions & 0777)) {
+                return false;
             }
 
             if (!rename($temporary, $target)) {

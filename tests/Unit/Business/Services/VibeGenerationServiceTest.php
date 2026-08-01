@@ -124,6 +124,36 @@ class VibeGenerationServiceTest extends TestCase
         unlink($outside);
     }
 
+    public function testItPreservesExistingTargetPermissions(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $this->markTestSkipped('POSIX permissions are platform-specific.');
+        }
+
+        $service = $this->workspaceService();
+        $source = $this->writeTempSource('Replacement content');
+        $target = 'tests' . DIRECTORY_SEPARATOR . 'vibe-mode-' . getmypid() . '.txt';
+        $targetFile = new FileSystem([
+            'root' => dirname($target),
+            'mode' => 'w',
+            'filter' => 'file',
+            'doNotConfirm' => true,
+        ]);
+        $targetFile->open((string) FileSystem::fileBasename($target))
+            ->contents('Original content')
+            ->write()
+            ->close();
+        chmod($target, 0640);
+
+        $result = $service->writeRenderedFile($source, $target);
+
+        $this->assertTrue($result['valid'], json_encode($result['errors']));
+        $this->assertSame(0640, fileperms($target) & 0777);
+
+        unlink($source);
+        unlink($target);
+    }
+
     public function testItRejectsRenderedFilesThroughWorkspaceSymlinks(): void
     {
         if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {
