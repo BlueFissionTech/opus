@@ -53,6 +53,7 @@ The current manager scans each immediate directory under `addons/`. A discoverab
 
 - `addons/<directory>/definition.json`, containing valid JSON metadata;
 - a nonempty `name`, or acceptance of `<directory>` as the default name;
+- a `name` matching `[A-Za-z_][A-Za-z0-9_]*` when lifecycle hooks are provided, because the manager uses it verbatim as the PHP function-name stem;
 - an optional `description`;
 - an optional `libraries` array of Composer package names used to report explicit dependency commands; and
 - an optional `primary_file`, which defaults to `main.php`.
