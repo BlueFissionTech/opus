@@ -25,7 +25,7 @@ class RuntimeContractManager extends Service
         try {
             $report = Arr::make($this->_contractProof->readinessReport());
         } catch (Throwable $e) {
-            echo "Runtime contract proof unavailable: {$e->getMessage()}\n";
+            $this->reportUnavailable($e);
             return;
         }
 
@@ -54,7 +54,13 @@ class RuntimeContractManager extends Service
 
     public function targets(): void
     {
-        $targets = Arr::make($this->_contractProof->optionalTargets());
+        try {
+            $targets = Arr::make($this->_contractProof->optionalTargets());
+        } catch (Throwable $e) {
+            $this->reportUnavailable($e);
+            return;
+        }
+
         if ($targets->isEmpty()) {
             echo "No optional contract target scripts are registered.\n";
             return;
@@ -78,7 +84,13 @@ class RuntimeContractManager extends Service
 
     public function validate(): void
     {
-        $report = Arr::make($this->_contractProof->readinessReport());
+        try {
+            $report = Arr::make($this->_contractProof->readinessReport());
+        } catch (Throwable $e) {
+            $this->reportUnavailable($e);
+            return;
+        }
+
         if (!$report->get('ready')) {
             echo "Runtime contract proof is not ready for interpreter validation.\n";
             $this->proof();
@@ -87,5 +99,10 @@ class RuntimeContractManager extends Service
 
         echo "Runtime contract proof files are present.\n";
         echo "Run {$this->_contractProof->validationCommand()} with Jenerator available on Composer autoload for interpreter validation.\n";
+    }
+
+    private function reportUnavailable(Throwable $error): void
+    {
+        echo "Runtime contract proof unavailable: {$error->getMessage()}\n";
     }
 }

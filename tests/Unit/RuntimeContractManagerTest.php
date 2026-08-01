@@ -44,11 +44,7 @@ class RuntimeContractManagerTest extends TestCase
 
     public function testProofReportsUnavailableContractManifest(): void
     {
-        $manager = new RuntimeContractManager(
-            new RuntimeContractProofService(
-                dirname(__DIR__) . DIRECTORY_SEPARATOR . 'Fixtures' . DIRECTORY_SEPARATOR . 'missing'
-            )
-        );
+        $manager = $this->managerWithMissingManifest();
 
         ob_start();
         $manager->proof();
@@ -57,6 +53,43 @@ class RuntimeContractManagerTest extends TestCase
         $this->assertStringContainsString(
             'Runtime contract proof unavailable: Runtime contract manifest not found.',
             $output
+        );
+    }
+
+    public function testTargetsReportsUnavailableContractManifest(): void
+    {
+        $manager = $this->managerWithMissingManifest();
+
+        ob_start();
+        $manager->targets();
+        $output = (string) ob_get_clean();
+
+        $this->assertStringContainsString(
+            'Runtime contract proof unavailable: Runtime contract manifest not found.',
+            $output
+        );
+    }
+
+    public function testValidateReportsUnavailableContractManifest(): void
+    {
+        $manager = $this->managerWithMissingManifest();
+
+        ob_start();
+        $manager->validate();
+        $output = (string) ob_get_clean();
+
+        $this->assertStringContainsString(
+            'Runtime contract proof unavailable: Runtime contract manifest not found.',
+            $output
+        );
+    }
+
+    private function managerWithMissingManifest(): RuntimeContractManager
+    {
+        return new RuntimeContractManager(
+            new RuntimeContractProofService(
+                dirname(__DIR__) . DIRECTORY_SEPARATOR . 'Fixtures' . DIRECTORY_SEPARATOR . 'missing'
+            )
         );
     }
 }

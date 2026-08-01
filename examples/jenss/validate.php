@@ -41,9 +41,21 @@ if ($scripts->isEmpty()) {
     exit(1);
 }
 
-$parser = new JenssParser();
 $failures = 0;
 $gaps = 0;
+$fixture = (string) ($manifest->get('fixture') ?? '');
+if ($fixture !== '') {
+    $normalizedFixture = Str::make($fixture)
+        ->replace('/', DIRECTORY_SEPARATOR)
+        ->replace('\\', DIRECTORY_SEPARATOR)
+        ->val();
+    if (!FileSystem::fileExists($root . DIRECTORY_SEPARATOR . $normalizedFixture)) {
+        $failures++;
+        echo "[fail] Fixture not found: {$fixture}\n";
+    }
+}
+
+$parser = new JenssParser();
 
 foreach ($scripts as $script) {
     if (!Arr::is($script)) {
@@ -95,7 +107,7 @@ if ($gaps > 0) {
 }
 
 if ($failures > 0) {
-    echo "[fail] Required runtime contract scripts failed: {$failures}\n";
+    echo "[fail] Runtime contract validation failed: {$failures}\n";
     exit(1);
 }
 
