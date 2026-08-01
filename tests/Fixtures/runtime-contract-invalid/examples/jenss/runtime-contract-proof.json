@@ -1,0 +1,13 @@
+{
+  "name": "invalid-runtime-contract-proof",
+  "runtime": "jenerator",
+  "fixture": "examples/jenss/fixtures/missing.json",
+  "scripts": [
+    "invalid entry",
+    {},
+    {
+      "path": "examples/jenss/missing.jss",
+      "required": true
+    }
+  ]
+}

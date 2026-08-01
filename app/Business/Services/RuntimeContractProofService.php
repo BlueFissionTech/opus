@@ -1,8 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Business\Services;
 
+use BlueFission\Arr;
+use BlueFission\Data\FileSystem;
 use BlueFission\Services\Service;
+use BlueFission\Str;
 use RuntimeException;
 
 class RuntimeContractProofService extends Service
@@ -26,66 +31,67 @@ class RuntimeContractProofService extends Service
 
     public function scripts(): array
     {
-        $manifest = $this->manifest();
-        $scripts = $manifest['scripts'] ?? [];
+        $manifest = Arr::make($this->manifest());
+        $scripts = $manifest->get('scripts');
 
-        return is_array($scripts) ? $scripts : [];
+        return Arr::is($scripts) ? $scripts : [];
     }
 
     public function requiredScripts(): array
     {
-        return array_values(array_filter(
-            $this->scripts(),
-            fn ($script) => is_array($script) && ($script['required'] ?? true)
-        ));
+        return Arr::make($this->scripts())
+            ->filter(fn ($script) => $this->isRequiredScript($script))
+            ->values()
+            ->val();
     }
 
     public function optionalTargets(): array
     {
-        return array_values(array_filter(
-            $this->scripts(),
-            fn ($script) => is_array($script) && !($script['required'] ?? true)
-        ));
+        return Arr::make($this->scripts())
+            ->filter(fn ($script) => Arr::is($script) && !$this->isRequiredScript($script))
+            ->values()
+            ->val();
     }
 
     public function readinessReport(): array
     {
-        $manifest = $this->manifest();
-        $scripts = $this->scripts();
-        $missing = [];
-        $invalid = [];
+        $manifest = Arr::make($this->manifest());
+        $scripts = Arr::make($this->scripts());
+        $missing = Arr::make([]);
+        $invalid = Arr::make([]);
 
         foreach ($scripts as $script) {
-            if (!is_array($script)) {
-                $invalid[] = 'script entry is not an object';
+            if (!Arr::is($script)) {
+                $invalid->push('script entry is not an object');
                 continue;
             }
 
-            $path = (string) ($script['path'] ?? '');
+            $script = Arr::make($script);
+            $path = (string) ($script->get('path') ?? '');
             if ($path === '') {
-                $invalid[] = 'script entry is missing a path';
+                $invalid->push('script entry is missing a path');
                 continue;
             }
 
-            if (!is_file($this->path($path))) {
-                $missing[] = $path;
+            if (!FileSystem::fileExists($this->path($path))) {
+                $missing->push($path);
             }
         }
 
-        $fixture = (string) ($manifest['fixture'] ?? '');
-        if ($fixture !== '' && !is_file($this->path($fixture))) {
-            $missing[] = $fixture;
+        $fixture = (string) ($manifest->get('fixture') ?? '');
+        if ($fixture !== '' && !FileSystem::fileExists($this->path($fixture))) {
+            $missing->push($fixture);
         }
 
         return [
-            'name' => (string) ($manifest['name'] ?? 'opus-runtime-contract-proof'),
-            'runtime' => (string) ($manifest['runtime'] ?? 'jenerator'),
-            'script_count' => count($scripts),
-            'required_count' => count($this->requiredScripts()),
-            'optional_count' => count($this->optionalTargets()),
-            'missing' => $missing,
-            'invalid' => $invalid,
-            'ready' => $missing === [] && $invalid === [],
+            'name' => (string) ($manifest->get('name') ?? 'opus-runtime-contract-proof'),
+            'runtime' => (string) ($manifest->get('runtime') ?? 'jenerator'),
+            'script_count' => $scripts->count(),
+            'required_count' => Arr::make($this->requiredScripts())->count(),
+            'optional_count' => Arr::make($this->optionalTargets())->count(),
+            'missing' => $missing->val(),
+            'invalid' => $invalid->val(),
+            'ready' => $missing->isEmpty() && $invalid->isEmpty(),
         ];
     }
 
@@ -96,25 +102,41 @@ class RuntimeContractProofService extends Service
 
     private function path(string $relativePath): string
     {
-        return $this->_root . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
+        $path = Str::make($relativePath)
+            ->replace('/', DIRECTORY_SEPARATOR)
+            ->replace('\\', DIRECTORY_SEPARATOR)
+            ->val();
+
+        return $this->_root . DIRECTORY_SEPARATOR . $path;
     }
 
     private function readJson(string $path): array
     {
-        if (!is_file($path)) {
+        if (!FileSystem::fileExists($path)) {
             throw new RuntimeException("Runtime contract manifest not found.");
         }
 
-        $contents = file_get_contents($path);
-        if (!is_string($contents)) {
+        $contents = FileSystem::fileContents($path);
+        if ($contents === null) {
             throw new RuntimeException("Runtime contract manifest could not be read.");
         }
 
         $decoded = json_decode($contents, true);
-        if (!is_array($decoded)) {
+        if (!Arr::is($decoded)) {
             throw new RuntimeException("Runtime contract manifest is not valid JSON.");
         }
 
         return $decoded;
+    }
+
+    private function isRequiredScript(mixed $script): bool
+    {
+        if (!Arr::is($script)) {
+            return false;
+        }
+
+        $script = Arr::make($script);
+
+        return !$script->hasKey('required') || (bool) $script->get('required');
     }
 }

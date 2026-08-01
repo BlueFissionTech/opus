@@ -5,12 +5,12 @@ declare(strict_types=1);
 use BlueFission\Jenerator\Parsing\JenssParser;
 use BlueFission\Jenerator\Runtime\Interpreter;
 use BlueFission\Jenerator\Runtime\Io\CollectingIo;
+use BlueFission\Arr;
+use BlueFission\Data\FileSystem;
+use BlueFission\Str;
 
 $root = dirname(__DIR__, 2);
 $manifestPath = __DIR__ . DIRECTORY_SEPARATOR . 'runtime-contract-proof.json';
-$strict = in_array('--strict', $argv, true);
-$parseOnly = in_array('--parse-only', $argv, true);
-
 $autoload = getenv('JENERATOR_AUTOLOAD');
 if (!is_string($autoload) || $autoload === '') {
     $autoload = $root . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
@@ -23,16 +23,20 @@ if (!is_file($autoload)) {
 
 require_once $autoload;
 
-foreach ([JenssParser::class, Interpreter::class, CollectingIo::class] as $class) {
+$arguments = Arr::make($argv);
+$strict = $arguments->has('--strict', true);
+$parseOnly = $arguments->has('--parse-only', true);
+
+foreach (Arr::make([JenssParser::class, Interpreter::class, CollectingIo::class]) as $class) {
     if (!class_exists($class)) {
         fwrite(STDERR, "Required Jenerator class is unavailable: {$class}\n");
         exit(2);
     }
 }
 
-$manifest = readJson($manifestPath);
-$scripts = $manifest['scripts'] ?? [];
-if (!is_array($scripts) || $scripts === []) {
+$manifest = Arr::make(readJson($manifestPath));
+$scripts = Arr::make($manifest->get('scripts'));
+if ($scripts->isEmpty()) {
     fwrite(STDERR, "No JenSS scripts are listed in the proof manifest.\n");
     exit(1);
 }
@@ -42,41 +46,45 @@ $failures = 0;
 $gaps = 0;
 
 foreach ($scripts as $script) {
-    if (!is_array($script)) {
+    if (!Arr::is($script)) {
         continue;
     }
 
-    $relativePath = (string) ($script['path'] ?? '');
-    $mode = (string) ($script['mode'] ?? 'execute');
-    $required = (bool) ($script['required'] ?? true);
-    $scriptPath = $root . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
+    $script = Arr::make($script);
+    $relativePath = (string) ($script->get('path') ?? '');
+    $mode = (string) ($script->get('mode') ?? 'execute');
+    $required = !$script->hasKey('required') || (bool) $script->get('required');
+    $normalizedPath = Str::make($relativePath)
+        ->replace('/', DIRECTORY_SEPARATOR)
+        ->replace('\\', DIRECTORY_SEPARATOR)
+        ->val();
+    $scriptPath = $root . DIRECTORY_SEPARATOR . $normalizedPath;
 
     try {
-        if (!is_file($scriptPath)) {
+        if (!FileSystem::fileExists($scriptPath)) {
             throw new RuntimeException("Script not found: {$relativePath}");
         }
 
         $ast = $parser->parseFile($scriptPath);
-        $messages = [];
+        $messages = Arr::make([]);
 
         if (!$parseOnly && $mode !== 'parse') {
             $io = new CollectingIo();
             $interpreter = new Interpreter($io);
             $interpreter->run($ast);
-            $messages = $io->messages();
+            $messages = Arr::make($io->messages());
         }
 
-        $messageCount = count($messages);
+        $messageCount = $messages->count();
         echo "[ok] {$relativePath} ({$mode}, messages={$messageCount})\n";
     } catch (Throwable $e) {
-        $line = "[gap] {$relativePath}: {$e->getMessage()}";
         if ($required || $strict) {
             $failures++;
-            $line = "[fail] {$relativePath}: {$e->getMessage()}";
+            echo "[fail] {$relativePath}: {$e->getMessage()}\n";
         } else {
             $gaps++;
+            echo "[gap] {$relativePath}: {$e->getMessage()}\n";
         }
-        echo $line . "\n";
     }
 }
 
@@ -94,17 +102,17 @@ exit(0);
 
 function readJson(string $path): array
 {
-    if (!is_file($path)) {
+    if (!FileSystem::fileExists($path)) {
         throw new RuntimeException("Manifest not found: {$path}");
     }
 
-    $contents = file_get_contents($path);
-    if (!is_string($contents)) {
+    $contents = FileSystem::fileContents($path);
+    if ($contents === null) {
         throw new RuntimeException("Unable to read manifest: {$path}");
     }
 
     $decoded = json_decode($contents, true);
-    if (!is_array($decoded)) {
+    if (!Arr::is($decoded)) {
         throw new RuntimeException("Manifest is not valid JSON: {$path}");
     }
 

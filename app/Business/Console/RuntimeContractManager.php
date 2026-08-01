@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Business\Console;
 
 use App\Business\Services\RuntimeContractProofService;
+use BlueFission\Arr;
 use BlueFission\Services\Service;
 use Throwable;
 
@@ -20,28 +23,30 @@ class RuntimeContractManager extends Service
     public function proof(): void
     {
         try {
-            $report = $this->_contractProof->readinessReport();
+            $report = Arr::make($this->_contractProof->readinessReport());
         } catch (Throwable $e) {
             echo "Runtime contract proof unavailable: {$e->getMessage()}\n";
             return;
         }
 
-        echo "Runtime contract proof: {$report['name']}\n";
-        echo "Runtime: {$report['runtime']}\n";
-        echo "Scripts: {$report['script_count']} ({$report['required_count']} required, {$report['optional_count']} optional)\n";
-        echo "Ready: " . ($report['ready'] ? 'yes' : 'no') . "\n";
+        echo "Runtime contract proof: {$report->get('name')}\n";
+        echo "Runtime: {$report->get('runtime')}\n";
+        echo "Scripts: {$report->get('script_count')} ({$report->get('required_count')} required, {$report->get('optional_count')} optional)\n";
+        echo "Ready: " . ($report->get('ready') ? 'yes' : 'no') . "\n";
         echo "Validation: {$this->_contractProof->validationCommand()}\n";
 
-        if ($report['missing'] !== []) {
+        $missing = Arr::make($report->get('missing'));
+        if ($missing->isNotEmpty()) {
             echo "Missing:\n";
-            foreach ($report['missing'] as $path) {
+            foreach ($missing as $path) {
                 echo "- {$path}\n";
             }
         }
 
-        if ($report['invalid'] !== []) {
+        $invalid = Arr::make($report->get('invalid'));
+        if ($invalid->isNotEmpty()) {
             echo "Invalid:\n";
-            foreach ($report['invalid'] as $item) {
+            foreach ($invalid as $item) {
                 echo "- {$item}\n";
             }
         }
@@ -49,17 +54,20 @@ class RuntimeContractManager extends Service
 
     public function targets(): void
     {
-        $targets = $this->_contractProof->optionalTargets();
-        if ($targets === []) {
+        $targets = Arr::make($this->_contractProof->optionalTargets());
+        if ($targets->isEmpty()) {
             echo "No optional contract target scripts are registered.\n";
             return;
         }
 
         echo "Optional contract target scripts:\n";
         foreach ($targets as $target) {
-            $path = (string) ($target['path'] ?? '');
-            $capabilities = $target['capabilities'] ?? [];
-            $capabilityList = is_array($capabilities) ? implode(', ', $capabilities) : '';
+            $target = Arr::make($target);
+            $path = (string) ($target->get('path') ?? '');
+            $capabilities = $target->get('capabilities');
+            $capabilityList = Arr::is($capabilities)
+                ? Arr::make($capabilities)->join(', ')->val()
+                : '';
             echo "- {$path}";
             if ($capabilityList !== '') {
                 echo " ({$capabilityList})";
@@ -70,8 +78,8 @@ class RuntimeContractManager extends Service
 
     public function validate(): void
     {
-        $report = $this->_contractProof->readinessReport();
-        if (!$report['ready']) {
+        $report = Arr::make($this->_contractProof->readinessReport());
+        if (!$report->get('ready')) {
             echo "Runtime contract proof is not ready for interpreter validation.\n";
             $this->proof();
             return;

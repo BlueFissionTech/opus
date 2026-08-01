@@ -28,7 +28,7 @@ Framework does not own:
 - interpreter grammar or parser behavior
 - reusable intelligence algorithms below the application platform layer
 - external service credentials or deployment secrets
-- downstream application-specific features
+- consumer-specific application features
 
 ## Runtime Contract Proof
 
