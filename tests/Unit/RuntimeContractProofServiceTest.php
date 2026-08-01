@@ -79,6 +79,27 @@ class RuntimeContractProofServiceTest extends TestCase
         $this->assertFalse($report->get('ready'));
     }
 
+    public function testReadinessReportRejectsMissingIdentityAndObjectScripts(): void
+    {
+        $root = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'Fixtures'
+            . DIRECTORY_SEPARATOR . 'runtime-contract-invalid-shape';
+        $service = new RuntimeContractProofService($root);
+        $report = Arr::make($service->readinessReport());
+
+        $this->assertSame('opus-runtime-contract-proof', $report->get('name'));
+        $this->assertSame('jenerator', $report->get('runtime'));
+        $this->assertSame(0, $report->get('script_count'));
+        $this->assertSame([
+            'manifest scripts must be a list',
+            'manifest name must be a nonempty string',
+            'manifest runtime must be a nonempty string',
+        ], $report->get('invalid'));
+        $this->assertSame([
+            'examples/jenss/fixtures/missing.json',
+        ], $report->get('missing'));
+        $this->assertFalse($report->get('ready'));
+    }
+
     public function testMissingManifestRaisesAContractError(): void
     {
         $service = new RuntimeContractProofService(

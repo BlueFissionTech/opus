@@ -34,7 +34,7 @@ class RuntimeContractProofService extends Service
         $manifest = Arr::make($this->manifest());
         $scripts = $manifest->get('scripts');
 
-        return Arr::is($scripts) ? $scripts : [];
+        return Arr::is($scripts) && array_is_list($scripts) ? $scripts : [];
     }
 
     public function requiredScripts(): array
@@ -60,7 +60,12 @@ class RuntimeContractProofService extends Service
         $missing = Arr::make([]);
         $invalid = Arr::make([]);
 
-        $name = $manifest->get('name') ?? 'opus-runtime-contract-proof';
+        $scriptDefinitions = $manifest->get('scripts');
+        if (!Arr::is($scriptDefinitions) || !array_is_list($scriptDefinitions)) {
+            $invalid->push('manifest scripts must be a list');
+        }
+
+        $name = $manifest->get('name');
         if (!Str::is($name) || Str::make($name)->trim()->isEmpty()) {
             $invalid->push('manifest name must be a nonempty string');
             $name = 'opus-runtime-contract-proof';
@@ -68,7 +73,7 @@ class RuntimeContractProofService extends Service
             $name = Str::make($name)->trim()->val();
         }
 
-        $runtime = $manifest->get('runtime') ?? 'jenerator';
+        $runtime = $manifest->get('runtime');
         if (!Str::is($runtime) || Str::make($runtime)->trim()->isEmpty()) {
             $invalid->push('manifest runtime must be a nonempty string');
             $runtime = 'jenerator';
