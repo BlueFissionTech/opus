@@ -86,7 +86,7 @@ Public APIs, documentation, issues, and pull requests must remain package-owned 
 
 ## Lifecycle design
 
-Lifecycle operations must be repeatable, observable, and safe to retry after a partial failure.
+Package-owned lifecycle resource operations must be repeatable, observable, and safe to retry after a partial failure. The locked manager does not guarantee that its registration or orchestration steps are retryable.
 
 ### Install
 
@@ -102,7 +102,7 @@ Deactivation marks the add-on inactive so it is omitted from later active-add-on
 
 ### Uninstall
 
-Uninstallation invokes the optional `<name>_uninstall()` hook, removes package registration, and reverts the add-on's datasource migration batch. Destructive data removal must be explicit, documented, and independently confirmable; it must never be an implicit side effect of deactivation.
+Uninstallation invokes the optional `<name>_uninstall()` hook, removes package registration, and reverts the add-on's datasource migration batch. The locked manager deletes registration before dependency removal and migration reversion, so a failed manager-level uninstall is not safely retryable by the same add-on ID and requires operator reconciliation. Destructive data removal must be explicit, documented, and independently confirmable; it must never be an implicit side effect of deactivation.
 
 ## Integrations and configuration
 
