@@ -149,12 +149,57 @@ class VibeGenerationService extends Service
 
     private function replaceFile(string $target, string $contents): bool
     {
-        $directory = dirname($target);
-        $temporary = tempnam($directory, '.opus-');
-        if (!Str::is($temporary) || $temporary === '') {
+        $lockName = Str::make($this->workspace)->encrypt('sha256')->val();
+        $lockPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR
+            . 'opus-generation-' . $lockName . '.lock';
+        $lock = fopen($lockPath, 'c');
+        if (!is_resource($lock)) {
             return false;
         }
 
+        try {
+            if (!flock($lock, LOCK_EX)) {
+                return false;
+            }
+
+            $verifiedTarget = $this->resolveWorkspacePath($target);
+            if ($this->normalizePath($verifiedTarget) !== $this->normalizePath($target)) {
+                return false;
+            }
+
+            $directory = dirname($verifiedTarget);
+            $temporary = tempnam($directory, '.opus-');
+            if (!Str::is($temporary) || $temporary === '') {
+                return false;
+            }
+
+            try {
+                return $this->publishTemporaryFile(
+                    $temporary,
+                    $verifiedTarget,
+                    $contents
+                );
+            } finally {
+                if (
+                    $temporary !== ''
+                    && (FileSystem::fileExists($temporary) || is_link($temporary))
+                ) {
+                    unlink($temporary);
+                }
+            }
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function publishTemporaryFile(
+        string &$temporary,
+        string $target,
+        string $contents
+    ): bool
+    {
+        $directory = dirname($temporary);
         try {
             $file = new FileSystem([
                 'root' => $directory,
@@ -171,10 +216,7 @@ class VibeGenerationService extends Service
                 return false;
             }
 
-            $permissions = FileSystem::fileExists($target)
-                ? fileperms($target)
-                : 0666 & ~umask();
-            if ($permissions === false || !chmod($temporary, $permissions & 0777)) {
+            if (!chmod($temporary, 0644)) {
                 return false;
             }
 
@@ -184,13 +226,8 @@ class VibeGenerationService extends Service
             $temporary = '';
 
             return FileSystem::fileContents($target) === $contents;
-        } finally {
-            if (
-                $temporary !== ''
-                && (FileSystem::fileExists($temporary) || is_link($temporary))
-            ) {
-                unlink($temporary);
-            }
+        } catch (Throwable $exception) {
+            return false;
         }
     }
 

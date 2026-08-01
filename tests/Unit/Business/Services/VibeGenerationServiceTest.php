@@ -124,7 +124,7 @@ class VibeGenerationServiceTest extends TestCase
         unlink($outside);
     }
 
-    public function testItPreservesExistingTargetPermissions(): void
+    public function testItAppliesConsumerReadableTargetPermissions(): void
     {
         if (PHP_OS_FAMILY === 'Windows') {
             $this->markTestSkipped('POSIX permissions are platform-specific.');
@@ -148,7 +148,7 @@ class VibeGenerationServiceTest extends TestCase
         $result = $service->writeRenderedFile($source, $target);
 
         $this->assertTrue($result['valid'], json_encode($result['errors']));
-        $this->assertSame(0640, fileperms($target) & 0777);
+        $this->assertSame(0644, fileperms($target) & 0777);
 
         unlink($source);
         unlink($target);
