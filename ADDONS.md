@@ -24,7 +24,7 @@ Keep these responsibilities separate:
 
 ## Package layout
 
-Use a conventional Composer package with a clear PSR-4 namespace. An installed package currently occupies `addons/<directory>/`, where `<directory>` is the manager's discovery key. The following layout includes the files consumed directly by the BlueCore manager; omit optional directories that do not serve the add-on's scope.
+Use a conventional Composer package with a clear PSR-4 namespace. An installed package currently occupies `addons/<directory>/`, where `<directory>` is the manager's discovery key. The following layout includes the files consumed directly by the BlueCore manager. Source and presentation directories may be omitted when they do not serve the add-on's scope, but both datasource directories are required even when empty.
 
 ```text
 composer.json
@@ -42,8 +42,8 @@ resource/
     templates/
     translations/
 datasources/
-    generator/
-    structure/
+    generator/     # required; may be empty
+    structure/     # required; may be empty
 tests/
 ```
 
@@ -60,7 +60,7 @@ The current manager scans each immediate directory under `addons/`. A discoverab
 
 The primary file is required for runtime loading and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Installation and uninstallation load that same file and call `<name>_install()` or `<name>_uninstall()` when the corresponding function exists.
 
-Installation also configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/`. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
+Installation unconditionally configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/`. Include both directories even when the add-on has no migrations or generators. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
 
 Composer metadata remains the package and dependency boundary, but it is not currently the runtime discovery mechanism. A package installer or deployment process must place the package in the required `addons/<directory>/` layout without modifying application source files.
 
