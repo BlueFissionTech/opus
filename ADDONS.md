@@ -24,7 +24,7 @@ Keep these responsibilities separate:
 
 ## Package layout
 
-Use a conventional Composer package with a clear PSR-4 namespace. An installed package currently occupies `addons/<directory>/`, where `<directory>` is the manager's discovery key. The following layout includes the files consumed directly by the BlueCore manager. Source and presentation directories may be omitted when they do not serve the add-on's scope, but both datasource directories are required even when empty.
+Use a conventional Composer package with a clear PSR-4 namespace. An installed package currently occupies `addons/<directory>/`, where `<directory>` is the manager's discovery key. The following layout includes the files consumed directly by the BlueCore manager; omit optional directories that do not serve the add-on's scope.
 
 ```text
 composer.json
@@ -42,8 +42,8 @@ resource/
     templates/
     translations/
 datasources/
-    generator/     # required; may be empty
-    structure/     # required; may be empty
+    generator/
+    structure/
 tests/
 ```
 
@@ -60,7 +60,9 @@ The current manager scans each immediate directory under `addons/`. A discoverab
 
 The primary file is required for runtime loading and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Installation and uninstallation load that same file and call `<name>_install()` or `<name>_uninstall()` when the corresponding function exists.
 
-Installation unconditionally configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/`. Include both directories even when the add-on has no migrations or generators. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
+Installation configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/`; the current manager skips either area when its directory is absent. When present, each structure file must expose a discoverable class with `change()` and `revert()` methods. Each generator file must expose a discoverable class with `populate(bool $auto)`. A `RootSeeder.php` class may instead provide `seeders()` to select and order the remaining generator classes. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
+
+The `libraries` list produces root-level Composer require or remove commands. The manager reports those commands by default and executes them only when dependency mutation is explicitly enabled for install or uninstall. Because root requirements are shared by every add-on, removal must be coordinated so one package does not remove a dependency still owned by another.
 
 Composer metadata remains the package and dependency boundary, but it is not currently the runtime discovery mechanism. A package installer or deployment process must place the package in the required `addons/<directory>/` layout without modifying application source files.
 
@@ -111,7 +113,7 @@ Prefer explicit contracts for shared interfaces:
 - Define inputs, outputs, error conditions, and versioning expectations.
 - Keep HTTP routes, commands, events, and configuration keys namespaced to the add-on.
 - Add hooks only where a stable customization point is useful; document the value shape and test significant hook behavior.
-- Keep migrations forward-only and compatible with supported platform releases.
+- Keep migration ordering forward-moving, implement both `change()` and `revert()`, and remain compatible with supported platform releases.
 
 ## Testing and release checklist
 
