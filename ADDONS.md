@@ -52,8 +52,8 @@ tests/
 The current manager scans each immediate directory under `addons/`. A discoverable add-on must therefore provide:
 
 - `addons/<directory>/definition.json`, containing valid JSON metadata;
-- a nonempty `name`, or acceptance of `<directory>` as the default name;
-- a `name` matching `[A-Za-z_][A-Za-z0-9_]*` when lifecycle hooks are provided, because the manager uses it verbatim as the PHP function-name stem;
+- an explicit, nonempty `name` that exactly matches `<directory>`, because current lifecycle APIs use the same value as both metadata identity and directory lookup key;
+- a `name` matching `[A-Za-z_][A-Za-z0-9_]*` when lifecycle hooks are provided, because the manager also uses it verbatim as the PHP function-name stem;
 - an optional `description`;
 - an optional `libraries` array of Composer package names used to report explicit dependency commands; and
 - an optional `primary_file`, which defaults to `main.php`.
