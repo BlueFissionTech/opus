@@ -76,9 +76,15 @@ class RuntimeContractManager extends Service
             }
             $path = Str::make($path)->trim()->val();
             $capabilities = $target->get('capabilities');
-            $capabilityList = Arr::is($capabilities)
-                ? Arr::make($capabilities)->join(', ')->val()
-                : '';
+            $capabilityList = '';
+            if (Arr::is($capabilities)) {
+                $capabilityList = Arr::make($capabilities)
+                    ->filter(fn ($capability) => Str::is($capability))
+                    ->map(fn ($capability) => Str::make($capability)->trim()->val())
+                    ->filter(fn ($capability) => $capability !== '')
+                    ->join(', ')
+                    ->val();
+            }
             echo "- {$path}";
             if ($capabilityList !== '') {
                 echo " ({$capabilityList})";

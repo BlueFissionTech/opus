@@ -56,10 +56,12 @@ class RuntimeContractProofServiceTest extends TestCase
             'script entry is missing a path',
             'script entry has an unsupported mode',
             'script entry has a non-boolean required flag',
+            'script entry has invalid capabilities',
         ], $report->get('invalid'));
         $this->assertSame([
             'examples/jenss/missing.jss',
             'examples/jenss/missing-required.jss',
+            'examples/jenss/missing-capabilities.jss',
             'examples/jenss/fixtures/missing.json',
         ], $report->get('missing'));
         $this->assertSame([], $service->optionalTargets());

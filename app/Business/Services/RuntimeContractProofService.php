@@ -102,6 +102,10 @@ class RuntimeContractProofService extends Service
                 $invalid->push('script entry has a non-boolean required flag');
             }
 
+            if (!$this->hasValidCapabilities($script)) {
+                $invalid->push('script entry has invalid capabilities');
+            }
+
             if (!FileSystem::fileExists($this->path($path))) {
                 $missing->push($path);
             }
@@ -159,7 +163,28 @@ class RuntimeContractProofService extends Service
             && Str::is($mode)
             && Arr::make(['parse', 'execute'])->has($mode, true)
             && $script->hasKey('required')
-            && $script->get('required') === false;
+            && $script->get('required') === false
+            && $this->hasValidCapabilities($script);
+    }
+
+    private function hasValidCapabilities(Arr $script): bool
+    {
+        if (!$script->hasKey('capabilities')) {
+            return true;
+        }
+
+        $capabilities = $script->get('capabilities');
+        if (!Arr::is($capabilities)) {
+            return false;
+        }
+
+        foreach (Arr::make($capabilities) as $capability) {
+            if (!Str::is($capability) || Str::make($capability)->trim()->isEmpty()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function readJson(string $path): array

@@ -76,7 +76,11 @@ class RuntimeContractManagerTest extends TestCase
             public function optionalTargets(): array
             {
                 return [
-                    ['path' => ['invalid'], 'required' => false],
+                    [
+                        'path' => ['invalid'],
+                        'required' => false,
+                        'capabilities' => [['invalid']],
+                    ],
                     ['path' => 'examples/jenss/target.jss', 'required' => false],
                 ];
             }
