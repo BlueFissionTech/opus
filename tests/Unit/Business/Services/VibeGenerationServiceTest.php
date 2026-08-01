@@ -93,6 +93,37 @@ class VibeGenerationServiceTest extends TestCase
         unlink($source);
     }
 
+    public function testItReplacesHardLinkedTargetsWithoutMutatingTheLinkedFile(): void
+    {
+        if (!function_exists('link')) {
+            $this->markTestSkipped('Hard links are unavailable in this environment.');
+        }
+
+        $service = $this->workspaceService();
+        $source = $this->writeTempSource('Replacement content');
+        $outside = $this->writeTempSource('Outside original');
+        $target = 'tests' . DIRECTORY_SEPARATOR . 'vibe-hardlink-' . getmypid() . '.txt';
+
+        if (FileSystem::fileExists($target)) {
+            unlink($target);
+        }
+        if (!@link($outside, $target)) {
+            unlink($source);
+            unlink($outside);
+            $this->markTestSkipped('Hard links are unavailable in this environment.');
+        }
+
+        $result = $service->writeRenderedFile($source, $target);
+
+        $this->assertTrue($result['valid'], json_encode($result['errors']));
+        $this->assertSame('Replacement content', FileSystem::fileContents($target));
+        $this->assertSame('Outside original', FileSystem::fileContents($outside));
+
+        unlink($source);
+        unlink($target);
+        unlink($outside);
+    }
+
     public function testItRejectsRenderedFilesThroughWorkspaceSymlinks(): void
     {
         if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {

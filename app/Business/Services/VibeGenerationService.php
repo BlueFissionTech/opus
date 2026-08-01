@@ -127,18 +127,7 @@ class VibeGenerationService extends Service
                 );
             }
 
-            $file = new FileSystem([
-                'root' => $directory,
-                'mode' => 'w',
-                'filter' => 'file',
-                'doNotConfirm' => true,
-            ]);
-            $file->open((string) FileSystem::fileBasename($target))
-                ->contents($result->get('output'))
-                ->write()
-                ->close();
-
-            if (FileSystem::fileContents($target) !== $result->get('output')) {
+            if (!$this->replaceFile($target, (string) $result->get('output'))) {
                 return $this->withRenderingContext(
                     $this->failure("Rendered output file could not be written."),
                     (string) $result->get('output'),
@@ -155,6 +144,52 @@ class VibeGenerationService extends Service
                 (string) $result->get('output'),
                 Arr::make($result->get('variables'))->val()
             );
+        }
+    }
+
+    private function replaceFile(string $target, string $contents): bool
+    {
+        $directory = dirname($target);
+        $temporary = tempnam($directory, '.opus-');
+        if (!Str::is($temporary) || $temporary === '') {
+            return false;
+        }
+
+        try {
+            $file = new FileSystem([
+                'root' => $directory,
+                'mode' => 'w',
+                'filter' => 'file',
+                'doNotConfirm' => true,
+            ]);
+            $file->open((string) FileSystem::fileBasename($temporary))
+                ->contents($contents)
+                ->write()
+                ->close();
+
+            if (FileSystem::fileContents($temporary) !== $contents) {
+                return false;
+            }
+
+            if (FileSystem::fileExists($target) || is_link($target)) {
+                if (!unlink($target)) {
+                    return false;
+                }
+            }
+
+            if (!rename($temporary, $target)) {
+                return false;
+            }
+            $temporary = '';
+
+            return FileSystem::fileContents($target) === $contents;
+        } finally {
+            if (
+                $temporary !== ''
+                && (FileSystem::fileExists($temporary) || is_link($temporary))
+            ) {
+                unlink($temporary);
+            }
         }
     }
 
