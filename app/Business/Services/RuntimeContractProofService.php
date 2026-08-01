@@ -174,7 +174,7 @@ class RuntimeContractProofService extends Service
         }
 
         $capabilities = $script->get('capabilities');
-        if (!Arr::is($capabilities)) {
+        if (!Arr::is($capabilities) || !array_is_list($capabilities)) {
             return false;
         }
 

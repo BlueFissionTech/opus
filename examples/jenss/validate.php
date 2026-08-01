@@ -41,13 +41,27 @@ try {
     exit(1);
 }
 
-$scripts = Arr::make($manifest->get('scripts'));
+$failures = 0;
+foreach (Arr::make(['name', 'runtime']) as $label) {
+    $value = $manifest->get($label);
+    if (!Str::is($value) || Str::make($value)->trim()->isEmpty()) {
+        $failures++;
+        echo "[fail] Manifest {$label} must be a nonempty string.\n";
+    }
+}
+
+$scriptDefinitions = $manifest->get('scripts');
+if (!Arr::is($scriptDefinitions) || !array_is_list($scriptDefinitions)) {
+    fwrite(STDERR, "Manifest scripts must be a list.\n");
+    exit(1);
+}
+
+$scripts = Arr::make($scriptDefinitions);
 if ($scripts->isEmpty()) {
     fwrite(STDERR, "No JenSS scripts are listed in the proof manifest.\n");
     exit(1);
 }
 
-$failures = 0;
 $gaps = 0;
 $fixture = $manifest->get('fixture');
 if (!Str::is($fixture) || Str::make($fixture)->trim()->isEmpty()) {
@@ -96,6 +110,12 @@ foreach ($scripts as $script) {
     if (!is_bool($required)) {
         $failures++;
         echo "[fail] {$relativePath}: required must be boolean.\n";
+        continue;
+    }
+
+    if (!capabilitiesAreValid($script)) {
+        $failures++;
+        echo "[fail] {$relativePath}: capabilities must be a list of nonempty strings.\n";
         continue;
     }
 
@@ -164,4 +184,24 @@ function readJson(string $path): array
     }
 
     return $decoded;
+}
+
+function capabilitiesAreValid(Arr $script): bool
+{
+    if (!$script->hasKey('capabilities')) {
+        return true;
+    }
+
+    $capabilities = $script->get('capabilities');
+    if (!Arr::is($capabilities) || !array_is_list($capabilities)) {
+        return false;
+    }
+
+    foreach (Arr::make($capabilities) as $capability) {
+        if (!Str::is($capability) || Str::make($capability)->trim()->isEmpty()) {
+            return false;
+        }
+    }
+
+    return true;
 }
