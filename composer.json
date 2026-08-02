@@ -30,7 +30,43 @@
         },
         {
             "type": "vcs",
+            "url": "https://github.com/bluefissiontech/wise"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/vibrato"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/presence"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/synematic"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/annex-php-sdk"
+        },
+        {
+            "type": "vcs",
             "url": "https://github.com/bluefissiontech/simpleclients"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/synthetiq"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/jenerator"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/opus-addon-hoom"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/bluefissiontech/opus-addon-kapsle"
         }
     ],
     "require": {
@@ -39,7 +75,14 @@
         "bluefission/bluecore": "dev-main",
         "bluefission/chronicler": "v0.1.2-alpha as dev-main",
         "bluefission/develation": "v1.3.39 as dev-master",
+        "bluefission/opus-addon-hoom": "dev-main",
+        "bluefission/opus-addon-kapsle": "dev-main",
+        "bluefission/presence": "dev-main",
         "bluefission/simpleclients": "dev-master",
+        "bluefission/synematic": "dev-main",
+        "bluefission/vibrato": "dev-main",
+        "bluefission/wise": "dev-main",
+        "composer/installers": "^1.11",
         "fakerphp/faker": "^1.24",
         "php-http/discovery": "^1.19",
         "symfony/http-client": "^7.3"
