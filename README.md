@@ -33,9 +33,9 @@ composer require bluefission/opus
 
 Opus's event management system allows you to hook into various events and filters, making it easy to extend and customize the framework's behavior.
 
-### Plugin System
+### Add-On System
 
-The plugin-based architecture allows for seamless feature additions and management. You can create plugins to extend the core functionality without modifying the core files directly.
+The add-on architecture allows for seamless feature additions and management without modifying core files directly. See the [add-on authoring guide](ADDONS.md) for the package boundary, lifecycle, structure, and validation expectations.
 
 ### AI Integration
 
