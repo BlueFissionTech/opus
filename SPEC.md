@@ -1,4 +1,4 @@
-# Opus Next Integration Specification
+# Opus Framework Specification
 
 ## Purpose
 
@@ -7,6 +7,29 @@ version should run its command and automation center through Wise, delegate
 agent orchestration to Automata, use Vibrato for authored templates and
 generation flows, and keep add-ons isolated behind their own package-owned
 activation and service contracts.
+
+Wise is the central command kernel for human and agent invocation. Framework
+console commands should remain capability-first and expose stable contracts
+that Wise can discover, route, validate, and report without binding the
+platform to a single workflow or consumer.
+
+## Scope
+
+Framework owns:
+
+- runtime host contracts and readiness reporting
+- add-on and theme lifecycle orchestration
+- backend command registration and invocation surfaces
+- application-level integration of first-party Blue Fission libraries
+- frontend asset bundling and Reactor-oriented presentation entry points
+- production validation contracts for tests, build, and release readiness
+
+Framework does not own:
+
+- interpreter grammar or parser behavior
+- reusable intelligence algorithms below the application platform layer
+- external service credentials or deployment secrets
+- consumer-specific application features
 
 ## Current Integration State
 
@@ -24,6 +47,20 @@ activation and service contracts.
 - Opus now exposes a Vibrato-backed generation service for syntax validation,
   deterministic rendering, and bounded file output inside the application
   workspace.
+
+## Runtime Contract Proof
+
+The runtime contract proof describes the platform surface through a manifest,
+fixture payload, executable scripts, and optional target scripts. It is exposed
+through capability-first commands:
+
+- `contract proof`
+- `contract targets`
+- `contract validate`
+
+The proof remains a framework-level validation asset. Its source format is an
+implementation detail; the durable contract is the host, lifecycle, readiness,
+resource, and feedback behavior being exercised.
 
 ## Target Architecture
 
@@ -93,6 +130,21 @@ Acceptance criteria:
 - Legacy dashboard modules are migrated in focused slices with build coverage.
 - Webpack remains a bundler detail, not the source of UI contracts.
 
+## Testing Contract
+
+Baseline tests must cover:
+
+- runtime contract manifest and readiness behavior
+- console command summaries and target listing
+- optional interpreter validation without requiring the interpreter in the
+  default unit suite
+- command registration, failure, and output contracts for the Wise-aligned CLI
+- generation validation, rendering, path boundaries, and publication behavior
+- frontend build contracts once webpack cleanup begins
+
+Optional integration tests remain opt-in and must not require secrets on a
+clean checkout.
+
 ## Known Gaps
 
 - Installed add-on packages currently emit optimized-autoload warnings, and one
@@ -101,8 +153,6 @@ Acceptance criteria:
 - Composer validation still reports the existing `Exclusive` license metadata
   as a non-SPDX value. The package license should be confirmed before changing
   public metadata.
-- The PHPUnit configuration still uses schema entries removed by the installed
-  PHPUnit version.
 - The frontend still imports legacy dashboard modules directly; the Reactor
   dependency is present but not yet wired through the application entrypoints.
 - The terminal surface can use the optional Ratchet integration when the host
@@ -121,3 +171,16 @@ Acceptance criteria:
   scaffold factory placeholder.
 - Added focused PHPUnit coverage for Vibrato validation, rendering, and bounded
   file output.
+- Added runtime contract manifests, validation commands, fixtures, and focused
+  readiness coverage.
+- Updated the PHPUnit configuration to the supported PHPUnit 9.6 schema.
+
+## Release Acceptance
+
+- Roadmap items have issue-sized slices with clear acceptance criteria.
+- Runtime contract proof tests pass in the default unit suite.
+- Backend CLI work remains organized around Wise kernel compatibility.
+- Generation operations return structured results and preserve workspace
+  boundaries.
+- Webpack and asset-pipeline cleanup remain separately tracked.
+- Specifications and tests stay synchronized as each slice lands.

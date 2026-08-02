@@ -1,0 +1,114 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit;
+
+use App\Business\Services\RuntimeContractProofService;
+use BlueFission\Arr;
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
+
+class RuntimeContractProofServiceTest extends TestCase
+{
+    public function testReadinessReportDescribesRuntimeContractProof(): void
+    {
+        $service = new RuntimeContractProofService(dirname(__DIR__, 2));
+        $report = Arr::make($service->readinessReport());
+
+        $this->assertSame('opus-runtime-contract-proof', $report->get('name'));
+        $this->assertSame('jenerator', $report->get('runtime'));
+        $this->assertSame(5, $report->get('script_count'));
+        $this->assertSame(3, $report->get('required_count'));
+        $this->assertSame(2, $report->get('optional_count'));
+        $this->assertSame([], $report->get('missing'));
+        $this->assertSame([], $report->get('invalid'));
+        $this->assertTrue($report->get('ready'));
+    }
+
+    public function testOptionalTargetsExposeInterpreterMilestones(): void
+    {
+        $service = new RuntimeContractProofService(dirname(__DIR__, 2));
+        $paths = Arr::make($service->optionalTargets())
+            ->map(fn ($target) => Arr::make($target)->get('path'))
+            ->values()
+            ->val();
+
+        $this->assertContains('examples/jenss/targets/opus-resource-map-target.jss', $paths);
+        $this->assertContains('examples/jenss/targets/opus-linqr-target.jss', $paths);
+    }
+
+    public function testReadinessReportTracksInvalidAndMissingContractEntries(): void
+    {
+        $root = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'Fixtures'
+            . DIRECTORY_SEPARATOR . 'runtime-contract-invalid';
+        $service = new RuntimeContractProofService($root);
+        $report = Arr::make($service->readinessReport());
+
+        $this->assertFalse($report->get('ready'));
+        $this->assertSame('opus-runtime-contract-proof', $report->get('name'));
+        $this->assertSame('jenerator', $report->get('runtime'));
+        $this->assertSame([
+            'manifest name must be a nonempty string',
+            'manifest runtime must be a nonempty string',
+            'script entry is not an object',
+            'script entry is missing a path',
+            'script entry is missing a path',
+            'script entry has an unsupported mode',
+            'script entry has a non-boolean required flag',
+            'script entry has invalid capabilities',
+        ], $report->get('invalid'));
+        $this->assertSame([
+            'examples/jenss/missing.jss',
+            'examples/jenss/missing-required.jss',
+            'examples/jenss/missing-capabilities.jss',
+            'examples/jenss/fixtures/missing.json',
+        ], $report->get('missing'));
+        $this->assertSame([], $service->optionalTargets());
+    }
+
+    public function testReadinessReportRejectsAnEmptyScriptManifest(): void
+    {
+        $root = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'Fixtures'
+            . DIRECTORY_SEPARATOR . 'runtime-contract-empty';
+        $service = new RuntimeContractProofService($root);
+        $report = Arr::make($service->readinessReport());
+
+        $this->assertSame(0, $report->get('script_count'));
+        $this->assertSame(['fixture entry is missing a path'], $report->get('invalid'));
+        $this->assertFalse($report->get('ready'));
+    }
+
+    public function testReadinessReportRejectsMissingIdentityAndObjectScripts(): void
+    {
+        $root = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'Fixtures'
+            . DIRECTORY_SEPARATOR . 'runtime-contract-invalid-shape';
+        $service = new RuntimeContractProofService($root);
+        $report = Arr::make($service->readinessReport());
+
+        $this->assertSame('opus-runtime-contract-proof', $report->get('name'));
+        $this->assertSame('jenerator', $report->get('runtime'));
+        $this->assertSame(0, $report->get('script_count'));
+        $this->assertSame([
+            'manifest scripts must be a list',
+            'manifest name must be a nonempty string',
+            'manifest runtime must be a nonempty string',
+        ], $report->get('invalid'));
+        $this->assertSame([
+            'examples/jenss/fixtures/missing.json',
+        ], $report->get('missing'));
+        $this->assertFalse($report->get('ready'));
+    }
+
+    public function testMissingManifestRaisesAContractError(): void
+    {
+        $service = new RuntimeContractProofService(
+            dirname(__DIR__) . DIRECTORY_SEPARATOR . 'Fixtures' . DIRECTORY_SEPARATOR . 'missing'
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Runtime contract manifest not found.');
+
+        $service->manifest();
+    }
+}
