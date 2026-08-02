@@ -40,13 +40,15 @@
         "bluefission/chronicler": "v0.1.2-alpha as dev-main",
         "bluefission/develation": "v1.3.39 as dev-master",
         "bluefission/simpleclients": "dev-master",
-        "cboden/ratchet": "^0.4.4",
         "fakerphp/faker": "^1.24",
         "php-http/discovery": "^1.19",
         "symfony/http-client": "^7.3"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5"
+    },
+    "suggest": {
+        "cboden/ratchet": "Install to enable the optional terminal WebSocket transport when the host dependency graph is compatible."
     },
     "config": {
         "optimize-autoloader": true,
