@@ -13,8 +13,8 @@ activation and service contracts.
 - DevElation, BlueCore, Automata, Wise, Vibrato, Presence, Synematic,
   SimpleClients, and the currently installed add-on packages are declared
   through Composer VCS repositories.
-- The Composer lock resolves these packages on PHP 8.2 with Opus-owned
-  websocket dependencies kept explicit for the terminal surface.
+- The Composer lock resolves these packages on PHP 8.2 while the terminal
+  WebSocket transport remains optional for hosts with compatible dependencies.
 - Reactor is declared as the Blue Fission frontend package for the JavaScript
   presentation layer, with the existing local dashboard modules still present
   until they are migrated feature by feature.
@@ -105,9 +105,9 @@ Acceptance criteria:
   PHPUnit version.
 - The frontend still imports legacy dashboard modules directly; the Reactor
   dependency is present but not yet wired through the application entrypoints.
-- The terminal surface still uses the existing Ratchet integration. A later
-  slice should decide whether that remains the websocket transport or becomes
-  a Wise-mediated console channel.
+- The terminal surface can use the optional Ratchet integration when the host
+  dependency graph supports it. A later slice should decide whether that
+  remains the websocket transport or becomes a Wise-mediated console channel.
 
 ## Implemented In This Slice
 
