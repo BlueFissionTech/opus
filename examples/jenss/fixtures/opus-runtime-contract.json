@@ -1,0 +1,119 @@
+{
+  "scenario": {
+    "id": "opus-runtime-contract",
+    "name": "Opus Runtime Contract",
+    "goal": {
+      "name": "Keep runtime surfaces deterministic and auditable"
+    },
+    "initiative": {
+      "name": "Source-first host contract proof"
+    }
+  },
+  "subject": {
+    "type": "framework",
+    "role": "runtime-host"
+  },
+  "efficacy_assessment": {
+    "current_level": "contract-proof",
+    "target_level": "production-ready",
+    "confidence": 0.84
+  },
+  "resource_families": {
+    "routes": [
+      {
+        "id": "admin.dashboard",
+        "family": "routes",
+        "type": "http-route",
+        "title": "Admin dashboard route",
+        "owner": "runtime",
+        "status": "active",
+        "availability": 0.96,
+        "intent": "surface.operator.dashboard",
+        "method": "GET",
+        "path": "/admin/dashboard",
+        "requires_session": true,
+        "ledger_policy": "append_only"
+      },
+      {
+        "id": "api.addons.index",
+        "family": "routes",
+        "type": "api-route",
+        "title": "Addon registry route",
+        "owner": "runtime",
+        "status": "candidate",
+        "availability": 0.78,
+        "intent": "registry.addon.index",
+        "method": "GET",
+        "path": "/api/addons",
+        "requires_session": true,
+        "ledger_policy": "append_only"
+      }
+    ],
+    "sessions": [
+      {
+        "id": "operator-session",
+        "family": "sessions",
+        "type": "access-context",
+        "title": "Operator session context",
+        "owner": "runtime",
+        "status": "active",
+        "availability": 0.93,
+        "actor": "operator",
+        "scope": "tenant.admin",
+        "risk": "elevated",
+        "resume": "opaque"
+      }
+    ],
+    "ledgers": [
+      {
+        "id": "route-ledger",
+        "family": "ledgers",
+        "type": "audit-ledger",
+        "title": "Route execution ledger",
+        "owner": "runtime",
+        "status": "active",
+        "availability": 0.91,
+        "sequence": 1,
+        "parent": "root",
+        "surface": "admin",
+        "policy": "append_only"
+      }
+    ],
+    "addons": [
+      {
+        "id": "contract-addon",
+        "family": "addons",
+        "type": "extension",
+        "title": "Contract addon",
+        "owner": "runtime",
+        "status": "candidate",
+        "availability": 0.82,
+        "capability_count": 4,
+        "requires_review": 1
+      },
+      {
+        "id": "audit-addon",
+        "family": "addons",
+        "type": "extension",
+        "title": "Audit addon",
+        "owner": "runtime",
+        "status": "active",
+        "availability": 0.95,
+        "capability_count": 3,
+        "requires_review": 0
+      }
+    ],
+    "themes": [
+      {
+        "id": "admin-theme",
+        "family": "themes",
+        "type": "theme",
+        "title": "Admin theme",
+        "owner": "runtime",
+        "status": "active",
+        "availability": 0.9,
+        "token_count": 7
+      }
+    ]
+  }
+}

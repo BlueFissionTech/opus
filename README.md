@@ -43,7 +43,15 @@ Opus is designed to integrate seamlessly with AI libraries and services, providi
 
 ### Command Line Tools
 
-Opus includes a set of command-line tools to assist with various development tasks, from generating code to managing configurations.
+Opus includes command-line tools for development and runtime coordination. The
+command surface should converge around Wise as the central invocation kernel so
+human operators and agents share the same backend contract.
+
+## Project Docs
+
+- [Specification](SPEC.md)
+- [Roadmap](ROADMAP.md)
+- [Testing](tests.md)
 
 ## Core Components
 

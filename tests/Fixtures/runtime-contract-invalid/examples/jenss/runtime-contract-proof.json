@@ -1,0 +1,27 @@
+{
+  "name": ["invalid-runtime-contract-proof"],
+  "runtime": {"invalid": true},
+  "fixture": "examples/jenss/fixtures/missing.json",
+  "scripts": [
+    "invalid entry",
+    {},
+    {
+      "path": ["invalid"],
+      "required": false
+    },
+    {
+      "path": "examples/jenss/missing.jss",
+      "mode": "prase",
+      "required": true
+    },
+    {
+      "path": "examples/jenss/missing-required.jss",
+      "required": "yes"
+    },
+    {
+      "path": "examples/jenss/missing-capabilities.jss",
+      "required": false,
+      "capabilities": [["invalid"]]
+    }
+  ]
+}
