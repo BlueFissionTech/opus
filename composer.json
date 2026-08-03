@@ -122,6 +122,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "scripts": {
+        "audit:composer-vcs": "@php bin/audit-composer-vcs.php",
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ]
