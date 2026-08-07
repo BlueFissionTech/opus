@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Business\Services;
 
 use App\Business\Services\EnvironmentLoader;

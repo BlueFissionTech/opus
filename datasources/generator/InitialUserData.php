@@ -53,13 +53,9 @@ class InitialUserData extends Generator
 			$password = prompt_silent("Enter an admin password: ");
 		}
 
+		$user->realname = 'System Admin';
 		$user->displayname = 'Admin';
-		$user->read();
-		if (!$user->id()) {
-			$user->realname = 'System Admin';
-			$user->displayname = 'Admin';
-			$user->write();
-		}
+		$user->write();
 		echo "Ensuring Admin user: {$user->displayname} ";
 		echo $user->status()."\n";
 

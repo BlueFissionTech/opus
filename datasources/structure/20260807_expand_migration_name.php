@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use BlueFission\BlueCore\Datasource\Delta;
 use BlueFission\Data\Storage\MySQL;
 
