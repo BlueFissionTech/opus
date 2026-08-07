@@ -1,0 +1,78 @@
+{
+    "name": "bluefission/opus-application",
+    "description": "Root Composer template for an Opus application.",
+    "type": "project",
+    "repositories": {
+        "bluefission/opus": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/opus"
+        },
+        "bluefission/automata": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/automata"
+        },
+        "bluefission/bluecore": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/bluecore"
+        },
+        "bluefission/chronicler": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/chronicler"
+        },
+        "bluefission/wise": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/wise"
+        },
+        "bluefission/vibrato": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/vibrato"
+        },
+        "bluefission/presence": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/presence"
+        },
+        "bluefission/synematic": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/synematic"
+        },
+        "bluefission/annex-php-sdk": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/annex-php-sdk"
+        },
+        "bluefission/simpleclients": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/simpleclients"
+        },
+        "bluefission/synthetiq": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/synthetiq"
+        },
+        "bluefission/jenerator": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/jenerator"
+        },
+        "bluefission/opus-addon-hoom": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/opus-addon-hoom"
+        },
+        "bluefission/opus-addon-kapsle": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/opus-addon-kapsle"
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "bluefission/opus": "dev-main"
+    },
+    "config": {
+        "use-github-api": false,
+        "allow-plugins": {
+            "bluefission/bluecore": true,
+            "composer/installers": true,
+            "php-http/discovery": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

@@ -14,6 +14,17 @@ Run the runtime contract proof tests only:
 vendor\bin\phpunit --do-not-cache-result tests\Unit\RuntimeContractProofServiceTest.php tests\Unit\RuntimeContractManagerTest.php
 ```
 
+Validate the root-only GitHub VCS registry and recursive Blue Fission package
+graph:
+
+```powershell
+composer audit:composer-vcs
+```
+
+The audit intentionally permits `bluefission/develation` without a VCS entry;
+all other discovered `bluefission/*` packages must have canonical GitHub routes
+in both the Opus root and the consumer template.
+
 ## Runtime Contract Validation
 
 The default PHPUnit suite checks that the runtime contract files are present and

@@ -21,11 +21,35 @@ Opus is a low-code/no-code platform aimed at democratizing AI technology. It all
 
 ## Installation
 
-To include Opus in your project, you can use Composer for package management:
+Composer only reads repository declarations from the root project. Most Blue
+Fission packages are source-distributed through GitHub VCS; DevElation is the
+only package in the supported graph resolved through Packagist.
+
+Start new applications from
+[`templates/composer/opus-root.json`](templates/composer/opus-root.json), or
+merge its `repositories` and `config` sections into an existing
+root `composer.json` before requiring Opus:
 
 ```bash
 composer require bluefission/opus
 ```
+
+Do not add a DevElation VCS override. The root registry is required because
+Composer does not inherit repository definitions from Opus or other
+dependencies. After merging the registry, validate the application dependency
+graph without running package scripts:
+
+```bash
+composer update --no-scripts
+```
+
+Keep `config.use-github-api` set to `false` from the template. Composer then
+uses the declared Git repositories directly when GitHub API metadata is
+unavailable, while still retaining canonical GitHub source and distribution
+metadata in the lock.
+
+Opus maintainers can verify that the template still covers the complete locked
+Blue Fission dependency graph with `composer audit:composer-vcs`.
 
 ## Usage
 

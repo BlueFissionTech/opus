@@ -97,6 +97,7 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "use-github-api": false,
         "allow-plugins": {
             "composer/installers": true,
             "php-http/discovery": true,
@@ -122,6 +123,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "scripts": {
+        "audit:composer-vcs": "@php bin/audit-composer-vcs.php",
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ]
