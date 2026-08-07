@@ -74,7 +74,7 @@
         "bluefission/automata": "v1.0.0-alpha.2 as dev-master",
         "bluefission/bluecore": "dev-main",
         "bluefission/chronicler": "v0.1.2-alpha as dev-main",
-        "bluefission/develation": "v1.3.39 as dev-master",
+        "bluefission/develation": "v1.3.40 as dev-master",
         "bluefission/opus-addon-hoom": "dev-main",
         "bluefission/opus-addon-kapsle": "dev-main",
         "bluefission/presence": "dev-main",

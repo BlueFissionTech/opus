@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "64ca85c6c37963b670bc8e2bee397508",
+    "content-hash": "afc4a37e5b91759a8ed6dc9b7dbc7201",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -132,17 +132,17 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://github.com/BlueFissionTech/bluecore.git",
-                "reference": "daa3470061f9eb1b6751719662cd0f5154db9d2a"
+                "url": "https://github.com/bluefissiontech/bluecore",
+                "reference": "b59f9e1c2b428f7bfb41948a0cf62f6d6a3b9814"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/bluecore/zipball/daa3470061f9eb1b6751719662cd0f5154db9d2a",
-                "reference": "daa3470061f9eb1b6751719662cd0f5154db9d2a",
+                "url": "https://api.github.com/repos/bluefissiontech/bluecore/zipball/b59f9e1c2b428f7bfb41948a0cf62f6d6a3b9814",
+                "reference": "b59f9e1c2b428f7bfb41948a0cf62f6d6a3b9814",
                 "shasum": ""
             },
             "require": {
-                "bluefission/develation": "^1.2.0-alpha",
+                "bluefission/develation": "^1.3.39",
                 "composer-plugin-api": "^2.0",
                 "composer/installers": "^1.11",
                 "php": ">=8.2",
@@ -208,11 +208,7 @@
                 "framework",
                 "opus"
             ],
-            "support": {
-                "source": "https://github.com/BlueFissionTech/bluecore/tree/main",
-                "issues": "https://github.com/BlueFissionTech/bluecore/issues"
-            },
-            "time": "2026-06-25T02:26:38+00:00"
+            "time": "2026-08-01T13:22:23+00:00"
         },
         {
             "name": "bluefission/chronicler",
@@ -267,16 +263,16 @@
         },
         {
             "name": "bluefission/develation",
-            "version": "v1.3.39",
+            "version": "v1.3.40",
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/develation.git",
-                "reference": "ee0a240d2d0cff2f15cb243411e2f1e7d0c0b2c1"
+                "reference": "7f53bad2a29533cb6dfb456d9b667899573e1bda"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/develation/zipball/ee0a240d2d0cff2f15cb243411e2f1e7d0c0b2c1",
-                "reference": "ee0a240d2d0cff2f15cb243411e2f1e7d0c0b2c1",
+                "url": "https://api.github.com/repos/BlueFissionTech/develation/zipball/7f53bad2a29533cb6dfb456d9b667899573e1bda",
+                "reference": "7f53bad2a29533cb6dfb456d9b667899573e1bda",
                 "shasum": ""
             },
             "require": {
@@ -335,7 +331,7 @@
                 "issues": "https://github.com/BlueFissionTech/develation/issues",
                 "source": "https://github.com/BlueFissionTech/develation"
             },
-            "time": "2026-07-05T19:08:43+00:00"
+            "time": "2026-08-07T00:37:47+00:00"
         },
         {
             "name": "bluefission/jenerator",
@@ -6473,7 +6469,7 @@
         },
         {
             "package": "bluefission/develation",
-            "version": "1.3.39.0",
+            "version": "1.3.40.0",
             "alias": "dev-master",
             "alias_normalized": "dev-master"
         }
