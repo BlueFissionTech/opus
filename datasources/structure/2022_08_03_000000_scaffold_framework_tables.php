@@ -10,7 +10,7 @@ class ScaffoldFrameworkTables extends Delta
 	public function change() {
 		Scaffold::create('migrations', function( Structure $entity ) {
 			$entity->incrementer('migration_id');
-			$entity->text('name')->unique();
+			$entity->text('name', 255)->unique();
 			$entity->text('batch');
 			$entity->numeric('iteration');
 			$entity->numeric('status')->default(0);

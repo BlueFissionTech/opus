@@ -11,14 +11,14 @@ session_start();
 require 'common/helpers/functions.php';
 
 /**
- * Load the autoloader from the settings file.
- */
-require 'common/helpers/settings.php';
-
-/**
  * Include the autoloader for the dependencies.
  */
 require 'vendor/autoload.php';
+
+/**
+ * Load application settings after Composer can resolve shared helpers.
+ */
+require 'common/helpers/settings.php';
 
 // Loader utility for non-composer compatible scripts
 $loader = Loader::instance();

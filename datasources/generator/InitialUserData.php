@@ -21,11 +21,15 @@ class InitialUserData extends Generator
 		$status = new CredentialStatusModel();
 		foreach ( $statuses as $label=>$name ) {
 			$status->clear();
-			$status->name = $name; //strtolower($label);
-			$status->label = $label;
-			$status->write();
+			$status->name = $name;
+			$status->read();
 
-			echo "Creating status: {$status->label} ";
+			if (!$status->id()) {
+				$status->label = $label;
+				$status->write();
+			}
+
+			echo "Ensuring status: {$label} ";
 			echo $status->status()."\n";
 		}
 
@@ -33,21 +37,33 @@ class InitialUserData extends Generator
 		$status->name = CredentialStatus::VERIFIED;
 		$status->read();
 
+		$user = new UserModel();
+		$credential = new CredentialModel();
+		$credential->username = 'admin';
+		$credential->read();
+
+		if ($credential->id()) {
+			echo "Admin credentials already exist.\n";
+			echo "Complete.\n";
+			return;
+		}
+
 		$password = env('DEFAULT_PASSWORD', Str::rand(null, 16, true));
 		if ( defined('STDIN') && !$auto ) {
 			$password = prompt_silent("Enter an admin password: ");
 		}
 
-		$user = new UserModel();
-		$credential = new CredentialModel();
-
-		$user->realname = 'System Admin';
 		$user->displayname = 'Admin';
-		$user->write();
-		echo "Creating Admin user: {$user->displayname} ";
+		$user->read();
+		if (!$user->id()) {
+			$user->realname = 'System Admin';
+			$user->displayname = 'Admin';
+			$user->write();
+		}
+		echo "Ensuring Admin user: {$user->displayname} ";
 		echo $user->status()."\n";
-		// $user->read();
 
+		$credential->clear();
 		$credential->username = 'admin';
 		$credential->password = $password;
 		$credential->is_primary = 1;
