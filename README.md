@@ -27,7 +27,7 @@ only package in the supported graph resolved through Packagist.
 
 Start new applications from
 [`templates/composer/opus-root.json`](templates/composer/opus-root.json), or
-merge its `repositories` and `config.allow-plugins` sections into an existing
+merge its `repositories` and `config` sections into an existing
 root `composer.json` before requiring Opus:
 
 ```bash
@@ -42,6 +42,11 @@ graph without running package scripts:
 ```bash
 composer update --no-scripts
 ```
+
+Keep `config.use-github-api` set to `false` from the template. Composer then
+uses the declared Git repositories directly when GitHub API metadata is
+unavailable, while still retaining canonical GitHub source and distribution
+metadata in the lock.
 
 Opus maintainers can verify that the template still covers the complete locked
 Blue Fission dependency graph with `composer audit:composer-vcs`.

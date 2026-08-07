@@ -97,6 +97,7 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "use-github-api": false,
         "allow-plugins": {
             "composer/installers": true,
             "php-http/discovery": true,

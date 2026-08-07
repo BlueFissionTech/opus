@@ -69,10 +69,12 @@ class ComposerVcsAuditTest extends TestCase
         ];
         $composer = [
             'name' => 'bluefission/opus',
+            'config' => ['use-github-api' => false],
             'repositories' => [],
             'require' => [],
         ];
         $template = [
+            'config' => ['use-github-api' => false],
             'repositories' => ['bluefission/opus' => $repository],
         ];
 

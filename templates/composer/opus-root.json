@@ -65,6 +65,7 @@
         "bluefission/opus": "dev-main"
     },
     "config": {
+        "use-github-api": false,
         "allow-plugins": {
             "bluefission/bluecore": true,
             "composer/installers": true,

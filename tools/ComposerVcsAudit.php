@@ -36,6 +36,13 @@ final class ComposerVcsAudit
         $templateRepositories = $this->repositoryMap($template['repositories'] ?? []);
         $rootPackage = strtolower((string) ($composer['name'] ?? ''));
 
+        if (($composer['config']['use-github-api'] ?? null) !== false) {
+            $errors[] = 'Root composer.json must enable direct Git fallback with config.use-github-api=false.';
+        }
+        if (($template['config']['use-github-api'] ?? null) !== false) {
+            $errors[] = 'Consumer template must enable direct Git fallback with config.use-github-api=false.';
+        }
+
         if (isset($rootRepositories[self::PACKAGIST_PACKAGE])) {
             $errors[] = self::PACKAGIST_PACKAGE . ' must resolve through Packagist, not a root VCS override.';
         }
