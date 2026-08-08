@@ -311,11 +311,16 @@ class ComposerVcsAuditTest extends TestCase
         );
     }
 
-    public function testAuditRejectsDisabledPackagist(): void
+    public function testAuditDoesNotTrustPackageLookingRepositoryKey(): void
     {
         $composer = [
             'config' => ['use-github-api' => false],
-            'repositories' => ['packagist.org' => false],
+            'repositories' => [
+                'bluefission/decoy' => [
+                    'type' => 'vcs',
+                    'url' => 'https://github.com/example/renamed-fork',
+                ],
+            ],
             'require' => ['bluefission/automata' => '^1.0.0-alpha.2'],
         ];
         $lock = [
@@ -330,7 +335,34 @@ class ComposerVcsAuditTest extends TestCase
 
         $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
 
-        $this->assertContains('Root composer.json must not disable Packagist.', $result['errors']);
+        $this->assertContains(
+            'Root composer.json has an unverifiable vcs repository named bluefission/decoy.',
+            $result['errors']
+        );
+    }
+
+    public function testAuditRejectsDisabledPackagist(): void
+    {
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'v1.0.0-alpha.2',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/automata.git'],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        foreach (['packagist', 'packagist.org'] as $repositoryName) {
+            $composer = [
+                'config' => ['use-github-api' => false],
+                'repositories' => [$repositoryName => false],
+                'require' => ['bluefission/automata' => '^1.0.0-alpha.2'],
+            ];
+            $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+            $this->assertContains('Root composer.json must not disable Packagist.', $result['errors']);
+        }
     }
 
     public function testPackageDoesNotNeedToDeclareItselfAsARootRepository(): void

@@ -126,13 +126,8 @@ final class ComposerVcsAudit
         }
 
         $mapped = [];
-        foreach ($repositories as $package => $repository) {
+        foreach ($repositories as $repository) {
             if (!is_array($repository)) {
-                continue;
-            }
-
-            if (is_string($package) && str_starts_with(strtolower($package), 'bluefission/')) {
-                $mapped[strtolower($package)] = $repository;
                 continue;
             }
 
@@ -170,16 +165,16 @@ final class ComposerVcsAudit
 
         $errors = [];
         foreach ($repositories as $index => $repository) {
-            if (is_string($index) && strtolower($index) === 'packagist.org' && $repository === false) {
+            if (
+                is_string($index)
+                && in_array(strtolower($index), ['packagist', 'packagist.org'], true)
+                && $repository === false
+            ) {
                 $errors[] = "{$source} must not disable Packagist.";
                 continue;
             }
 
             if (!is_array($repository)) {
-                continue;
-            }
-
-            if (is_string($index) && str_starts_with(strtolower($index), 'bluefission/')) {
                 continue;
             }
 
