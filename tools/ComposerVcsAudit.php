@@ -130,6 +130,12 @@ final class ComposerVcsAudit
                 continue;
             }
 
+            $inlinePackage = $repository['package']['name'] ?? null;
+            if (is_string($inlinePackage) && str_starts_with(strtolower($inlinePackage), 'bluefission/')) {
+                $mapped[strtolower($inlinePackage)] = $repository;
+                continue;
+            }
+
             $repositoryUrl = $repository['url'] ?? null;
             $repositoryPackage = $this->packageFromRepositoryUrl($repositoryUrl)
                 ?? $this->packagistPackageFromRepositoryUrl($repositoryUrl);

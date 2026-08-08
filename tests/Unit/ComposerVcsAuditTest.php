@@ -183,6 +183,38 @@ class ComposerVcsAuditTest extends TestCase
         );
     }
 
+    public function testAuditRejectsInlineOverrideForPackagistPackage(): void
+    {
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'repositories' => [[
+                'type' => 'package',
+                'package' => [
+                    'name' => 'bluefission/automata',
+                    'version' => 'v1.0.0-alpha.2',
+                    'dist' => ['url' => 'https://example.com/automata.zip'],
+                ],
+            ]],
+            'require' => ['bluefission/automata' => '^1.0.0-alpha.2'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'v1.0.0-alpha.2',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/automata.git'],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'bluefission/automata must resolve through Packagist, not a root VCS override.',
+            $result['errors']
+        );
+    }
+
     public function testPackageDoesNotNeedToDeclareItselfAsARootRepository(): void
     {
         $repository = [
