@@ -131,7 +131,7 @@ final class ComposerVcsAudit
                 continue;
             }
 
-            $inlinePackages = $this->inlinePackageNames($repository);
+            $inlinePackages = $this->inlinePackageNamesForPackageRepository($repository);
             foreach ($inlinePackages as $inlinePackage) {
                 if (str_starts_with($inlinePackage, 'bluefission/')) {
                     $mapped[$inlinePackage] = $repository;
@@ -178,7 +178,7 @@ final class ComposerVcsAudit
                 continue;
             }
 
-            if ($this->inlinePackageNames($repository) !== []) {
+            if ($this->inlinePackageNamesForPackageRepository($repository) !== []) {
                 continue;
             }
 
@@ -221,6 +221,18 @@ final class ComposerVcsAudit
         }
 
         return array_values(array_unique($packages));
+    }
+
+    /**
+     * @param array<string, mixed> $repository
+     * @return array<string>
+     */
+    private function inlinePackageNamesForPackageRepository(array $repository): array
+    {
+        $type = $repository['type'] ?? null;
+        return is_string($type) && strtolower($type) === 'package'
+            ? $this->inlinePackageNames($repository)
+            : [];
     }
 
     /**
