@@ -7,17 +7,9 @@
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/opus"
         },
-        "bluefission/automata": {
-            "type": "vcs",
-            "url": "https://github.com/BlueFissionTech/automata"
-        },
         "bluefission/bluecore": {
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/bluecore"
-        },
-        "bluefission/chronicler": {
-            "type": "vcs",
-            "url": "https://github.com/BlueFissionTech/chronicler"
         },
         "bluefission/wise": {
             "type": "vcs",

@@ -22,14 +22,6 @@
         },
         {
             "type": "vcs",
-            "url": "https://github.com/bluefissiontech/automata"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/bluefissiontech/chronicler"
-        },
-        {
-            "type": "vcs",
             "url": "https://github.com/bluefissiontech/wise"
         },
         {

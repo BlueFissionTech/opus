@@ -26,37 +26,107 @@ class ComposerVcsAuditTest extends TestCase
         $this->assertContains('bluefission/develation', $result['packages']);
     }
 
-    public function testAuditReportsMissingRootRepositoryButAllowsPackagistDevelation(): void
+    public function testAuditReportsMissingRootRepositoryButAllowsPackagistPackages(): void
     {
         $repository = [
             'type' => 'vcs',
-            'url' => 'https://github.com/BlueFissionTech/automata',
+            'url' => 'https://github.com/BlueFissionTech/wise',
         ];
         $composer = [
+            'config' => ['use-github-api' => false],
             'repositories' => [],
-            'require' => ['bluefission/automata' => 'dev-master'],
+            'require' => [
+                'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
+                'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
+                'bluefission/develation' => 'v1.3.41 as dev-master',
+                'bluefission/wise' => 'dev-main',
+            ],
         ];
         $lock = [
-            'packages' => [[
-                'name' => 'bluefission/automata',
-                'require' => ['bluefission/develation' => '^1.3'],
-                'source' => [
-                    'url' => 'https://github.com/BlueFissionTech/automata.git',
+            'packages' => [
+                [
+                    'name' => 'bluefission/automata',
+                    'version' => 'v1.0.0-alpha.2',
+                    'source' => ['url' => 'https://github.com/BlueFissionTech/automata.git'],
+                    'notification-url' => 'https://packagist.org/downloads/',
                 ],
-            ]],
+                [
+                    'name' => 'bluefission/chronicler',
+                    'version' => 'v0.1.2-alpha',
+                    'source' => ['url' => 'https://github.com/BlueFissionTech/chronicler.git'],
+                    'notification-url' => 'https://packagist.org/downloads/',
+                ],
+                [
+                    'name' => 'bluefission/develation',
+                    'version' => 'v1.3.41',
+                    'source' => ['url' => 'https://github.com/BlueFissionTech/develation.git'],
+                    'notification-url' => 'https://packagist.org/downloads/',
+                ],
+                [
+                    'name' => 'bluefission/wise',
+                    'version' => 'dev-main',
+                    'source' => ['url' => 'https://github.com/BlueFissionTech/wise.git'],
+                ],
+            ],
         ];
         $template = [
-            'repositories' => ['bluefission/automata' => $repository],
+            'config' => ['use-github-api' => false],
+            'repositories' => ['bluefission/wise' => $repository],
         ];
 
         $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
 
         $this->assertContains(
-            'Root composer.json is missing the canonical bluefission/automata repository.',
+            'Root composer.json is missing the canonical bluefission/wise repository.',
             $result['errors']
         );
-        $this->assertNotContains(
-            'Canonical consumer template is missing bluefission/develation.',
+        foreach (['automata', 'chronicler', 'develation'] as $package) {
+            $this->assertNotContains(
+                "Canonical consumer template is missing bluefission/{$package}.",
+                $result['errors']
+            );
+        }
+    }
+
+    public function testAuditRejectsVcsOverridesAndDevelopmentLocksForPackagistPackages(): void
+    {
+        $automataRepository = [
+            'type' => 'vcs',
+            'url' => 'https://github.com/BlueFissionTech/automata',
+        ];
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'repositories' => ['bluefission/automata' => $automataRepository],
+            'require' => ['bluefission/automata' => 'dev-master'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'dev-master',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/automata.git'],
+            ]],
+        ];
+        $template = [
+            'config' => ['use-github-api' => false],
+            'repositories' => ['bluefission/automata' => $automataRepository],
+        ];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'bluefission/automata must resolve through Packagist, not a root VCS override.',
+            $result['errors']
+        );
+        $this->assertContains(
+            'bluefission/automata must not be present in the consumer VCS template.',
+            $result['errors']
+        );
+        $this->assertContains(
+            'Locked bluefission/automata must use a tagged Packagist release.',
+            $result['errors']
+        );
+        $this->assertContains(
+            'Locked bluefission/automata does not carry Packagist distribution metadata.',
             $result['errors']
         );
     }

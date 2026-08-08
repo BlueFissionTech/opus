@@ -4,19 +4,19 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "713438fcdeb640cdab0fbfb08d429377",
+    "content-hash": "b3ec3e655822162acaf041a098688c8a",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "git@github.com:BlueFissionTech/annex-php-sdk.git",
+                "url": "https://github.com/bluefissiontech/annex-php-sdk",
                 "reference": "68d109548791e8dd9d54b3fd8e3542495f0e5ee7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/annex-php-sdk/zipball/68d109548791e8dd9d54b3fd8e3542495f0e5ee7",
+                "url": "https://api.github.com/repos/bluefissiontech/annex-php-sdk/zipball/68d109548791e8dd9d54b3fd8e3542495f0e5ee7",
                 "reference": "68d109548791e8dd9d54b3fd8e3542495f0e5ee7",
                 "shasum": ""
             },
@@ -48,10 +48,6 @@
                 }
             ],
             "description": "Annex SDK for PHP - a strict and flexible multi-tenant interoperability protocol.",
-            "support": {
-                "source": "https://github.com/BlueFissionTech/annex-php-sdk/tree/main",
-                "issues": "https://github.com/BlueFissionTech/annex-php-sdk/issues"
-            },
             "time": "2026-06-27T01:27:16+00:00"
         },
         {
@@ -94,11 +90,7 @@
                     "src/"
                 ]
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "BlueFission\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -122,8 +114,8 @@
                 "nlp"
             ],
             "support": {
-                "source": "https://github.com/BlueFissionTech/automata/tree/v1.0.0-alpha.2",
-                "issues": "https://github.com/BlueFissionTech/automata/issues"
+                "issues": "https://github.com/BlueFissionTech/automata/issues",
+                "source": "https://github.com/BlueFissionTech/automata/tree/v1.0.0-alpha.2"
             },
             "time": "2026-07-08T21:36:31+00:00"
         },
@@ -241,23 +233,14 @@
                     "BlueFission\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "BlueFission\\Chronicler\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/phpunit --do-not-cache-result"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "DevElation-oriented storage objects, connectors, and query helpers for Kafka, Neo4j, GraphQL, and related data systems.",
             "support": {
-                "source": "https://github.com/BlueFissionTech/chronicler/tree/v0.1.2-alpha",
-                "issues": "https://github.com/BlueFissionTech/chronicler/issues"
+                "issues": "https://github.com/BlueFissionTech/chronicler/issues",
+                "source": "https://github.com/BlueFissionTech/chronicler/tree/v0.1.2-alpha"
             },
             "time": "2026-07-08T17:16:34+00:00"
         },
@@ -338,18 +321,18 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "git@github.com:BlueFissionTech/jenerator.git",
+                "url": "https://github.com/bluefissiontech/jenerator",
                 "reference": "97047e4591c9e1bfa5c7487effa9f6b605857605"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/jenerator/zipball/97047e4591c9e1bfa5c7487effa9f6b605857605",
+                "url": "https://api.github.com/repos/bluefissiontech/jenerator/zipball/97047e4591c9e1bfa5c7487effa9f6b605857605",
                 "reference": "97047e4591c9e1bfa5c7487effa9f6b605857605",
                 "shasum": ""
             },
             "require": {
-                "bluefission/automata": "dev-master",
-                "bluefission/develation": "^1.2.0-alpha",
+                "bluefission/automata": "^1.0.0-alpha.2",
+                "bluefission/develation": "^1.3.39",
                 "php": ">=8.2"
             },
             "require-dev": {
@@ -368,10 +351,6 @@
                 }
             },
             "description": "JenSS interpreter library for Blue Fission.",
-            "support": {
-                "source": "https://github.com/BlueFissionTech/jenerator/tree/main",
-                "issues": "https://github.com/BlueFissionTech/jenerator/issues"
-            },
             "time": "2026-06-25T00:57:12+00:00"
         },
         {
@@ -379,12 +358,12 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "git@github.com:BlueFissionTech/opus-addon-hoom.git",
+                "url": "https://github.com/bluefissiontech/opus-addon-hoom",
                 "reference": "f25c2196e03deaece9a61b590c1e57ba00a572d3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/opus-addon-hoom/zipball/f25c2196e03deaece9a61b590c1e57ba00a572d3",
+                "url": "https://api.github.com/repos/bluefissiontech/opus-addon-hoom/zipball/f25c2196e03deaece9a61b590c1e57ba00a572d3",
                 "reference": "f25c2196e03deaece9a61b590c1e57ba00a572d3",
                 "shasum": ""
             },
@@ -414,10 +393,6 @@
                 }
             ],
             "description": "AddOn for advanced user/entity login and session management",
-            "support": {
-                "source": "https://github.com/BlueFissionTech/opus-addon-hoom/tree/main",
-                "issues": "https://github.com/BlueFissionTech/opus-addon-hoom/issues"
-            },
             "time": "2025-07-13T22:51:22+00:00"
         },
         {
@@ -425,12 +400,12 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "git@github.com:BlueFissionTech/opus-addon-kapsle.git",
+                "url": "https://github.com/bluefissiontech/opus-addon-kapsle",
                 "reference": "4e39482dfee0e1bda91c128b45be42b0419df413"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/opus-addon-kapsle/zipball/4e39482dfee0e1bda91c128b45be42b0419df413",
+                "url": "https://api.github.com/repos/bluefissiontech/opus-addon-kapsle/zipball/4e39482dfee0e1bda91c128b45be42b0419df413",
                 "reference": "4e39482dfee0e1bda91c128b45be42b0419df413",
                 "shasum": ""
             },
@@ -480,10 +455,6 @@
                 "tenancy",
                 "users"
             ],
-            "support": {
-                "source": "https://github.com/BlueFissionTech/opus-addon-kapsle/tree/main",
-                "issues": "https://github.com/BlueFissionTech/opus-addon-kapsle/issues"
-            },
             "time": "2025-07-14T13:32:29+00:00"
         },
         {
@@ -491,12 +462,12 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "git@github.com:BlueFissionTech/presence.git",
+                "url": "https://github.com/bluefissiontech/presence",
                 "reference": "c42db96307a356f1a4e6cd4cc1563bdd770639f3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/presence/zipball/c42db96307a356f1a4e6cd4cc1563bdd770639f3",
+                "url": "https://api.github.com/repos/bluefissiontech/presence/zipball/c42db96307a356f1a4e6cd4cc1563bdd770639f3",
                 "reference": "c42db96307a356f1a4e6cd4cc1563bdd770639f3",
                 "shasum": ""
             },
@@ -544,10 +515,6 @@
                 "maps",
                 "session"
             ],
-            "support": {
-                "source": "https://github.com/BlueFissionTech/presence/tree/main",
-                "issues": "https://github.com/BlueFissionTech/presence/issues"
-            },
             "time": "2026-06-25T16:13:24+00:00"
         },
         {
@@ -555,12 +522,12 @@
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "https://github.com/BlueFissionTech/simpleclients.git",
+                "url": "https://github.com/bluefissiontech/simpleclients",
                 "reference": "94e4ff1bb3ac19e52d2de753a787a045d2744688"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/simpleclients/zipball/94e4ff1bb3ac19e52d2de753a787a045d2744688",
+                "url": "https://api.github.com/repos/bluefissiontech/simpleclients/zipball/94e4ff1bb3ac19e52d2de753a787a045d2744688",
                 "reference": "94e4ff1bb3ac19e52d2de753a787a045d2744688",
                 "shasum": ""
             },
@@ -604,10 +571,6 @@
                 "http",
                 "services"
             ],
-            "support": {
-                "source": "https://github.com/BlueFissionTech/simpleclients/tree/master",
-                "issues": "https://github.com/BlueFissionTech/simpleclients/issues"
-            },
             "time": "2026-07-06T00:26:29+00:00"
         },
         {
@@ -615,12 +578,12 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "git@github.com:BlueFissionTech/synematic.git",
+                "url": "https://github.com/bluefissiontech/synematic",
                 "reference": "ca21f4415a55b5662899c3a191a42e2d8f8d9873"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/synematic/zipball/ca21f4415a55b5662899c3a191a42e2d8f8d9873",
+                "url": "https://api.github.com/repos/bluefissiontech/synematic/zipball/ca21f4415a55b5662899c3a191a42e2d8f8d9873",
                 "reference": "ca21f4415a55b5662899c3a191a42e2d8f8d9873",
                 "shasum": ""
             },
@@ -654,10 +617,6 @@
                 "MIT"
             ],
             "description": "Human-centered data and workflow primitives for eventing, provenance, privacy, and interoperability.",
-            "support": {
-                "source": "https://github.com/BlueFissionTech/synematic/tree/main",
-                "issues": "https://github.com/BlueFissionTech/synematic/issues"
-            },
             "time": "2026-07-06T03:36:00+00:00"
         },
         {
@@ -665,17 +624,17 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "git@github.com:BlueFissionTech/synthetiq.git",
+                "url": "https://github.com/bluefissiontech/synthetiq",
                 "reference": "790e7671b43eeba7c4a46de3bd120ebd17435c91"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/synthetiq/zipball/790e7671b43eeba7c4a46de3bd120ebd17435c91",
+                "url": "https://api.github.com/repos/bluefissiontech/synthetiq/zipball/790e7671b43eeba7c4a46de3bd120ebd17435c91",
                 "reference": "790e7671b43eeba7c4a46de3bd120ebd17435c91",
                 "shasum": ""
             },
             "require": {
-                "bluefission/automata": "dev-master",
+                "bluefission/automata": "^1.0.0-alpha.2",
                 "bluefission/develation": "^1.0.0-alpha",
                 "bluefission/simpleclients": "dev-master",
                 "php": ">=8.2",
@@ -718,10 +677,6 @@
                 "nlp",
                 "synthetiq"
             ],
-            "support": {
-                "source": "https://github.com/BlueFissionTech/synthetiq/tree/main",
-                "issues": "https://github.com/BlueFissionTech/synthetiq/issues"
-            },
             "time": "2026-06-26T22:44:42+00:00"
         },
         {
@@ -729,12 +684,12 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "git@github.com:BlueFissionTech/vibrato.git",
+                "url": "https://github.com/bluefissiontech/vibrato",
                 "reference": "451fd85214dfefca56a5a7837305a662cccedf15"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/vibrato/zipball/451fd85214dfefca56a5a7837305a662cccedf15",
+                "url": "https://api.github.com/repos/bluefissiontech/vibrato/zipball/451fd85214dfefca56a5a7837305a662cccedf15",
                 "reference": "451fd85214dfefca56a5a7837305a662cccedf15",
                 "shasum": ""
             },
@@ -781,10 +736,6 @@
                 "language",
                 "programming"
             ],
-            "support": {
-                "source": "https://github.com/BlueFissionTech/vibrato/tree/main",
-                "issues": "https://github.com/BlueFissionTech/vibrato/issues"
-            },
             "time": "2026-06-24T15:34:43+00:00"
         },
         {
@@ -792,18 +743,18 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://github.com/BlueFissionTech/wise.git",
+                "url": "https://github.com/bluefissiontech/wise",
                 "reference": "8c2131a49d87ca978e885b2a596108333b729bd8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/wise/zipball/8c2131a49d87ca978e885b2a596108333b729bd8",
+                "url": "https://api.github.com/repos/bluefissiontech/wise/zipball/8c2131a49d87ca978e885b2a596108333b729bd8",
                 "reference": "8c2131a49d87ca978e885b2a596108333b729bd8",
                 "shasum": ""
             },
             "require": {
-                "bluefission/automata": "dev-master",
-                "bluefission/develation": "dev-master as 1.3.34-alpha",
+                "bluefission/automata": "dev-master as 1.0.0-alpha.2",
+                "bluefission/develation": "^1.3.41",
                 "bluefission/jenerator": "dev-main",
                 "bluefission/simpleclients": "dev-master",
                 "bluefission/synthetiq": "dev-main",
@@ -866,10 +817,6 @@
                 "llm",
                 "shell"
             ],
-            "support": {
-                "source": "https://github.com/BlueFissionTech/wise/tree/main",
-                "issues": "https://github.com/BlueFissionTech/wise/issues"
-            },
             "time": "2026-06-26T22:46:55+00:00"
         },
         {

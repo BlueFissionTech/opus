@@ -9,7 +9,11 @@ use RuntimeException;
 
 final class ComposerVcsAudit
 {
-    private const PACKAGIST_PACKAGE = 'bluefission/develation';
+    private const PACKAGIST_PACKAGES = [
+        'bluefission/automata',
+        'bluefission/chronicler',
+        'bluefission/develation',
+    ];
 
     /**
      * @return array{errors: array<string>, packages: array<string>}
@@ -43,11 +47,13 @@ final class ComposerVcsAudit
             $errors[] = 'Consumer template must enable direct Git fallback with config.use-github-api=false.';
         }
 
-        if (isset($rootRepositories[self::PACKAGIST_PACKAGE])) {
-            $errors[] = self::PACKAGIST_PACKAGE . ' must resolve through Packagist, not a root VCS override.';
-        }
-        if (isset($templateRepositories[self::PACKAGIST_PACKAGE])) {
-            $errors[] = self::PACKAGIST_PACKAGE . ' must not be present in the consumer VCS template.';
+        foreach (self::PACKAGIST_PACKAGES as $package) {
+            if (isset($rootRepositories[$package])) {
+                $errors[] = "{$package} must resolve through Packagist, not a root VCS override.";
+            }
+            if (isset($templateRepositories[$package])) {
+                $errors[] = "{$package} must not be present in the consumer VCS template.";
+            }
         }
 
         foreach ($templateRepositories as $package => $repository) {
@@ -67,7 +73,20 @@ final class ComposerVcsAudit
         $packages = $this->blueFissionRequirements($composer, $lock);
         $lockedPackages = $this->lockedPackageMap($lock);
         foreach ($packages as $package) {
-            if ($package === self::PACKAGIST_PACKAGE) {
+            $lockedPackage = $lockedPackages[$package] ?? [];
+            $lockedSource = $lockedPackage['source']['url'] ?? null;
+            if ($this->packageFromRepositoryUrl($lockedSource) !== $package) {
+                $errors[] = "Locked {$package} does not resolve from its canonical GitHub source.";
+            }
+
+            if (in_array($package, self::PACKAGIST_PACKAGES, true)) {
+                $lockedVersion = $lockedPackage['version'] ?? null;
+                if (!is_string($lockedVersion) || str_starts_with(strtolower($lockedVersion), 'dev-')) {
+                    $errors[] = "Locked {$package} must use a tagged Packagist release.";
+                }
+                if (($lockedPackage['notification-url'] ?? null) !== 'https://packagist.org/downloads/') {
+                    $errors[] = "Locked {$package} does not carry Packagist distribution metadata.";
+                }
                 continue;
             }
             if (!isset($templateRepositories[$package])) {
@@ -77,10 +96,6 @@ final class ComposerVcsAudit
                 $errors[] = "Root composer.json is missing {$package}.";
             }
 
-            $lockedSource = $lockedPackages[$package]['source']['url'] ?? null;
-            if ($this->packageFromRepositoryUrl($lockedSource) !== $package) {
-                $errors[] = "Locked {$package} does not resolve from its canonical GitHub source.";
-            }
         }
 
         return [
