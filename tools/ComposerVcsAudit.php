@@ -170,7 +170,16 @@ final class ComposerVcsAudit
 
         $errors = [];
         foreach ($repositories as $index => $repository) {
-            if (!is_int($index) || !is_array($repository)) {
+            if (is_string($index) && strtolower($index) === 'packagist.org' && $repository === false) {
+                $errors[] = "{$source} must not disable Packagist.";
+                continue;
+            }
+
+            if (!is_array($repository)) {
+                continue;
+            }
+
+            if (is_string($index) && str_starts_with(strtolower($index), 'bluefission/')) {
                 continue;
             }
 
@@ -187,7 +196,8 @@ final class ComposerVcsAudit
             }
 
             $type = is_string($repository['type'] ?? null) ? strtolower($repository['type']) : 'unknown';
-            $errors[] = "{$source} has an unverifiable numeric {$type} repository at index {$index}.";
+            $position = is_int($index) ? "at index {$index}" : "named {$index}";
+            $errors[] = "{$source} has an unverifiable {$type} repository {$position}.";
         }
 
         return $errors;
