@@ -26,6 +26,40 @@ class ComposerVcsAuditTest extends TestCase
         $this->assertContains('bluefission/develation', $result['packages']);
     }
 
+    public function testConsumerTemplateRepeatsRootOnlyReleaseAliases(): void
+    {
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'require' => [
+                'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
+                'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
+                'bluefission/develation' => 'v1.3.41 as dev-master',
+            ],
+        ];
+        $template = [
+            'config' => ['use-github-api' => false],
+            'require' => [
+                'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
+                'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
+            ],
+        ];
+
+        $result = (new ComposerVcsAudit())->audit($composer, [], $template);
+
+        $this->assertContains(
+            'Consumer template must repeat the root-only bluefission/develation alias v1.3.41 as dev-master.',
+            $result['errors']
+        );
+        $this->assertNotContains(
+            'Consumer template must repeat the root-only bluefission/automata alias v1.0.0-alpha.2 as dev-master.',
+            $result['errors']
+        );
+        $this->assertNotContains(
+            'Consumer template must repeat the root-only bluefission/chronicler alias v0.1.2-alpha as dev-main.',
+            $result['errors']
+        );
+    }
+
     public function testAuditReportsMissingRootRepositoryButAllowsPackagistPackages(): void
     {
         $repository = [

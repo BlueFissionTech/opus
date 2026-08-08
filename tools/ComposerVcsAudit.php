@@ -39,6 +39,8 @@ final class ComposerVcsAudit
         $rootRepositories = $this->repositoryMap($composer['repositories'] ?? []);
         $templateRepositories = $this->repositoryMap($template['repositories'] ?? []);
         $rootPackage = strtolower((string) ($composer['name'] ?? ''));
+        $rootRequirements = is_array($composer['require'] ?? null) ? $composer['require'] : [];
+        $templateRequirements = is_array($template['require'] ?? null) ? $template['require'] : [];
 
         $errors = array_merge(
             $errors,
@@ -59,6 +61,15 @@ final class ComposerVcsAudit
             }
             if (isset($templateRepositories[$package])) {
                 $errors[] = "{$package} must not be present in the consumer VCS template.";
+            }
+
+            $rootConstraint = $rootRequirements[$package] ?? null;
+            if (
+                is_string($rootConstraint)
+                && $this->hasDevelopmentAlias($rootConstraint)
+                && ($templateRequirements[$package] ?? null) !== $rootConstraint
+            ) {
+                $errors[] = "Consumer template must repeat the root-only {$package} alias {$rootConstraint}.";
             }
         }
 
@@ -113,6 +124,11 @@ final class ComposerVcsAudit
             'errors' => array_values(array_unique($errors)),
             'packages' => $packages,
         ];
+    }
+
+    private function hasDevelopmentAlias(string $constraint): bool
+    {
+        return preg_match('/\bas\s+(?:dev-[^\s]+|[^\s]+-dev)\b/i', $constraint) === 1;
     }
 
     /**

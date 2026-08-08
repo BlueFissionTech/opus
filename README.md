@@ -27,7 +27,8 @@ Automata, and Chronicler use their tagged Packagist releases.
 
 Start new applications from
 [`templates/composer/opus-root.json`](templates/composer/opus-root.json), or
-merge its `repositories` and `config` sections into an existing
+merge its `repositories`, Blue Fission compatibility entries from `require`,
+and `config` sections into an existing
 root `composer.json` before requiring Opus:
 
 ```bash
@@ -36,7 +37,11 @@ composer require bluefission/opus
 
 Do not add VCS overrides for DevElation, Automata, or Chronicler. The remaining
 root registry is required because Composer does not inherit repository
-definitions from Opus or other dependencies. After merging the registry,
+definitions from Opus or other dependencies. Composer also does not inherit
+root aliases from dependencies, so the template repeats the tagged release
+aliases required by the current dependency graph. These aliases can be removed
+as their corresponding upstream release constraints are published. After
+merging the registry and compatibility entries,
 validate the application dependency graph without installing packages or
 running package scripts:
 
