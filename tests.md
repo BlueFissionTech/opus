@@ -21,9 +21,10 @@ graph:
 composer audit:composer-vcs
 ```
 
-The audit intentionally permits `bluefission/develation` without a VCS entry;
-all other discovered `bluefission/*` packages must have canonical GitHub routes
-in both the Opus root and the consumer template.
+The audit requires `bluefission/develation`, `bluefission/automata`, and
+`bluefission/chronicler` to use tagged Packagist releases without root VCS
+overrides. All other discovered `bluefission/*` packages must have canonical
+GitHub routes in both the Opus root and the consumer template.
 
 ## Runtime Contract Validation
 

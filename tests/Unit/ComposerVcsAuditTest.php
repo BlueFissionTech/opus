@@ -131,6 +131,30 @@ class ComposerVcsAuditTest extends TestCase
         );
     }
 
+    public function testAuditRejectsNumericDevelopmentLocksForPackagistPackages(): void
+    {
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'require' => ['bluefission/automata' => '^1.0.0-alpha.2'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => '1.x-dev',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/automata.git'],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'Locked bluefission/automata must use a tagged Packagist release.',
+            $result['errors']
+        );
+    }
+
     public function testPackageDoesNotNeedToDeclareItselfAsARootRepository(): void
     {
         $repository = [

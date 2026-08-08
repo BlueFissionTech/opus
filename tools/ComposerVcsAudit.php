@@ -81,7 +81,12 @@ final class ComposerVcsAudit
 
             if (in_array($package, self::PACKAGIST_PACKAGES, true)) {
                 $lockedVersion = $lockedPackage['version'] ?? null;
-                if (!is_string($lockedVersion) || str_starts_with(strtolower($lockedVersion), 'dev-')) {
+                $normalizedVersion = is_string($lockedVersion) ? strtolower($lockedVersion) : '';
+                if (
+                    $normalizedVersion === ''
+                    || str_starts_with($normalizedVersion, 'dev-')
+                    || str_ends_with($normalizedVersion, '-dev')
+                ) {
                     $errors[] = "Locked {$package} must use a tagged Packagist release.";
                 }
                 if (($lockedPackage['notification-url'] ?? null) !== 'https://packagist.org/downloads/') {
