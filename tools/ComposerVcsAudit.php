@@ -130,7 +130,9 @@ final class ComposerVcsAudit
                 continue;
             }
 
-            $repositoryPackage = $this->packageFromRepositoryUrl($repository['url'] ?? null);
+            $repositoryUrl = $repository['url'] ?? null;
+            $repositoryPackage = $this->packageFromRepositoryUrl($repositoryUrl)
+                ?? $this->packagistPackageFromRepositoryUrl($repositoryUrl);
             if ($repositoryPackage !== null) {
                 $mapped[$repositoryPackage] = $repository;
             }
@@ -188,6 +190,22 @@ final class ComposerVcsAudit
         return is_string($repository) && $repository !== ''
             ? 'bluefission/' . strtolower($repository)
             : null;
+    }
+
+    private function packagistPackageFromRepositoryUrl(mixed $url): ?string
+    {
+        if (!is_string($url)) {
+            return null;
+        }
+
+        $repository = basename(str_replace('\\', '/', rtrim($url, '/')));
+        $repository = preg_replace('/\.git$/i', '', $repository);
+        if (!is_string($repository) || $repository === '') {
+            return null;
+        }
+
+        $package = 'bluefission/' . strtolower($repository);
+        return in_array($package, self::PACKAGIST_PACKAGES, true) ? $package : null;
     }
 
     /**
