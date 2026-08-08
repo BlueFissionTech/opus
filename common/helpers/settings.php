@@ -6,6 +6,9 @@ date_default_timezone_set('America/New_York');
 if (!defined("APP_ROOT") ){
 	define('APP_ROOT', dirname(dirname(dirname(__FILE__))).'/');	
 }
+if (!defined("OPUS_ROOT") ){
+	define('OPUS_ROOT', APP_ROOT);
+}
 if (!defined("PROJECT_ROOT") ){
 	define('PROJECT_ROOT', APP_ROOT . 'core');
 }
