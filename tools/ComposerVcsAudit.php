@@ -40,6 +40,12 @@ final class ComposerVcsAudit
         $templateRepositories = $this->repositoryMap($template['repositories'] ?? []);
         $rootPackage = strtolower((string) ($composer['name'] ?? ''));
 
+        $errors = array_merge(
+            $errors,
+            $this->unverifiableRepositoryErrors($composer['repositories'] ?? [], 'Root composer.json'),
+            $this->unverifiableRepositoryErrors($template['repositories'] ?? [], 'Consumer template')
+        );
+
         if (($composer['config']['use-github-api'] ?? null) !== false) {
             $errors[] = 'Root composer.json must enable direct Git fallback with config.use-github-api=false.';
         }
@@ -130,9 +136,13 @@ final class ComposerVcsAudit
                 continue;
             }
 
-            $inlinePackage = $repository['package']['name'] ?? null;
-            if (is_string($inlinePackage) && str_starts_with(strtolower($inlinePackage), 'bluefission/')) {
-                $mapped[strtolower($inlinePackage)] = $repository;
+            $inlinePackages = $this->inlinePackageNames($repository);
+            foreach ($inlinePackages as $inlinePackage) {
+                if (str_starts_with($inlinePackage, 'bluefission/')) {
+                    $mapped[$inlinePackage] = $repository;
+                }
+            }
+            if ($inlinePackages !== []) {
                 continue;
             }
 
@@ -146,6 +156,66 @@ final class ComposerVcsAudit
 
         ksort($mapped);
         return $mapped;
+    }
+
+    /**
+     * @param mixed $repositories
+     * @return array<string>
+     */
+    private function unverifiableRepositoryErrors($repositories, string $source): array
+    {
+        if (!is_array($repositories)) {
+            return [];
+        }
+
+        $errors = [];
+        foreach ($repositories as $index => $repository) {
+            if (!is_int($index) || !is_array($repository)) {
+                continue;
+            }
+
+            if ($this->inlinePackageNames($repository) !== []) {
+                continue;
+            }
+
+            $url = $repository['url'] ?? null;
+            if (
+                $this->packageFromRepositoryUrl($url) !== null
+                || $this->packagistPackageFromRepositoryUrl($url) !== null
+            ) {
+                continue;
+            }
+
+            $type = is_string($repository['type'] ?? null) ? strtolower($repository['type']) : 'unknown';
+            $errors[] = "{$source} has an unverifiable numeric {$type} repository at index {$index}.";
+        }
+
+        return $errors;
+    }
+
+    /**
+     * @param array<string, mixed> $repository
+     * @return array<string>
+     */
+    private function inlinePackageNames(array $repository): array
+    {
+        $definitions = $repository['package'] ?? [];
+        if (!is_array($definitions)) {
+            return [];
+        }
+        if (isset($definitions['name'])) {
+            $definitions = [$definitions];
+        }
+
+        $packages = [];
+        foreach ($definitions as $definition) {
+            $package = is_array($definition) ? ($definition['name'] ?? null) : null;
+            if (is_string($package) && $package !== '') {
+                $packages[] = strtolower($package);
+            }
+        }
+
+        return array_values(array_unique($packages));
     }
 
     /**

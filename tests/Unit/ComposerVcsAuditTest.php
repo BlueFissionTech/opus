@@ -215,6 +215,72 @@ class ComposerVcsAuditTest extends TestCase
         );
     }
 
+    public function testAuditRejectsInlinePackageListOverride(): void
+    {
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'repositories' => [[
+                'type' => 'package',
+                'package' => [
+                    [
+                        'name' => 'example/utility',
+                        'version' => '1.0.0',
+                    ],
+                    [
+                        'name' => 'bluefission/automata',
+                        'version' => 'v1.0.0-alpha.2',
+                        'dist' => ['url' => 'https://example.com/automata.zip'],
+                    ],
+                ],
+            ]],
+            'require' => ['bluefission/automata' => '^1.0.0-alpha.2'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'v1.0.0-alpha.2',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/automata.git'],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'bluefission/automata must resolve through Packagist, not a root VCS override.',
+            $result['errors']
+        );
+    }
+
+    public function testAuditRejectsUnverifiableNumericVcsRepository(): void
+    {
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'repositories' => [[
+                'type' => 'vcs',
+                'url' => 'https://github.com/example/renamed-fork',
+            ]],
+            'require' => ['bluefission/automata' => '^1.0.0-alpha.2'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'v1.0.0-alpha.2',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/automata.git'],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'Root composer.json has an unverifiable numeric vcs repository at index 0.',
+            $result['errors']
+        );
+    }
+
     public function testPackageDoesNotNeedToDeclareItselfAsARootRepository(): void
     {
         $repository = [
