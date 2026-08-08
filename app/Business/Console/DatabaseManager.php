@@ -1,6 +1,7 @@
 <?php
 namespace App\Business\Console;
 
+use BlueFission\Arr;
 use BlueFission\Services\Service;
 use BlueFission\Behavioral\IDispatcher;
 use BlueFission\BlueCore\Business\Managers\DatasourceManager;
@@ -17,21 +18,19 @@ class DatabaseManager extends Service implements IDispatcher {
 
 	public function runMigrations()
 	{
-		$deltas = $this->_mgr->runMigrations();
+		$this->_mgr->runMigrations();
 	}
 
 	public function revertMigrations()
 	{
-		$deltas = $this->_mgr->revertMigrations();
+		$this->_mgr->revertMigrations();
 	}
 
 	public function populate( $args )
 	{
-		$arg = $args->context['data'] ?: null;
-		$auto = false;
-		if ($arg == 'auto') {
-			$auto = true;
-		}
-		$this->_mgr->populate($auto);
+		$data = Arr::getPath((array)($args->context ?? []), 'data', []);
+		$arguments = Arr::is($data) ? $data : [$data];
+
+		$this->_mgr->populate(Arr::contains($arguments, 'auto'));
 	}
 }
