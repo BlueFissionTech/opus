@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "243e4265d09246194c44f1c65faa541b",
+    "content-hash": "509315acb934e437709e6ac81c0fb1d1",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -693,18 +693,19 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefissiontech/vibrato",
-                "reference": "e4651e2b670ca5a922821237e4c5fe2383eafb87"
+                "reference": "562190fef3adaca3d8018acda70c16dbf446d920"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefissiontech/vibrato/zipball/e4651e2b670ca5a922821237e4c5fe2383eafb87",
-                "reference": "e4651e2b670ca5a922821237e4c5fe2383eafb87",
+                "url": "https://api.github.com/repos/bluefissiontech/vibrato/zipball/562190fef3adaca3d8018acda70c16dbf446d920",
+                "reference": "562190fef3adaca3d8018acda70c16dbf446d920",
                 "shasum": ""
             },
             "require": {
                 "bluefission/automata": "^1.0.0@alpha",
-                "bluefission/bluecore": "dev-main",
+                "bluefission/bluecore": "^0.1.0@alpha",
                 "bluefission/develation": "^1.3.39",
+                "bluefission/simpleclients": "^0.1.0@alpha",
                 "php": ">=8.2",
                 "symfony/http-client": "7.4.x-dev"
             },
@@ -747,7 +748,7 @@
                 "language",
                 "programming"
             ],
-            "time": "2026-08-09T01:50:43+00:00"
+            "time": "2026-08-09T20:34:12+00:00"
         },
         {
             "name": "bluefission/wise",
@@ -6339,12 +6340,6 @@
             "alias_normalized": "dev-master"
         },
         {
-            "package": "bluefission/bluecore",
-            "version": "0.1.0.0-alpha",
-            "alias": "dev-main",
-            "alias_normalized": "dev-main"
-        },
-        {
             "package": "bluefission/simpleclients",
             "version": "0.1.0.0-alpha",
             "alias": "dev-master",
@@ -6359,6 +6354,7 @@
     ],
     "minimum-stability": "dev",
     "stability-flags": {
+        "bluefission/bluecore": 15,
         "bluefission/opus-addon-hoom": 20,
         "bluefission/opus-addon-kapsle": 20,
         "bluefission/presence": 20,
