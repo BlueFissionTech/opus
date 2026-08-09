@@ -23,9 +23,8 @@ Opus is a low-code/no-code platform aimed at democratizing AI technology. It all
 
 Composer only reads repository declarations from the root project. Unreleased
 Blue Fission packages are source-distributed through GitHub VCS. DevElation,
-Automata, Chronicler, SimpleClients, and Synthetiq use their tagged Packagist
-releases. BlueCore uses its Packagist-published development line until its
-first tagged release.
+Automata, BlueCore, Chronicler, SimpleClients, and Synthetiq use their tagged
+Packagist releases.
 
 Start new applications from
 [`templates/composer/opus-root.json`](templates/composer/opus-root.json), or

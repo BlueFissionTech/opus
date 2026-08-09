@@ -33,6 +33,7 @@ class ComposerVcsAuditTest extends TestCase
             'config' => ['use-github-api' => false],
             'require' => [
                 'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
+                'bluefission/bluecore' => 'v0.1.0-alpha as dev-main',
                 'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
                 'bluefission/develation' => 'v1.3.41 as dev-master',
                 'bluefission/simpleclients' => 'v0.1.0-alpha as dev-master',
@@ -43,6 +44,7 @@ class ComposerVcsAuditTest extends TestCase
             'config' => ['use-github-api' => false],
             'require' => [
                 'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
+                'bluefission/bluecore' => 'v0.1.0-alpha as dev-main',
                 'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
                 'bluefission/simpleclients' => 'v0.1.0-alpha as dev-master',
                 'bluefission/synthetiq' => 'v0.1.0-alpha as dev-main',
@@ -120,7 +122,7 @@ class ComposerVcsAuditTest extends TestCase
         );
     }
 
-    public function testAuditAllowsPackagistDevelopmentLineForUnreleasedPackage(): void
+    public function testAuditRejectsBlueCoreDevelopmentLockAfterRelease(): void
     {
         $composer = [
             'config' => ['use-github-api' => false],
@@ -145,7 +147,10 @@ class ComposerVcsAuditTest extends TestCase
 
         $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
 
-        $this->assertSame([], $result['errors']);
+        $this->assertContains(
+            'Locked bluefission/bluecore must use a tagged Packagist release.',
+            $result['errors']
+        );
     }
 
     public function testAuditReportsMissingRootRepositoryButAllowsPackagistPackages(): void
@@ -448,6 +453,60 @@ class ComposerVcsAuditTest extends TestCase
         $this->assertContains(
             'Root composer.json must not define bluefission/wise through an inline package repository.',
             $result['errors']
+        );
+    }
+
+    public function testAuditRejectsNonVcsDeclarationBeforeCanonicalVcsRepository(): void
+    {
+        $canonicalRepository = [
+            'type' => 'vcs',
+            'url' => 'https://github.com/BlueFissionTech/wise',
+        ];
+        $invalidRepository = [
+            'type' => 'composer',
+            'url' => 'https://github.com/BlueFissionTech/wise',
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/wise',
+                'version' => 'dev-main',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/wise.git'],
+            ]],
+        ];
+        $requirements = ['bluefission/wise' => 'dev-main'];
+
+        $rootResult = (new ComposerVcsAudit())->audit(
+            [
+                'config' => ['use-github-api' => false],
+                'repositories' => [$invalidRepository, $canonicalRepository],
+                'require' => $requirements,
+            ],
+            $lock,
+            [
+                'config' => ['use-github-api' => false],
+                'repositories' => [$canonicalRepository],
+            ]
+        );
+        $templateResult = (new ComposerVcsAudit())->audit(
+            [
+                'config' => ['use-github-api' => false],
+                'repositories' => [$canonicalRepository],
+                'require' => $requirements,
+            ],
+            $lock,
+            [
+                'config' => ['use-github-api' => false],
+                'repositories' => [$invalidRepository, $canonicalRepository],
+            ]
+        );
+
+        $this->assertContains(
+            'Root composer.json repository for bluefission/wise must use type vcs.',
+            $rootResult['errors']
+        );
+        $this->assertContains(
+            'Consumer template repository for bluefission/wise must use type vcs.',
+            $templateResult['errors']
         );
     }
 

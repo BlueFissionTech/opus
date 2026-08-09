@@ -21,13 +21,13 @@ graph:
 composer audit:composer-vcs
 ```
 
-The audit requires `bluefission/develation`, `bluefission/automata`, and
-`bluefission/chronicler` to use tagged Packagist releases without root VCS
-overrides. It also requires `bluefission/simpleclients` to use its
-Packagist-published development line without a root VCS override. The audit
-repeats any root-only release aliases in the consumer template. All other
-discovered `bluefission/*` packages must have canonical GitHub routes in both
-the Opus root and the consumer template.
+The audit requires `bluefission/automata`, `bluefission/bluecore`,
+`bluefission/chronicler`, `bluefission/develation`,
+`bluefission/simpleclients`, and `bluefission/synthetiq` to use tagged
+Packagist releases without root VCS overrides. The audit repeats any root-only
+release aliases in the consumer template. All other discovered
+`bluefission/*` packages must have canonical GitHub VCS routes in both the Opus
+root and the consumer template.
 
 ## Runtime Contract Validation
 

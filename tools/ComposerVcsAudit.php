@@ -20,6 +20,7 @@ final class ComposerVcsAudit
 
     private const TAGGED_PACKAGIST_PACKAGES = [
         'bluefission/automata',
+        'bluefission/bluecore',
         'bluefission/chronicler',
         'bluefission/develation',
         'bluefission/simpleclients',
@@ -255,6 +256,12 @@ final class ComposerVcsAudit
             $url = $repository['url'] ?? null;
             $canonicalPackage = $this->packageFromRepositoryUrl($url);
             if ($canonicalPackage !== null) {
+                $type = is_string($repository['type'] ?? null)
+                    ? strtolower($repository['type'])
+                    : 'unknown';
+                if ($type !== 'vcs') {
+                    $errors[] = "{$source} repository for {$canonicalPackage} must use type vcs.";
+                }
                 if (!in_array($canonicalPackage, $expectedPackages, true)) {
                     $errors[] = "{$source} has a repository for unexpected package {$canonicalPackage}.";
                 }
