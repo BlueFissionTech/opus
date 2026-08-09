@@ -44,7 +44,6 @@ class ComposerVcsAuditTest extends TestCase
             'config' => ['use-github-api' => false],
             'require' => [
                 'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
-                'bluefission/bluecore' => '^0.1.0@alpha',
                 'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
                 'bluefission/simpleclients' => 'v0.1.0-alpha as dev-master',
                 'bluefission/synthetiq' => 'v0.1.0-alpha as dev-main',
@@ -90,6 +89,42 @@ class ComposerVcsAuditTest extends TestCase
 
         $this->assertContains(
             'Consumer template must remove the stale bluefission/automata alias v1.0.0-alpha.3 as dev-master.',
+            $result['errors']
+        );
+    }
+
+    public function testConsumerTemplateRejectsPlainCompatibilityPinRemovedFromRoot(): void
+    {
+        $reference = 'bluecore-reference';
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'require' => ['bluefission/bluecore' => '^0.1.0@alpha'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/bluecore',
+                'version' => 'v0.1.0-alpha',
+                'source' => [
+                    'url' => 'https://github.com/BlueFissionTech/bluecore.git',
+                    'reference' => $reference,
+                ],
+                'dist' => [
+                    'type' => 'zip',
+                    'url' => "https://api.github.com/repos/BlueFissionTech/bluecore/zipball/{$reference}",
+                    'reference' => $reference,
+                ],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = [
+            'config' => ['use-github-api' => false],
+            'require' => ['bluefission/bluecore' => 'v0.1.0-alpha'],
+        ];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'Consumer template must remove the stale bluefission/bluecore compatibility requirement v0.1.0-alpha.',
             $result['errors']
         );
     }
@@ -541,6 +576,39 @@ class ComposerVcsAuditTest extends TestCase
         );
         $this->assertContains(
             'Locked bluefission/automata source and distribution references do not match.',
+            $result['errors']
+        );
+    }
+
+    public function testAuditRejectsNonZipPackagistDistribution(): void
+    {
+        $reference = 'automata-reference';
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'require' => ['bluefission/automata' => '^1.0.0-alpha.3'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'v1.0.0-alpha.3',
+                'source' => [
+                    'url' => 'https://github.com/BlueFissionTech/automata.git',
+                    'reference' => $reference,
+                ],
+                'dist' => [
+                    'type' => 'file',
+                    'url' => "https://api.github.com/repos/BlueFissionTech/automata/zipball/{$reference}",
+                    'reference' => $reference,
+                ],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'Locked bluefission/automata does not use a ZIP Packagist distribution.',
             $result['errors']
         );
     }

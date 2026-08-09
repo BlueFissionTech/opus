@@ -101,6 +101,9 @@ final class ComposerVcsAudit
             if (!$rootHasAlias && $templateHasAlias) {
                 $errors[] = "Consumer template must remove the stale {$package} alias {$templateConstraint}.";
             }
+            if (!$rootHasAlias && is_string($templateConstraint) && !$templateHasAlias) {
+                $errors[] = "Consumer template must remove the stale {$package} compatibility requirement {$templateConstraint}.";
+            }
         }
 
         foreach ($templateRepositories as $package => $repository) {
@@ -139,6 +142,9 @@ final class ComposerVcsAudit
                 }
                 if (($lockedPackage['notification-url'] ?? null) !== 'https://packagist.org/downloads/') {
                     $errors[] = "Locked {$package} does not carry Packagist distribution metadata.";
+                }
+                if (($lockedPackage['dist']['type'] ?? null) !== 'zip') {
+                    $errors[] = "Locked {$package} does not use a ZIP Packagist distribution.";
                 }
                 $sourceReference = $lockedPackage['source']['reference'] ?? null;
                 $distributionReference = $lockedPackage['dist']['reference'] ?? null;
