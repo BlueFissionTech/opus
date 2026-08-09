@@ -63,10 +63,10 @@
     ],
     "require": {
         "php": "^8.2",
-        "bluefission/automata": "v1.0.0-alpha.2 as dev-master",
+        "bluefission/automata": "v1.0.0-alpha.3 as dev-master",
         "bluefission/bluecore": "dev-main",
-        "bluefission/chronicler": "v0.1.2-alpha as dev-main",
-        "bluefission/develation": "v1.3.41 as dev-master",
+        "bluefission/chronicler": "^0.1.2-alpha",
+        "bluefission/develation": "^1.3.41",
         "bluefission/opus-addon-hoom": "dev-main",
         "bluefission/opus-addon-kapsle": "dev-main",
         "bluefission/presence": "dev-main",

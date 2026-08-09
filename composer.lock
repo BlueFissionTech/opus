@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b3ec3e655822162acaf041a098688c8a",
+    "content-hash": "4966e5de7e4e832f39b1aaf20edef42e",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -52,34 +52,35 @@
         },
         {
             "name": "bluefission/automata",
-            "version": "v1.0.0-alpha.2",
+            "version": "v1.0.0-alpha.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/automata.git",
-                "reference": "17c752c46720fe4bd43aae84864b9fa71f7c69a5"
+                "reference": "c48adfd13bcf4bddd66dfd0fee77c5d5430b52f0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/automata/zipball/17c752c46720fe4bd43aae84864b9fa71f7c69a5",
-                "reference": "17c752c46720fe4bd43aae84864b9fa71f7c69a5",
+                "url": "https://api.github.com/repos/BlueFissionTech/automata/zipball/c48adfd13bcf4bddd66dfd0fee77c5d5430b52f0",
+                "reference": "c48adfd13bcf4bddd66dfd0fee77c5d5430b52f0",
                 "shasum": ""
             },
             "require": {
-                "bluefission/chronicler": "dev-main",
+                "bluefission/chronicler": "^0.1.2-alpha",
                 "bluefission/develation": "^1.3.39",
-                "bluefission/simpleclients": "dev-master",
-                "google-gemini-php/client": "dev-main",
-                "nyholm/psr7": "^1.8@dev",
-                "orhanerday/open-ai": "^2.2",
                 "php": ">=8.2",
-                "php-ai/php-ml": "^0.10.0",
-                "symfony/http-client": "^7.4@dev"
+                "php-ai/php-ml": "^0.10.0"
             },
             "require-dev": {
+                "bluefission/simpleclients": "dev-master",
                 "phpunit/phpunit": "^11.5"
             },
             "suggest": {
-                "ext-ds": "Improves performance for collection types (Deque, Map, Set, Stack, PriorityQueue, Vector). Optional; Automata falls back when absent."
+                "bluefission/simpleclients": "Install for optional provider-backed OCR, transcription, video analysis, Claude, Gemini, Grok, and related client adapters.",
+                "ext-ds": "Improves performance for collection types (Deque, Map, Set, Stack, PriorityQueue, Vector). Optional; Automata falls back when absent.",
+                "google-gemini-php/client": "Install when using SimpleClients Gemini adapters without injecting a custom Gemini-compatible client.",
+                "nyholm/psr7": "Install when using PSR-7 based provider transports that require a concrete PSR-7 implementation.",
+                "orhanerday/open-ai": "Install for applications that prefer the orhanerday OpenAI client over Automata's built-in Curl connector.",
+                "symfony/http-client": "Install when using provider transports that require Symfony's HTTP client implementation."
             },
             "type": "library",
             "autoload": {
@@ -103,6 +104,7 @@
                 }
             ],
             "description": "Machine learning / communication systems",
+            "homepage": "https://github.com/BlueFissionTech/automata",
             "keywords": [
                 "ai",
                 "automata",
@@ -115,9 +117,9 @@
             ],
             "support": {
                 "issues": "https://github.com/BlueFissionTech/automata/issues",
-                "source": "https://github.com/BlueFissionTech/automata/tree/v1.0.0-alpha.2"
+                "source": "https://github.com/BlueFissionTech/automata"
             },
-            "time": "2026-07-08T21:36:31+00:00"
+            "time": "2026-08-08T21:14:46+00:00"
         },
         {
             "name": "bluefission/bluecore",
@@ -463,20 +465,21 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefissiontech/presence",
-                "reference": "c42db96307a356f1a4e6cd4cc1563bdd770639f3"
+                "reference": "9637482818b6ff2ed3c18b012d94545e649a12c2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefissiontech/presence/zipball/c42db96307a356f1a4e6cd4cc1563bdd770639f3",
-                "reference": "c42db96307a356f1a4e6cd4cc1563bdd770639f3",
+                "url": "https://api.github.com/repos/bluefissiontech/presence/zipball/9637482818b6ff2ed3c18b012d94545e649a12c2",
+                "reference": "9637482818b6ff2ed3c18b012d94545e649a12c2",
                 "shasum": ""
             },
             "require": {
-                "bluefission/automata": "dev-master",
-                "bluefission/develation": "dev-master as 1.3.5-alpha",
+                "bluefission/automata": "^1.0.0-alpha.2",
+                "bluefission/develation": "^1.3.41",
                 "bluefission/synematic": "dev-main",
                 "ext-json": "*",
-                "php": ">=8.1"
+                "nyholm/psr7": "^1.8",
+                "php": ">=8.2"
             },
             "default-branch": true,
             "type": "library",
@@ -515,7 +518,7 @@
                 "maps",
                 "session"
             ],
-            "time": "2026-06-25T16:13:24+00:00"
+            "time": "2026-08-09T00:59:17+00:00"
         },
         {
             "name": "bluefission/simpleclients",
@@ -1230,87 +1233,6 @@
                 "source": "https://github.com/googleapis/php-jwt/tree/v6.11.1"
             },
             "time": "2025-04-09T20:32:01+00:00"
-        },
-        {
-            "name": "google-gemini-php/client",
-            "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/google-gemini-php/client.git",
-                "reference": "d61ebe8e8f7acc2aa66ce2e8a57c23bf32e1e340"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/google-gemini-php/client/zipball/d61ebe8e8f7acc2aa66ce2e8a57c23bf32e1e340",
-                "reference": "d61ebe8e8f7acc2aa66ce2e8a57c23bf32e1e340",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^8.1.0",
-                "php-http/discovery": "^1.19.2",
-                "psr/http-client-implementation": "*",
-                "psr/http-factory-implementation": "*"
-            },
-            "require-dev": {
-                "guzzlehttp/guzzle": "^7.8.1",
-                "guzzlehttp/psr7": "^2.6.2",
-                "laravel/pint": "^1.18.1",
-                "mockery/mockery": "^1.6.7",
-                "pestphp/pest": "^2.32.3",
-                "phpstan/phpstan": "^2.1.32"
-            },
-            "suggest": {
-                "ext-fileinfo": "Reads upload file size and mime type if not provided"
-            },
-            "default-branch": true,
-            "type": "library",
-            "autoload": {
-                "files": [
-                    "src/Gemini.php"
-                ],
-                "psr-4": {
-                    "Gemini\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Fatih AYDIN",
-                    "email": "aydinfatih52@gmail.com"
-                }
-            ],
-            "description": "Gemini API is a supercharged PHP API client that allows you to interact with the Gemini API",
-            "keywords": [
-                "Gemini",
-                "banana",
-                "client",
-                "gemini-pro",
-                "google",
-                "language",
-                "natural",
-                "nlp",
-                "php",
-                "processing",
-                "sdk"
-            ],
-            "support": {
-                "issues": "https://github.com/google-gemini-php/client/issues",
-                "source": "https://github.com/google-gemini-php/client/tree/2.7.4"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/Plytas",
-                    "type": "github"
-                },
-                {
-                    "url": "https://github.com/aydinfatih",
-                    "type": "github"
-                }
-            ],
-            "time": "2025-12-29T17:51:16+00:00"
         },
         {
             "name": "google/auth",
@@ -6404,19 +6326,7 @@
     "aliases": [
         {
             "package": "bluefission/automata",
-            "version": "1.0.0.0-alpha2",
-            "alias": "dev-master",
-            "alias_normalized": "dev-master"
-        },
-        {
-            "package": "bluefission/chronicler",
-            "version": "0.1.2.0-alpha",
-            "alias": "dev-main",
-            "alias_normalized": "dev-main"
-        },
-        {
-            "package": "bluefission/develation",
-            "version": "1.3.41.0",
+            "version": "1.0.0.0-alpha3",
             "alias": "dev-master",
             "alias_normalized": "dev-master"
         }
