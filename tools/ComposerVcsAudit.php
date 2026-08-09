@@ -41,11 +41,24 @@ final class ComposerVcsAudit
         $rootPackage = strtolower((string) ($composer['name'] ?? ''));
         $rootRequirements = is_array($composer['require'] ?? null) ? $composer['require'] : [];
         $templateRequirements = is_array($template['require'] ?? null) ? $template['require'] : [];
+        $packages = $this->blueFissionRequirements($composer, $lock);
+        $expectedRepositoryPackages = array_values(array_unique(array_filter([
+            ...$packages,
+            $rootPackage,
+        ])));
 
         $errors = array_merge(
             $errors,
-            $this->unverifiableRepositoryErrors($composer['repositories'] ?? [], 'Root composer.json'),
-            $this->unverifiableRepositoryErrors($template['repositories'] ?? [], 'Consumer template')
+            $this->unverifiableRepositoryErrors(
+                $composer['repositories'] ?? [],
+                'Root composer.json',
+                $expectedRepositoryPackages
+            ),
+            $this->unverifiableRepositoryErrors(
+                $template['repositories'] ?? [],
+                'Consumer template',
+                $expectedRepositoryPackages
+            )
         );
 
         if (($composer['config']['use-github-api'] ?? null) !== false) {
@@ -64,12 +77,17 @@ final class ComposerVcsAudit
             }
 
             $rootConstraint = $rootRequirements[$package] ?? null;
+            $templateConstraint = $templateRequirements[$package] ?? null;
+            $rootHasAlias = is_string($rootConstraint) && $this->hasDevelopmentAlias($rootConstraint);
+            $templateHasAlias = is_string($templateConstraint) && $this->hasDevelopmentAlias($templateConstraint);
             if (
-                is_string($rootConstraint)
-                && $this->hasDevelopmentAlias($rootConstraint)
-                && ($templateRequirements[$package] ?? null) !== $rootConstraint
+                $rootHasAlias
+                && $templateConstraint !== $rootConstraint
             ) {
                 $errors[] = "Consumer template must repeat the root-only {$package} alias {$rootConstraint}.";
+            }
+            if (!$rootHasAlias && $templateHasAlias) {
+                $errors[] = "Consumer template must remove the stale {$package} alias {$templateConstraint}.";
             }
         }
 
@@ -87,7 +105,6 @@ final class ComposerVcsAudit
             }
         }
 
-        $packages = $this->blueFissionRequirements($composer, $lock);
         $lockedPackages = $this->lockedPackageMap($lock);
         foreach ($packages as $package) {
             $lockedPackage = $lockedPackages[$package] ?? [];
@@ -171,9 +188,10 @@ final class ComposerVcsAudit
 
     /**
      * @param mixed $repositories
+     * @param array<string> $expectedPackages
      * @return array<string>
      */
-    private function unverifiableRepositoryErrors($repositories, string $source): array
+    private function unverifiableRepositoryErrors($repositories, string $source, array $expectedPackages): array
     {
         if (!is_array($repositories)) {
             return [];
@@ -199,10 +217,14 @@ final class ComposerVcsAudit
             }
 
             $url = $repository['url'] ?? null;
-            if (
-                $this->packageFromRepositoryUrl($url) !== null
-                || $this->packagistPackageFromRepositoryUrl($url) !== null
-            ) {
+            $canonicalPackage = $this->packageFromRepositoryUrl($url);
+            if ($canonicalPackage !== null) {
+                if (!in_array($canonicalPackage, $expectedPackages, true)) {
+                    $errors[] = "{$source} has a repository for unexpected package {$canonicalPackage}.";
+                }
+                continue;
+            }
+            if ($this->packagistPackageFromRepositoryUrl($url) !== null) {
                 continue;
             }
 

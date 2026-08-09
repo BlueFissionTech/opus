@@ -60,6 +60,61 @@ class ComposerVcsAuditTest extends TestCase
         );
     }
 
+    public function testConsumerTemplateRejectsAliasRemovedFromRoot(): void
+    {
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'require' => ['bluefission/automata' => '^1.0.0-alpha.3'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'v1.0.0-alpha.3',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/automata.git'],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = [
+            'config' => ['use-github-api' => false],
+            'require' => ['bluefission/automata' => 'v1.0.0-alpha.3 as dev-master'],
+        ];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'Consumer template must remove the stale bluefission/automata alias v1.0.0-alpha.3 as dev-master.',
+            $result['errors']
+        );
+    }
+
+    public function testAuditRejectsUnexpectedRepositoryInCanonicalOrganization(): void
+    {
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'repositories' => [[
+                'type' => 'vcs',
+                'url' => 'https://github.com/BlueFissionTech/renamed-fork',
+            ]],
+            'require' => ['bluefission/automata' => '^1.0.0-alpha.3'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'v1.0.0-alpha.3',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/automata.git'],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'Root composer.json has a repository for unexpected package bluefission/renamed-fork.',
+            $result['errors']
+        );
+    }
+
     public function testAuditReportsMissingRootRepositoryButAllowsPackagistPackages(): void
     {
         $repository = [
