@@ -7,10 +7,6 @@
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/opus"
         },
-        "bluefission/bluecore": {
-            "type": "vcs",
-            "url": "https://github.com/BlueFissionTech/bluecore"
-        },
         "bluefission/wise": {
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/wise"
@@ -31,10 +27,6 @@
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/annex-php-sdk"
         },
-        "bluefission/synthetiq": {
-            "type": "vcs",
-            "url": "https://github.com/BlueFissionTech/synthetiq"
-        },
         "bluefission/jenerator": {
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/jenerator"
@@ -51,6 +43,8 @@
     "require": {
         "php": "^8.2",
         "bluefission/automata": "v1.0.0-alpha.3 as dev-master",
+        "bluefission/simpleclients": "v0.1.0-alpha as dev-master",
+        "bluefission/synthetiq": "v0.1.0-alpha as dev-main",
         "bluefission/opus": "dev-main"
     },
     "config": {

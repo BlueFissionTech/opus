@@ -35,6 +35,8 @@ class ComposerVcsAuditTest extends TestCase
                 'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
                 'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
                 'bluefission/develation' => 'v1.3.41 as dev-master',
+                'bluefission/simpleclients' => 'v0.1.0-alpha as dev-master',
+                'bluefission/synthetiq' => 'v0.1.0-alpha as dev-main',
             ],
         ];
         $template = [
@@ -42,6 +44,8 @@ class ComposerVcsAuditTest extends TestCase
             'require' => [
                 'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
                 'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
+                'bluefission/simpleclients' => 'v0.1.0-alpha as dev-master',
+                'bluefission/synthetiq' => 'v0.1.0-alpha as dev-main',
             ],
         ];
 
@@ -120,18 +124,18 @@ class ComposerVcsAuditTest extends TestCase
     {
         $composer = [
             'config' => ['use-github-api' => false],
-            'require' => ['bluefission/simpleclients' => 'dev-master'],
+            'require' => ['bluefission/bluecore' => 'dev-main'],
         ];
         $lock = [
             'packages' => [[
-                'name' => 'bluefission/simpleclients',
-                'version' => 'dev-master',
+                'name' => 'bluefission/bluecore',
+                'version' => 'dev-main',
                 'source' => [
-                    'url' => 'https://github.com/BlueFissionTech/simpleclients.git',
+                    'url' => 'https://github.com/BlueFissionTech/bluecore.git',
                     'reference' => 'source-reference',
                 ],
                 'dist' => [
-                    'url' => 'https://api.github.com/repos/BlueFissionTech/simpleclients/zipball/source-reference',
+                    'url' => 'https://api.github.com/repos/BlueFissionTech/bluecore/zipball/source-reference',
                     'reference' => 'source-reference',
                 ],
                 'notification-url' => 'https://packagist.org/downloads/',
@@ -271,6 +275,41 @@ class ComposerVcsAuditTest extends TestCase
             'Locked bluefission/automata must use a tagged Packagist release.',
             $result['errors']
         );
+    }
+
+    public function testAuditRejectsDevelopmentLocksForNewlyTaggedPackages(): void
+    {
+        foreach (['simpleclients', 'synthetiq'] as $name) {
+            $package = "bluefission/{$name}";
+            $reference = "{$name}-reference";
+            $composer = [
+                'config' => ['use-github-api' => false],
+                'require' => [$package => 'dev-main'],
+            ];
+            $lock = [
+                'packages' => [[
+                    'name' => $package,
+                    'version' => 'dev-main',
+                    'source' => [
+                        'url' => "https://github.com/BlueFissionTech/{$name}.git",
+                        'reference' => $reference,
+                    ],
+                    'dist' => [
+                        'url' => "https://api.github.com/repos/BlueFissionTech/{$name}/zipball/{$reference}",
+                        'reference' => $reference,
+                    ],
+                    'notification-url' => 'https://packagist.org/downloads/',
+                ]],
+            ];
+            $template = ['config' => ['use-github-api' => false]];
+
+            $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+            $this->assertContains(
+                "Locked {$package} must use a tagged Packagist release.",
+                $result['errors']
+            );
+        }
     }
 
     public function testAuditRejectsForkOverrideForPackagistPackage(): void

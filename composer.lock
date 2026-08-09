@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7149606e343872e062893750a86917d6",
+    "content-hash": "c96fcfdc678f3981bdef014c1158aefb",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -126,13 +126,13 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://github.com/bluefissiontech/bluecore",
-                "reference": "8b1fae44d0c6f92028cc4a2cafd7ebec71d8618f"
+                "url": "https://github.com/BlueFissionTech/bluecore.git",
+                "reference": "2b3e16669c71966b6b901e55e85937d68d81b78b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefissiontech/bluecore/zipball/8b1fae44d0c6f92028cc4a2cafd7ebec71d8618f",
-                "reference": "8b1fae44d0c6f92028cc4a2cafd7ebec71d8618f",
+                "url": "https://api.github.com/repos/BlueFissionTech/bluecore/zipball/2b3e16669c71966b6b901e55e85937d68d81b78b",
+                "reference": "2b3e16669c71966b6b901e55e85937d68d81b78b",
                 "shasum": ""
             },
             "require": {
@@ -153,37 +153,19 @@
                 "class": "BlueFission\\BlueCore\\Installers\\PluginInstaller"
             },
             "autoload": {
+                "files": [
+                    "src/Helpers/global.php",
+                    "src/Helpers/response.php",
+                    "src/Helpers/errors.php"
+                ],
                 "psr-4": {
                     "BlueFission\\": "src/"
                 },
                 "classmap": [
                     "src/"
-                ],
-                "files": [
-                    "src/Helpers/global.php",
-                    "src/Helpers/response.php",
-                    "src/Helpers/errors.php"
                 ]
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "BlueFission\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "lint": [
-                    "@php scripts/lint.php"
-                ],
-                "test": [
-                    "phpunit --do-not-cache-result tests"
-                ],
-                "ci": [
-                    "Composer\\Config::disableProcessTimeout",
-                    "composer validate --no-check-publish --strict",
-                    "@lint",
-                    "@test"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -202,7 +184,11 @@
                 "framework",
                 "opus"
             ],
-            "time": "2026-08-07T20:09:59+00:00"
+            "support": {
+                "issues": "https://github.com/BlueFissionTech/bluecore/issues",
+                "source": "https://github.com/BlueFissionTech/bluecore/tree/main"
+            },
+            "time": "2026-08-08T02:38:30+00:00"
         },
         {
             "name": "bluefission/chronicler",
@@ -522,7 +508,7 @@
         },
         {
             "name": "bluefission/simpleclients",
-            "version": "dev-master",
+            "version": "v0.1.0-alpha",
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/simpleclients.git",
@@ -547,7 +533,6 @@
                 "bluefission/automata": "Enables Automata-backed LLM provider clients such as OpenAIClient.",
                 "gemini-api-php/client": "Provide a Gemini SDK implementation when using GoogleGeminiClient without an injected test double."
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -637,40 +622,35 @@
         },
         {
             "name": "bluefission/synthetiq",
-            "version": "dev-main",
+            "version": "v0.1.0-alpha",
             "source": {
                 "type": "git",
-                "url": "https://github.com/bluefissiontech/synthetiq",
-                "reference": "790e7671b43eeba7c4a46de3bd120ebd17435c91"
+                "url": "https://github.com/BlueFissionTech/synthetiq.git",
+                "reference": "a252b5418f0f726926d1c6bb5e83faf70041d19b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefissiontech/synthetiq/zipball/790e7671b43eeba7c4a46de3bd120ebd17435c91",
-                "reference": "790e7671b43eeba7c4a46de3bd120ebd17435c91",
+                "url": "https://api.github.com/repos/BlueFissionTech/synthetiq/zipball/a252b5418f0f726926d1c6bb5e83faf70041d19b",
+                "reference": "a252b5418f0f726926d1c6bb5e83faf70041d19b",
                 "shasum": ""
             },
             "require": {
                 "bluefission/automata": "^1.0.0-alpha.2",
-                "bluefission/develation": "^1.0.0-alpha",
-                "bluefission/simpleclients": "dev-master",
+                "bluefission/develation": "^1.3.39",
+                "bluefission/simpleclients": "^0.1.0-alpha",
                 "php": ">=8.2",
                 "php-ai/php-ml": "^0.10.0"
             },
             "require-dev": {
                 "phpunit/phpunit": "^11.1@dev"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
                     "BlueFission\\SynthetIQ\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "BlueFission\\SynthetIQ\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -683,17 +663,25 @@
                 }
             ],
             "description": "Adaptive conversational AI system",
+            "homepage": "https://github.com/BlueFissionTech/synthetiq",
             "keywords": [
                 "ai",
+                "bluefission",
                 "bot",
                 "chatbot",
                 "communication",
                 "machine learning",
+                "materia",
                 "natural language processing",
                 "nlp",
+                "php",
                 "synthetiq"
             ],
-            "time": "2026-06-26T22:44:42+00:00"
+            "support": {
+                "issues": "https://github.com/BlueFissionTech/synthetiq/issues",
+                "source": "https://github.com/BlueFissionTech/synthetiq"
+            },
+            "time": "2026-08-09T03:20:31+00:00"
         },
         {
             "name": "bluefission/vibrato",
@@ -6345,6 +6333,18 @@
             "version": "1.0.0.0-alpha3",
             "alias": "dev-master",
             "alias_normalized": "dev-master"
+        },
+        {
+            "package": "bluefission/simpleclients",
+            "version": "0.1.0.0-alpha",
+            "alias": "dev-master",
+            "alias_normalized": "dev-master"
+        },
+        {
+            "package": "bluefission/synthetiq",
+            "version": "0.1.0.0-alpha",
+            "alias": "dev-main",
+            "alias_normalized": "dev-main"
         }
     ],
     "minimum-stability": "dev",
@@ -6353,7 +6353,6 @@
         "bluefission/opus-addon-hoom": 20,
         "bluefission/opus-addon-kapsle": 20,
         "bluefission/presence": 20,
-        "bluefission/simpleclients": 20,
         "bluefission/synematic": 20,
         "bluefission/vibrato": 20,
         "bluefission/wise": 20

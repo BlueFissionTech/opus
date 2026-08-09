@@ -33,9 +33,9 @@ Framework does not own:
 
 ## Current Integration State
 
-- DevElation, Automata, and Chronicler resolve through tagged Packagist
-  releases. SimpleClients resolves through its Packagist development line
-  until its first tagged release. BlueCore, Wise, Vibrato, Presence,
+- DevElation, Automata, Chronicler, SimpleClients, and Synthetiq resolve
+  through tagged Packagist releases. BlueCore resolves through its Packagist
+  development line until its first tagged release. Wise, Vibrato, Presence,
   Synematic, and the currently installed add-on packages use explicit root VCS
   repositories.
 - The Composer lock resolves these packages on PHP 8.2 while the terminal

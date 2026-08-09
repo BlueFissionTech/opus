@@ -23,8 +23,9 @@ Opus is a low-code/no-code platform aimed at democratizing AI technology. It all
 
 Composer only reads repository declarations from the root project. Unreleased
 Blue Fission packages are source-distributed through GitHub VCS. DevElation,
-Automata, and Chronicler use their tagged Packagist releases. SimpleClients
-uses its Packagist-published development line until its first tagged release.
+Automata, Chronicler, SimpleClients, and Synthetiq use their tagged Packagist
+releases. BlueCore uses its Packagist-published development line until its
+first tagged release.
 
 Start new applications from
 [`templates/composer/opus-root.json`](templates/composer/opus-root.json), or
@@ -36,7 +37,8 @@ root `composer.json` before requiring Opus:
 composer require bluefission/opus
 ```
 
-Do not add VCS overrides for DevElation, Automata, Chronicler, or SimpleClients.
+Do not add VCS overrides for DevElation, Automata, BlueCore, Chronicler,
+SimpleClients, or Synthetiq.
 The remaining root registry is required because Composer does not inherit repository
 definitions from Opus or other dependencies. Composer also does not inherit
 root aliases from dependencies, so the template repeats any tagged release

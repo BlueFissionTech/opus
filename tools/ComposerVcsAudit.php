@@ -11,15 +11,19 @@ final class ComposerVcsAudit
 {
     private const PACKAGIST_PACKAGES = [
         'bluefission/automata',
+        'bluefission/bluecore',
         'bluefission/chronicler',
         'bluefission/develation',
         'bluefission/simpleclients',
+        'bluefission/synthetiq',
     ];
 
     private const TAGGED_PACKAGIST_PACKAGES = [
         'bluefission/automata',
         'bluefission/chronicler',
         'bluefission/develation',
+        'bluefission/simpleclients',
+        'bluefission/synthetiq',
     ];
 
     /**
