@@ -126,7 +126,14 @@ class ComposerVcsAuditTest extends TestCase
             'packages' => [[
                 'name' => 'bluefission/simpleclients',
                 'version' => 'dev-master',
-                'source' => ['url' => 'https://github.com/BlueFissionTech/simpleclients.git'],
+                'source' => [
+                    'url' => 'https://github.com/BlueFissionTech/simpleclients.git',
+                    'reference' => 'source-reference',
+                ],
+                'dist' => [
+                    'url' => 'https://api.github.com/repos/BlueFissionTech/simpleclients/zipball/source-reference',
+                    'reference' => 'source-reference',
+                ],
                 'notification-url' => 'https://packagist.org/downloads/',
             ]],
         ];
@@ -360,6 +367,82 @@ class ComposerVcsAuditTest extends TestCase
 
         $this->assertContains(
             'bluefission/automata must resolve through Packagist, not a root VCS override.',
+            $result['errors']
+        );
+    }
+
+    public function testAuditRejectsInlineOverrideBeforeCanonicalVcsRepository(): void
+    {
+        $repository = [
+            'type' => 'vcs',
+            'url' => 'https://github.com/BlueFissionTech/wise',
+        ];
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'repositories' => [
+                [
+                    'type' => 'package',
+                    'package' => [
+                        'name' => 'bluefission/wise',
+                        'version' => 'dev-main',
+                        'dist' => ['url' => 'https://example.com/wise.zip'],
+                    ],
+                ],
+                $repository,
+            ],
+            'require' => ['bluefission/wise' => 'dev-main'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/wise',
+                'version' => 'dev-main',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/wise.git'],
+            ]],
+        ];
+        $template = [
+            'config' => ['use-github-api' => false],
+            'repositories' => ['bluefission/wise' => $repository],
+        ];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'Root composer.json must not define bluefission/wise through an inline package repository.',
+            $result['errors']
+        );
+    }
+
+    public function testAuditRejectsAlteredPackagistDistribution(): void
+    {
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'require' => ['bluefission/automata' => '^1.0.0-alpha.3'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'v1.0.0-alpha.3',
+                'source' => [
+                    'url' => 'https://github.com/BlueFissionTech/automata.git',
+                    'reference' => 'source-reference',
+                ],
+                'dist' => [
+                    'url' => 'https://example.com/automata.zip',
+                    'reference' => 'different-reference',
+                ],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'Locked bluefission/automata does not use its canonical Packagist distribution archive.',
+            $result['errors']
+        );
+        $this->assertContains(
+            'Locked bluefission/automata source and distribution references do not match.',
             $result['errors']
         );
     }

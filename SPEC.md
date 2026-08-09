@@ -34,8 +34,10 @@ Framework does not own:
 ## Current Integration State
 
 - DevElation, Automata, and Chronicler resolve through tagged Packagist
-  releases. BlueCore, Wise, Vibrato, Presence, Synematic, SimpleClients, and
-  the currently installed add-on packages use explicit root VCS repositories.
+  releases. SimpleClients resolves through its Packagist development line
+  until its first tagged release. BlueCore, Wise, Vibrato, Presence,
+  Synematic, and the currently installed add-on packages use explicit root VCS
+  repositories.
 - The Composer lock resolves these packages on PHP 8.2 while the terminal
   WebSocket transport remains optional for hosts with compatible dependencies.
 - Reactor is declared as the Blue Fission frontend package for the JavaScript

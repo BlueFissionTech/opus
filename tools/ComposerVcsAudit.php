@@ -135,6 +135,23 @@ final class ComposerVcsAudit
                 if (($lockedPackage['notification-url'] ?? null) !== 'https://packagist.org/downloads/') {
                     $errors[] = "Locked {$package} does not carry Packagist distribution metadata.";
                 }
+                $sourceReference = $lockedPackage['source']['reference'] ?? null;
+                $distributionReference = $lockedPackage['dist']['reference'] ?? null;
+                if (!$this->isCanonicalPackagistDistribution(
+                    $package,
+                    $lockedPackage['dist']['url'] ?? null,
+                    $distributionReference
+                )) {
+                    $errors[] = "Locked {$package} does not use its canonical Packagist distribution archive.";
+                }
+                if (
+                    !is_string($sourceReference)
+                    || !is_string($distributionReference)
+                    || $sourceReference === ''
+                    || $sourceReference !== $distributionReference
+                ) {
+                    $errors[] = "Locked {$package} source and distribution references do not match.";
+                }
                 continue;
             }
             if (!isset($templateRepositories[$package])) {
@@ -221,7 +238,13 @@ final class ComposerVcsAudit
                 continue;
             }
 
-            if ($this->inlinePackageNamesForPackageRepository($repository) !== []) {
+            $inlinePackages = $this->inlinePackageNamesForPackageRepository($repository);
+            if ($inlinePackages !== []) {
+                foreach ($inlinePackages as $inlinePackage) {
+                    if (in_array($inlinePackage, $expectedPackages, true)) {
+                        $errors[] = "{$source} must not define {$inlinePackage} through an inline package repository.";
+                    }
+                }
                 continue;
             }
 
@@ -346,6 +369,38 @@ final class ComposerVcsAudit
 
         $package = 'bluefission/' . strtolower($repository);
         return in_array($package, self::PACKAGIST_PACKAGES, true) ? $package : null;
+    }
+
+    private function isCanonicalPackagistDistribution(
+        string $package,
+        mixed $url,
+        mixed $reference
+    ): bool {
+        if (!is_string($url) || !is_string($reference) || $reference === '') {
+            return false;
+        }
+
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+        $host = parse_url($url, PHP_URL_HOST);
+        $path = parse_url($url, PHP_URL_PATH);
+        if (
+            !is_string($scheme)
+            || strtolower($scheme) !== 'https'
+            || !is_string($host)
+            || strtolower($host) !== 'api.github.com'
+            || !is_string($path)
+        ) {
+            return false;
+        }
+
+        $segments = array_map('rawurldecode', explode('/', trim($path, '/')));
+        $repository = substr($package, strlen('bluefission/'));
+        return count($segments) === 5
+            && strtolower($segments[0]) === 'repos'
+            && strtolower($segments[1]) === 'bluefissiontech'
+            && strtolower($segments[2]) === strtolower($repository)
+            && strtolower($segments[3]) === 'zipball'
+            && $segments[4] === $reference;
     }
 
     /**
