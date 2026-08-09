@@ -13,6 +13,13 @@ final class ComposerVcsAudit
         'bluefission/automata',
         'bluefission/chronicler',
         'bluefission/develation',
+        'bluefission/simpleclients',
+    ];
+
+    private const TAGGED_PACKAGIST_PACKAGES = [
+        'bluefission/automata',
+        'bluefission/chronicler',
+        'bluefission/develation',
     ];
 
     /**
@@ -114,14 +121,16 @@ final class ComposerVcsAudit
             }
 
             if (in_array($package, self::PACKAGIST_PACKAGES, true)) {
-                $lockedVersion = $lockedPackage['version'] ?? null;
-                $normalizedVersion = is_string($lockedVersion) ? strtolower($lockedVersion) : '';
-                if (
-                    $normalizedVersion === ''
-                    || str_starts_with($normalizedVersion, 'dev-')
-                    || str_ends_with($normalizedVersion, '-dev')
-                ) {
-                    $errors[] = "Locked {$package} must use a tagged Packagist release.";
+                if (in_array($package, self::TAGGED_PACKAGIST_PACKAGES, true)) {
+                    $lockedVersion = $lockedPackage['version'] ?? null;
+                    $normalizedVersion = is_string($lockedVersion) ? strtolower($lockedVersion) : '';
+                    if (
+                        $normalizedVersion === ''
+                        || str_starts_with($normalizedVersion, 'dev-')
+                        || str_ends_with($normalizedVersion, '-dev')
+                    ) {
+                        $errors[] = "Locked {$package} must use a tagged Packagist release.";
+                    }
                 }
                 if (($lockedPackage['notification-url'] ?? null) !== 'https://packagist.org/downloads/') {
                     $errors[] = "Locked {$package} does not carry Packagist distribution metadata.";

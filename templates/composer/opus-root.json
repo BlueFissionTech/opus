@@ -31,10 +31,6 @@
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/annex-php-sdk"
         },
-        "bluefission/simpleclients": {
-            "type": "vcs",
-            "url": "https://github.com/BlueFissionTech/simpleclients"
-        },
         "bluefission/synthetiq": {
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/synthetiq"

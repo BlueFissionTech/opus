@@ -24,6 +24,7 @@ class ComposerVcsAuditTest extends TestCase
         $this->assertContains('bluefission/chronicler', $result['packages']);
         $this->assertContains('bluefission/jenerator', $result['packages']);
         $this->assertContains('bluefission/develation', $result['packages']);
+        $this->assertContains('bluefission/simpleclients', $result['packages']);
     }
 
     public function testConsumerTemplateRepeatsRootOnlyReleaseAliases(): void
@@ -113,6 +114,27 @@ class ComposerVcsAuditTest extends TestCase
             'Root composer.json has a repository for unexpected package bluefission/renamed-fork.',
             $result['errors']
         );
+    }
+
+    public function testAuditAllowsPackagistDevelopmentLineForUnreleasedPackage(): void
+    {
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'require' => ['bluefission/simpleclients' => 'dev-master'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/simpleclients',
+                'version' => 'dev-master',
+                'source' => ['url' => 'https://github.com/BlueFissionTech/simpleclients.git'],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertSame([], $result['errors']);
     }
 
     public function testAuditReportsMissingRootRepositoryButAllowsPackagistPackages(): void
