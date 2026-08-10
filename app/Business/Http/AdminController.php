@@ -19,7 +19,7 @@ class AdminController extends Service {
             // globals('sideNav', $navMenuManager->renderMenu('sideNav'));
             $navMenuManager = instance('nav');
             $sideNav = $navMenuManager->renderMenu('sidebar');
-            return instance('vibe.theme')->render(
+            return instance('template')->render(
                 'admin',
                 'default.vibe',
                 [
@@ -33,7 +33,7 @@ class AdminController extends Service {
                 ['csrfToken', 'sideNav', 'appName', 'title', 'url']
             );
         } else {
-            return instance('vibe.theme')->render(
+            return instance('template')->render(
                 'admin',
                 'login.vibe',
                 [
@@ -49,36 +49,36 @@ class AdminController extends Service {
 
     public function dashboard( ) 
     {
-        return instance('vibe.theme')->render('admin', 'panels/dashboard.vibe');
+        return instance('template')->render('admin', 'panels/dashboard.vibe');
     }
 
     public function users( ) 
     {
-        return instance('vibe.theme')->render('admin', 'panels/users.vibe', ['realname' => 'System Admin']);
+        return instance('template')->render('admin', 'panels/users.vibe', ['realname' => 'System Admin']);
     }
 
     public function addons( ) 
     {
-        return instance('vibe.theme')->render('admin', 'panels/addons.vibe');
+        return instance('template')->render('admin', 'panels/addons.vibe');
     }
 
     public function content( ) 
     {
-        return instance('vibe.theme')->render('admin', 'panels/content.vibe');
+        return instance('template')->render('admin', 'panels/content.vibe');
     }
 
     public function terminal( ) 
     {
-        return instance('vibe.theme')->render('admin', 'panels/terminal.vibe');
+        return instance('template')->render('admin', 'panels/terminal.vibe');
     }
 
     public function registration( ) 
     {
-        return instance('vibe.theme')->render('admin', 'register.vibe');
+        return instance('template')->render('admin', 'register.vibe');
     }
 
     public function forgotpassword( ) 
     {
-        return instance('vibe.theme')->render('admin', 'forgotpassword.vibe');
+        return instance('template')->render('admin', 'forgotpassword.vibe');
     }
 }

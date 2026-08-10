@@ -130,6 +130,12 @@ final class VibeThemeRenderer
             return htmlspecialchars((string) Str::make($value), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
         }
 
+        if (is_object($value) || is_resource($value)) {
+            throw new \InvalidArgumentException(
+                'Object and resource template values must be converted to arrays or marked as trusted.'
+            );
+        }
+
         return $value;
     }
 }

@@ -45,7 +45,7 @@ final class VibeMenuItem extends MenuItem
             throw new \LogicException('A Vibe menu item requires a theme and template.');
         }
 
-        $renderer = $this->renderer ?? instance('vibe.theme');
+        $renderer = $this->renderer ?? instance('template');
 
         return $renderer->render($this->themeName, $this->vibeTemplate, [
             'id' => $this->_id,

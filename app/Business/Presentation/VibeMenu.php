@@ -36,11 +36,24 @@ final class VibeMenu extends Menu
             $item->setVibeTemplate((string) $this->_theme, (string) $this->_itemTemplate);
         }
 
-        if ($this->renderer && $item instanceof VibeMenuItem) {
+        if ($this->renderer && ($item instanceof VibeMenuItem || $item instanceof self)) {
             $item->useRenderer($this->renderer);
         }
 
         $this->_items[$item->getId()] = $item;
+    }
+
+    public function useRenderer(VibeThemeRenderer $renderer): void
+    {
+        $this->renderer = $renderer;
+
+        Arr::make($this->_items)->each(
+            static function (MenuItem|Menu $item) use ($renderer): void {
+                if ($item instanceof VibeMenuItem || $item instanceof self) {
+                    $item->useRenderer($renderer);
+                }
+            }
+        );
     }
 
     public function render(): string
@@ -49,7 +62,7 @@ final class VibeMenu extends Menu
             static fn (MenuItem|Menu $item): string => $item->render()
         ), true);
 
-        $renderer = $this->renderer ?? instance('vibe.theme');
+        $renderer = $this->renderer ?? instance('template');
 
         return $renderer->render(
             (string) $this->_theme,

@@ -3,7 +3,7 @@ use BlueFission\Services\Mapping;
 use BlueFission\Net\HTTP;
 
 Mapping::add('/', function() {
-	return instance('vibe.theme')->render(
+	return instance('template')->render(
 		'default',
 		'default.vibe',
 		[

@@ -65,7 +65,7 @@ class AppRegistration implements IExtension {
 	 * Register different components in the app
 	 */
 	public function registrations() {
-		
+		$templateRenderer = new VibeThemeRenderer();
 
 		// $this->delegate('core', Core::class);
 		$this->delegate('session', Session::class);
@@ -73,7 +73,8 @@ class AppRegistration implements IExtension {
 		$this->delegate('nav', NavMenuManager::class);
 		$this->delegate('addons', AddOnManager::class);
 		$this->delegate('datasource', DatasourceManager::class);
-		$this->delegate('vibe.theme', VibeThemeRenderer::class);
+		$this->delegate('template', $templateRenderer);
+		$this->delegate('vibe.theme', $templateRenderer);
 
 		$this->delegate('mysql', MysqlConnector::class);
 	}

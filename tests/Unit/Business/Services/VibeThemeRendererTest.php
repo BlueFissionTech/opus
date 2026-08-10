@@ -106,6 +106,21 @@ final class VibeThemeRendererTest extends TestCase
         $renderer->render('default', 'default.vibe', [], [], ['name']);
     }
 
+    public function testItRejectsUntrustedObjectContext(): void
+    {
+        $renderer = $this->renderer('default');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must be converted to arrays or marked as trusted');
+
+        $renderer->render('default', 'default.vibe', [
+            'name' => (object) ['value' => '<script>alert(1)</script>'],
+            'title' => 'Welcome',
+            'url' => '/',
+            'csrfToken' => 'token',
+        ]);
+    }
+
     private function renderer(string $themeName, ?Reader $reader = null): VibeThemeRenderer
     {
         $themeDirectory = $this->markupDirectory . DIRECTORY_SEPARATOR . $themeName;

@@ -13,16 +13,16 @@ class LoginController extends Service {
 
     public function login( )
     {
-        return instance('vibe.theme')->render('default', 'login.vibe', ['url' => '/login'], [], ['url']);
+        return instance('template')->render('default', 'login.vibe', ['url' => '/login'], [], ['url']);
     }
 
     public function registration( )
     {
-        return instance('vibe.theme')->render('admin', 'register.vibe');
+        return instance('template')->render('admin', 'register.vibe');
     }
 
     public function forgotPassword( )
     {
-        return instance('vibe.theme')->render('admin', 'forgotpassword.vibe');
+        return instance('template')->render('admin', 'forgotpassword.vibe');
     }
 }

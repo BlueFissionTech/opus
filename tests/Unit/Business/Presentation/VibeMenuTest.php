@@ -44,4 +44,34 @@ final class VibeMenuTest extends TestCase
 
         $menu->addItem(new MenuItem('Legacy', '/legacy'));
     }
+
+    public function testItPropagatesAnInjectedRendererThroughNestedMenus(): void
+    {
+        $themeDirectory = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'resource'
+            . DIRECTORY_SEPARATOR . 'markup' . DIRECTORY_SEPARATOR . 'admin';
+        $renderer = new VibeThemeRenderer(
+            static fn (): object => (object) ['location' => $themeDirectory]
+        );
+        $parent = new VibeMenu(
+            'Administration',
+            'admin',
+            'sections/menu-top-item.vibe',
+            'sections/menu-sub-item.vibe',
+            $renderer
+        );
+        $child = new VibeMenu(
+            'Users',
+            'admin',
+            'sections/menu-top-item.vibe',
+            'sections/menu-sub-item.vibe'
+        );
+        $child->addItem(new VibeMenuItem('Manage users', '/admin/users'));
+        $parent->addItem($child);
+
+        $output = $parent->render();
+
+        $this->assertStringContainsString('Administration', $output);
+        $this->assertStringContainsString('Users', $output);
+        $this->assertStringContainsString('Manage users', $output);
+    }
 }
