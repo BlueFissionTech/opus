@@ -21,26 +21,34 @@ Opus is a low-code/no-code platform aimed at democratizing AI technology. It all
 
 ## Installation
 
-Composer only reads repository declarations from the root project. Most Blue
-Fission packages are source-distributed through GitHub VCS; DevElation is the
-only package in the supported graph resolved through Packagist.
+Composer only reads repository declarations from the root project. Unreleased
+Blue Fission packages are source-distributed through GitHub VCS. DevElation,
+Automata, BlueCore, Chronicler, SimpleClients, and Synthetiq use their tagged
+Packagist releases.
 
 Start new applications from
 [`templates/composer/opus-root.json`](templates/composer/opus-root.json), or
-merge its `repositories` and `config` sections into an existing
+merge its `repositories`, Blue Fission compatibility entries from `require`,
+and `config` sections into an existing
 root `composer.json` before requiring Opus:
 
 ```bash
 composer require bluefission/opus
 ```
 
-Do not add a DevElation VCS override. The root registry is required because
-Composer does not inherit repository definitions from Opus or other
-dependencies. After merging the registry, validate the application dependency
-graph without running package scripts:
+Do not add VCS overrides for DevElation, Automata, BlueCore, Chronicler,
+SimpleClients, or Synthetiq.
+The remaining root registry is required because Composer does not inherit repository
+definitions from Opus or other dependencies. Composer also does not inherit
+root aliases from dependencies, so the template repeats any tagged release
+aliases required by the current dependency graph. Each alias can be removed
+as its corresponding upstream release constraints are published. After
+merging the registry and compatibility entries,
+validate the application dependency graph without installing packages or
+running package scripts:
 
 ```bash
-composer update --no-scripts
+composer update --no-install --no-scripts
 ```
 
 Keep `config.use-github-api` set to `false` from the template. Composer then

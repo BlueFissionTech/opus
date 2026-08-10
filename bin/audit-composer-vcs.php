@@ -28,5 +28,5 @@ if ($result['errors'] !== []) {
 
 echo '[ok] Blue Fission VCS registry covers '
     . count($result['packages'])
-    . ' recursively required packages; DevElation remains Packagist-backed.'
+    . ' recursively required packages; published packages remain Packagist-backed.'
     . PHP_EOL;
