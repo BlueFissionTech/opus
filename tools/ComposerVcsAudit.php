@@ -123,8 +123,7 @@ final class ComposerVcsAudit
         $lockedPackages = $this->lockedPackageMap($lock);
         foreach ($packages as $package) {
             $lockedPackage = $lockedPackages[$package] ?? [];
-            $lockedSource = $lockedPackage['source']['url'] ?? null;
-            if ($this->packageFromRepositoryUrl($lockedSource) !== $package) {
+            if (!$this->isCanonicalLockedSource($package, $lockedPackage['source'] ?? null)) {
                 $errors[] = "Locked {$package} does not resolve from its canonical GitHub source.";
             }
 
@@ -370,6 +369,32 @@ final class ComposerVcsAudit
         return is_string($repository) && $repository !== ''
             ? 'bluefission/' . strtolower($repository)
             : null;
+    }
+
+    private function isCanonicalLockedSource(string $package, mixed $source): bool
+    {
+        if (!is_array($source) || strtolower((string) ($source['type'] ?? '')) !== 'git') {
+            return false;
+        }
+
+        $url = $source['url'] ?? null;
+        if (!is_string($url)) {
+            return false;
+        }
+
+        if (preg_match('/^git@github\.com:/i', $url) !== 1) {
+            $scheme = parse_url($url, PHP_URL_SCHEME);
+            $port = parse_url($url, PHP_URL_PORT);
+            if (
+                !is_string($scheme)
+                || strtolower($scheme) !== 'https'
+                || ($port !== null && $port !== 443)
+            ) {
+                return false;
+            }
+        }
+
+        return $this->packageFromRepositoryUrl($url) === $package;
     }
 
     private function packagistPackageFromRepositoryUrl(mixed $url): ?string

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "53152969b4f0be9700e551276f34a860",
+    "content-hash": "89ebc83b04f31d587c9cc3cf7d83160b",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -6332,16 +6332,10 @@
             "time": "2025-11-17T20:03:58+00:00"
         }
     ],
-    "aliases": [
-        {
-            "package": "bluefission/automata",
-            "version": "1.0.0.0-alpha3",
-            "alias": "dev-master",
-            "alias_normalized": "dev-master"
-        }
-    ],
+    "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
+        "bluefission/automata": 15,
         "bluefission/bluecore": 15,
         "bluefission/opus-addon-hoom": 20,
         "bluefission/opus-addon-kapsle": 20,

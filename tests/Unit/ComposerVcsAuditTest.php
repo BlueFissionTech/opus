@@ -32,7 +32,7 @@ class ComposerVcsAuditTest extends TestCase
         $composer = [
             'config' => ['use-github-api' => false],
             'require' => [
-                'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
+                'bluefission/automata' => '^1.0.0@alpha',
                 'bluefission/bluecore' => '^0.1.0@alpha',
                 'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
                 'bluefission/develation' => 'v1.3.41 as dev-master',
@@ -43,7 +43,6 @@ class ComposerVcsAuditTest extends TestCase
         $template = [
             'config' => ['use-github-api' => false],
             'require' => [
-                'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
                 'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
             ],
         ];
@@ -52,10 +51,6 @@ class ComposerVcsAuditTest extends TestCase
 
         $this->assertContains(
             'Consumer template must repeat the root-only bluefission/develation alias v1.3.41 as dev-master.',
-            $result['errors']
-        );
-        $this->assertNotContains(
-            'Consumer template must repeat the root-only bluefission/automata alias v1.0.0-alpha.2 as dev-master.',
             $result['errors']
         );
         $this->assertNotContains(
@@ -810,7 +805,7 @@ class ComposerVcsAuditTest extends TestCase
         $this->assertSame([], $result['errors']);
     }
 
-    public function testAuditRejectsNonGithubLockedSource(): void
+    public function testAuditRejectsInvalidLockedSourceTransports(): void
     {
         $repository = [
             'type' => 'vcs',
@@ -821,21 +816,27 @@ class ComposerVcsAuditTest extends TestCase
             'repositories' => ['bluefission/wise' => $repository],
             'require' => ['bluefission/wise' => 'dev-main'],
         ];
-        $lock = [
-            'packages' => [[
-                'name' => 'bluefission/wise',
-                'source' => ['url' => 'https://example.com/wise.git'],
-            ]],
-        ];
         $template = [
             'repositories' => ['bluefission/wise' => $repository],
         ];
 
-        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+        foreach ([
+            ['type' => 'git', 'url' => 'https://example.com/wise.git'],
+            ['type' => 'svn', 'url' => 'https://github.com/BlueFissionTech/wise.git'],
+            ['type' => 'git', 'url' => 'https://github.com:444/BlueFissionTech/wise.git'],
+        ] as $source) {
+            $lock = [
+                'packages' => [[
+                    'name' => 'bluefission/wise',
+                    'source' => $source,
+                ]],
+            ];
+            $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
 
-        $this->assertContains(
-            'Locked bluefission/wise does not resolve from its canonical GitHub source.',
-            $result['errors']
-        );
+            $this->assertContains(
+                'Locked bluefission/wise does not resolve from its canonical GitHub source.',
+                $result['errors']
+            );
+        }
     }
 }

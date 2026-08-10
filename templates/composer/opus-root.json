@@ -42,7 +42,6 @@
     },
     "require": {
         "php": "^8.2",
-        "bluefission/automata": "v1.0.0-alpha.3 as dev-master",
         "bluefission/opus": "dev-main"
     },
     "config": {
