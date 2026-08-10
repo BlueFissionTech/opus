@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "509315acb934e437709e6ac81c0fb1d1",
+    "content-hash": "53152969b4f0be9700e551276f34a860",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -756,20 +756,20 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefissiontech/wise",
-                "reference": "8c2131a49d87ca978e885b2a596108333b729bd8"
+                "reference": "5132ab3c9674c632b8a13d149aec835fc86ff6b2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefissiontech/wise/zipball/8c2131a49d87ca978e885b2a596108333b729bd8",
-                "reference": "8c2131a49d87ca978e885b2a596108333b729bd8",
+                "url": "https://api.github.com/repos/bluefissiontech/wise/zipball/5132ab3c9674c632b8a13d149aec835fc86ff6b2",
+                "reference": "5132ab3c9674c632b8a13d149aec835fc86ff6b2",
                 "shasum": ""
             },
             "require": {
-                "bluefission/automata": "dev-master as 1.0.0-alpha.2",
+                "bluefission/automata": "^1.0.0-alpha.2",
                 "bluefission/develation": "^1.3.41",
                 "bluefission/jenerator": "dev-main",
-                "bluefission/simpleclients": "dev-master",
-                "bluefission/synthetiq": "dev-main",
+                "bluefission/simpleclients": "^0.1.0-alpha",
+                "bluefission/synthetiq": "^0.1.0-alpha",
                 "bluefission/vibrato": "dev-main",
                 "google/cloud-language": "^0.27.0",
                 "orhanerday/open-ai": "^2.2"
@@ -829,7 +829,7 @@
                 "llm",
                 "shell"
             ],
-            "time": "2026-06-26T22:46:55+00:00"
+            "time": "2026-08-09T20:52:09+00:00"
         },
         {
             "name": "brick/math",
@@ -6338,18 +6338,6 @@
             "version": "1.0.0.0-alpha3",
             "alias": "dev-master",
             "alias_normalized": "dev-master"
-        },
-        {
-            "package": "bluefission/simpleclients",
-            "version": "0.1.0.0-alpha",
-            "alias": "dev-master",
-            "alias_normalized": "dev-master"
-        },
-        {
-            "package": "bluefission/synthetiq",
-            "version": "0.1.0.0-alpha",
-            "alias": "dev-main",
-            "alias_normalized": "dev-main"
         }
     ],
     "minimum-stability": "dev",
@@ -6358,7 +6346,9 @@
         "bluefission/opus-addon-hoom": 20,
         "bluefission/opus-addon-kapsle": 20,
         "bluefission/presence": 20,
+        "bluefission/simpleclients": 15,
         "bluefission/synematic": 20,
+        "bluefission/synthetiq": 15,
         "bluefission/vibrato": 20,
         "bluefission/wise": 20
     },

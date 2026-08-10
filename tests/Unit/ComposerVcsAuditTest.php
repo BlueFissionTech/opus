@@ -36,8 +36,8 @@ class ComposerVcsAuditTest extends TestCase
                 'bluefission/bluecore' => '^0.1.0@alpha',
                 'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
                 'bluefission/develation' => 'v1.3.41 as dev-master',
-                'bluefission/simpleclients' => 'v0.1.0-alpha as dev-master',
-                'bluefission/synthetiq' => 'v0.1.0-alpha as dev-main',
+                'bluefission/simpleclients' => '^0.1.0@alpha',
+                'bluefission/synthetiq' => '^0.1.0@alpha',
             ],
         ];
         $template = [
@@ -45,8 +45,6 @@ class ComposerVcsAuditTest extends TestCase
             'require' => [
                 'bluefission/automata' => 'v1.0.0-alpha.2 as dev-master',
                 'bluefission/chronicler' => 'v0.1.2-alpha as dev-main',
-                'bluefission/simpleclients' => 'v0.1.0-alpha as dev-master',
-                'bluefission/synthetiq' => 'v0.1.0-alpha as dev-main',
             ],
         ];
 
