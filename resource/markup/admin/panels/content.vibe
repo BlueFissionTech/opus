@@ -115,8 +115,8 @@
                       <div class="form-group">
                         <select class="form-control mb-3 content-template-field">
                           <option selected>Choose a Template</option>
-                          <option value="default.html">Default</option>
-                          <option value="interactive.html">Interactive</option>
+                          <option value="default.vibe">Default</option>
+                          <option value="interactive.vibe">Interactive</option>
                         </select>
                       </div>
                       <div>
@@ -176,5 +176,5 @@
             </form>
           </div>
         </div>
-        @mod('content-new-modal.html')
+        @include('modules/content-new-modal.vibe')
         <script src="assets/js/module-content.js"></script>

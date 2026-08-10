@@ -232,7 +232,6 @@
             </form>
           </div>
         </div>
-        @mod('entry-new-modal.html')
         <script src="/assets/js/module-entries.js"></script>
         <script type="text/template" id="credential-status-list-item">
                 <option value="{{credential_status_id}}">{{label}}</option>

@@ -7,11 +7,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="description" content="Responsive Bootstrap 5 Admin &amp; Dashboard Template">
   <meta name="author" content="Bootlab">
-  <meta name="csrf-token" content="{csrf_token}">
+  <meta name="csrf-token" content="{$csrfToken}">
 
-  <title>{title}</title>
+  <title>{$title}</title>
 
-  <link rel="canonical" href="{url}">
+  <link rel="canonical" href="{$url}">
 
   <link rel="shortcut icon" href="/assets/img/favicon.ico">
 
@@ -38,13 +38,13 @@
   <div class="wrapper">
     <nav id="sidebar" class="sidebar">
       <div class="sidebar-content js-simplebar" id="main-menu">
-        <a class="sidebar-brand" href="index.html">
+        <a class="sidebar-brand" href="/admin">
           <img src="/assets/img/logo.png" width="35" />
     
-          <span class="align-middle me-3">{app_name}</span>
+          <span class="align-middle me-3">{$appName}</span>
         </a>
         <ul class="sidebar-nav">
-          {side-nav}
+          {$sideNav}
         </ul>
 
         <div class="sidebar-cta">
@@ -76,7 +76,7 @@
           </div>
         </form>
 
-        @mod('megamenu.html')
+        @include('modules/megamenu.vibe')
 
         <div class="navbar-collapse collapse">
           <ul class="navbar-nav navbar-align">
@@ -245,10 +245,10 @@
 
               </a>
               <div class="dropdown-menu dropdown-menu-end">
-                <a class="dropdown-item" href="pages-profile.html"><i class="align-middle me-1" data-lucide="user"></i> Profile</a>
+                <a class="dropdown-item" href="/admin/modules/users"><i class="align-middle me-1" data-lucide="user"></i> Profile</a>
                 <a class="dropdown-item" href="#"><i class="align-middle me-1" data-lucide="pie-chart"></i> Analytics</a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="pages-settings.html">Settings & Privacy</a>
+                <a class="dropdown-item" href="#">Settings & Privacy</a>
                 <a class="dropdown-item" href="#">Help</a>
                 <a class="dropdown-item" href="#">Sign out</a>
               </div>
@@ -258,10 +258,10 @@
       </nav>
 
       <main class="content">
-        @mod('home.html')
+        @include('modules/home.vibe')
       </main>
 
-      @mod('opus-dialogue-modal.html')
+      @include('modules/opus-dialogue-modal.vibe')
       <footer class="footer">
         <div class="container-fluid">
           <div class="row text-muted">
@@ -283,7 +283,7 @@
             </div>
             <div class="col-6 text-end">
               <p class="mb-0">
-                &copy; 2023 - <a href="index.html" class="text-muted">{app_name}</a>
+                &copy; 2023 - <a href="/admin" class="text-muted">{$appName}</a>
               </p>
             </div>
           </div>

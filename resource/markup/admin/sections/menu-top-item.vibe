@@ -1,0 +1,8 @@
+          <li class="sidebar-item">
+            <a data-bs-target="#{$id}" data-bs-toggle="collapse" class="sidebar-link collapsed">
+              <i class="align-middle" data-lucide="users"></i> <span class="align-middle">{$label}</span>
+            </a>
+            <ul id="{$id}" class="sidebar-dropdown list-unstyled collapse " data-bs-parent="#sidebar">
+              {$children}
+            </ul>
+          </li>

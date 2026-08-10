@@ -228,7 +228,7 @@
             </form>
           </div>
         </div>
-        @mod('addon-new-modal.html')
+        @include('modules/addon-new-modal.vibe')
         <script src="/assets/js/module-addons.js"></script>
         <script type="text/template" id="credential-status-list-item">
                 <option value="{{credential_status_id}}">{{label}}</option>

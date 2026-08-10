@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="/assets/images/favicon.ico">
+    <title>@output('title')</title>
+    <link rel="canonical" href="{$url}">
+    <meta name="csrf-token" content="{$csrfToken}">
+    <link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/cover.css" rel="stylesheet">
+    @output('assets')
+  </head>
+  <body class="text-center">
+    <div class="cover-container d-flex h-100 p-3 mx-auto flex-column">
+      <header class="masthead mb-auto">
+        <div class="inner">
+          <h3 class="masthead-brand">{$name}</h3>
+          <nav class="nav nav-masthead justify-content-center" aria-label="Primary">
+            @output('navigation')
+          </nav>
+        </div>
+      </header>
+      <main role="main" class="inner cover">
+        @output('main')
+      </main>
+      <footer class="mastfoot mt-auto">
+        <div class="inner">
+          @output('footer')
+        </div>
+      </footer>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="/assets/js/vendor/popper.min.js"></script>
+    <script src="/assets/js/bootstrap.min.js"></script>
+    @output('scripts')
+  </body>
+</html>

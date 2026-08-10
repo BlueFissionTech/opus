@@ -1,0 +1,8 @@
+{#each items=menuItems}
+<li class="sidebar-item">
+  <a class="sidebar-link module" href="{@current.action}">
+    <i class="align-middle" data-lucide="package"></i>
+    <span class="align-middle">{@current.label}</span>
+  </a>
+</li>
+{/each}

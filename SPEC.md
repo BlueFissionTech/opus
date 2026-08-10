@@ -101,6 +101,12 @@ Acceptance criteria:
 
 - Vibe sources can be validated before execution.
 - Deterministic Vibe templates can render without backend side effects.
+- Shipped themes use `.vibe` sources, canonical `{$value}` output, named
+  application regions, and executable file includes.
+- Theme context is escaped recursively unless a renderer call identifies a
+  field as trusted markup at an explicit composition boundary.
+- Browser-side Reactor bindings remain distinct from server-side Vibe
+  variables so initial rendering does not consume live client placeholders.
 - Rendered artifacts can be written only inside the application workspace.
 - Code generation entrypoints return structured success/error data that tests
   and command resources can inspect.
