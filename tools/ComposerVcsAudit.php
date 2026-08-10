@@ -399,12 +399,14 @@ final class ComposerVcsAudit
 
         $scheme = parse_url($url, PHP_URL_SCHEME);
         $host = parse_url($url, PHP_URL_HOST);
+        $port = parse_url($url, PHP_URL_PORT);
         $path = parse_url($url, PHP_URL_PATH);
         if (
             !is_string($scheme)
             || strtolower($scheme) !== 'https'
             || !is_string($host)
             || strtolower($host) !== 'api.github.com'
+            || ($port !== null && $port !== 443)
             || !is_string($path)
         ) {
             return false;

@@ -611,6 +611,39 @@ class ComposerVcsAuditTest extends TestCase
         );
     }
 
+    public function testAuditRejectsNonstandardPackagistDistributionPort(): void
+    {
+        $reference = 'automata-reference';
+        $composer = [
+            'config' => ['use-github-api' => false],
+            'require' => ['bluefission/automata' => '^1.0.0-alpha.3'],
+        ];
+        $lock = [
+            'packages' => [[
+                'name' => 'bluefission/automata',
+                'version' => 'v1.0.0-alpha.3',
+                'source' => [
+                    'url' => 'https://github.com/BlueFissionTech/automata.git',
+                    'reference' => $reference,
+                ],
+                'dist' => [
+                    'type' => 'zip',
+                    'url' => "https://api.github.com:444/repos/BlueFissionTech/automata/zipball/{$reference}",
+                    'reference' => $reference,
+                ],
+                'notification-url' => 'https://packagist.org/downloads/',
+            ]],
+        ];
+        $template = ['config' => ['use-github-api' => false]];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertContains(
+            'Locked bluefission/automata does not use its canonical Packagist distribution archive.',
+            $result['errors']
+        );
+    }
+
     public function testAuditRejectsUnverifiableNumericVcsRepository(): void
     {
         $composer = [
