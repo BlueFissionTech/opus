@@ -6,9 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <meta name="csrf-token" content="{csrf_token}">
+        <meta name="csrf-token" content="{$csrfToken}">
 
-        <title>{name}</title>
+        <title>{$name}</title>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico" />
         <!-- Core theme CSS (includes Bootstrap)-->
@@ -24,7 +24,7 @@
         <!-- Responsive navbar-->
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container">
-                <a class="navbar-brand warble" href="#">&gt;{name}<span id="blink">_</span></a>
+                <a class="navbar-brand warble" href="#">&gt;{$name}<span id="blink">_</span></a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
@@ -81,7 +81,7 @@
         <!-- carousel -->
         <div id="mainArea" class="container supreme-container">
             <div class="content-body">
-                <h1 class="">{name}</h1>
+                <h1 class="">{$name}</h1>
                 <p class="lead">AI First Application Development Platform</p>
             <style>
             body {
@@ -146,10 +146,10 @@
     </div>
   </div>
 
-  @mod('console-modal.html')
-  @mod('dialogue-modal.html')
-  @mod('login-modal.html')
-  @mod('signup-modal.html')
+  @include('modules/console-modal.vibe')
+  @include('modules/dialogue-modal.vibe')
+  @include('modules/login-modal.vibe')
+  @include('modules/signup-modal.vibe')
 
         <!-- Bootstrap core JS-->
         <script
@@ -166,7 +166,7 @@
                 aboutText: 'powered by BotMan',
                 introMessage: "✋ Hi! I'm your chatbot assistant. I'm here to help you build a superb product and company",
                 chatServer: '/api/chat', // URL to the chat.php file
-                title: '{name}',
+                title: '{$name}',
                 mainColor: '#c0c0c0',
                 bubbleBackground: '#c0c0c0',
                 headerTextColor: '#ffffff',

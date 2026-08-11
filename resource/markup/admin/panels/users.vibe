@@ -9,7 +9,7 @@
                   <div class="row g-0 w-100">
                     <div class="col-6">
                       <div class="illustration-text p-3 m-1">
-                        <h4 class="illustration-text">Welcome Back, {realname}!</h4>
+                        <h4 class="illustration-text">Welcome Back, {$realname}!</h4>
                         <p class="mb-0">Opus Users</p>
                       </div>
                     </div>
@@ -154,12 +154,12 @@
           </div>
 
         </div>
-        @mod('opus-dialogue-modal.html')
-        @mod('user-new-modal.html')
-        @mod('credentials-modal.html')
+        @include('modules/opus-dialogue-modal.vibe')
+        @include('modules/user-new-modal.vibe')
+        @include('modules/credentials-modal.vibe')
         <script src="/assets/js/module-user.js"></script>
         <script type="text/template" id="credential-status-list-item">
-                <option value="{credential_status_id}">{label}</option>
+                <option value="{{credential_status_id}}">{{label}}</option>
         </script>
         <script type="text/template" id="user-detail-display-item">
 

@@ -3,7 +3,16 @@ use BlueFission\Services\Mapping;
 use BlueFission\Net\HTTP;
 
 Mapping::add('/', function() {
-	return template('default', 'default.html', ['title'=>"Welcome", 'name'=>env('APP_NAME'), 'csrf_token'=>HTTP::session('_token')]);
+	return template(
+		'default',
+		'default.vibe',
+		[
+			'title' => "Welcome",
+			'name' => env('APP_NAME'),
+			'url' => '/',
+			'csrfToken' => HTTP::session('_token'),
+		]
+	);
 }, 'index', 'get');
 
 // Authentication

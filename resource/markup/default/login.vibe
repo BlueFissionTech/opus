@@ -9,7 +9,7 @@
 
     <title>Signin</title>
 
-    <link rel="canonical" href="{url}">
+    <link rel="canonical" href="{$url}">
 
     <!-- Bootstrap core CSS -->
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">

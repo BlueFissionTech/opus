@@ -13,7 +13,7 @@
                         <a href="index" class="logo-name text-lg text-center">...</a>
                         <h3 class="text-center">Create an account</h3>
                         <form class="m-t-md" method="post" action="/register">
-                            <input type="hidden" name="_token" value="{csrf_token}">
+                            <input type="hidden" name="_token" value="{$csrfToken}">
                             <div class="form-group">
                                 <input type="text" class="form-control input-lg" id="first_name" name="first_name" value="" placeholder="First Name">
                             </div>

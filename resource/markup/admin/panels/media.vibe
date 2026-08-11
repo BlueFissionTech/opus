@@ -45,5 +45,5 @@
           </div>
 
         </div>
-        @mod('media-new-modal.html')
+        @include('modules/media-new-modal.vibe')
         <script src="/assets/js/module-medias.js"></script>

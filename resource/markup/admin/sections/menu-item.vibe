@@ -1,0 +1,5 @@
+          <li class="sidebar-item">
+            <a class="sidebar-link module" href="{$action}">
+              <i class="align-middle" data-lucide="package"></i> <span class="align-middle">{$label}</span>
+            </a>
+          </li>

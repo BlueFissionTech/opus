@@ -5,6 +5,7 @@ use BlueFission\BlueCore\Business\Managers\NavMenuManager;
 use BlueFission\BlueCore\Business\Managers\DatasourceManager;
 use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use App\Business\MysqlConnector;
+use App\Business\Services\VibeThemeRenderer;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\Theme;
@@ -64,7 +65,7 @@ class AppRegistration implements IExtension {
 	 * Register different components in the app
 	 */
 	public function registrations() {
-		
+		$templateRenderer = new VibeThemeRenderer();
 
 		// $this->delegate('core', Core::class);
 		$this->delegate('session', Session::class);
@@ -72,6 +73,8 @@ class AppRegistration implements IExtension {
 		$this->delegate('nav', NavMenuManager::class);
 		$this->delegate('addons', AddOnManager::class);
 		$this->delegate('datasource', DatasourceManager::class);
+		$this->delegate('template', $templateRenderer);
+		$this->delegate('vibe.theme', $templateRenderer);
 
 		$this->delegate('mysql', MysqlConnector::class);
 	}
