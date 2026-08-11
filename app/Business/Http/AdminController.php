@@ -2,7 +2,6 @@
 namespace App\Business\Http;
 
 use BlueFission\Services\Service;
-use BlueFission\Services\Request;
 use BlueFission\BlueCore\Auth as Authenticator;
 
 use BlueFission\Data\Storage\Storage;
@@ -19,6 +18,7 @@ class AdminController extends Service {
             // globals('sideNav', $navMenuManager->renderMenu('sideNav'));
             $navMenuManager = instance('nav');
             $sideNav = $navMenuManager->renderMenu('sidebar');
+            // Generated navigation crosses the trusted-markup boundary explicitly.
             return instance('template')->render(
                 'admin',
                 'default.vibe',
@@ -33,52 +33,50 @@ class AdminController extends Service {
                 ['csrfToken', 'sideNav', 'appName', 'title', 'url']
             );
         } else {
-            return instance('template')->render(
+            return template(
                 'admin',
                 'login.vibe',
                 [
                     'csrfToken' => store('_token'),
                     'appName' => env('APP_NAME'),
                     'url' => '/admin',
-                ],
-                [],
-                ['csrfToken', 'appName', 'url']
+                ]
             );
         }
     }
 
     public function dashboard( ) 
     {
-        return instance('template')->render('admin', 'panels/dashboard.vibe');
+        return template('admin', 'panels/dashboard.vibe');
     }
 
     public function users( ) 
     {
-        return instance('template')->render('admin', 'panels/users.vibe', ['realname' => 'System Admin']);
+        return template('admin', 'panels/users.vibe', ['realname' => 'System Admin']);
     }
 
     public function addons( ) 
     {
-        return instance('template')->render('admin', 'panels/addons.vibe');
+        return template('admin', 'panels/addons.vibe');
     }
 
     public function content( ) 
     {
-        return instance('template')->render('admin', 'panels/content.vibe');
+        return template('admin', 'panels/content.vibe');
     }
 
     public function terminal( ) 
     {
-        return instance('template')->render('admin', 'panels/terminal.vibe');
+        return template('admin', 'panels/terminal.vibe');
     }
 
     public function registration( ) 
     {
-        return instance('template')->render('admin', 'register.vibe');
+        return template('admin', 'register.vibe');
     }
 
     public function forgotpassword( ) 
     {
-        return instance('template')->render('admin', 'forgotpassword.vibe');
+        return template('admin', 'forgotpassword.vibe');
     }
 }

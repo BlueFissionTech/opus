@@ -2,8 +2,6 @@
 namespace App\Business\Http;
 
 use BlueFission\Services\Service;
-use BlueFission\Services\Request;
-
 class LoginController extends Service {
 
 	public function index( ) 
@@ -13,16 +11,16 @@ class LoginController extends Service {
 
     public function login( )
     {
-        return instance('template')->render('default', 'login.vibe', ['url' => '/login'], [], ['url']);
+        return template('default', 'login.vibe', ['url' => '/login']);
     }
 
     public function registration( )
     {
-        return instance('template')->render('admin', 'register.vibe');
+        return template('admin', 'register.vibe');
     }
 
     public function forgotPassword( )
     {
-        return instance('template')->render('admin', 'forgotpassword.vibe');
+        return template('admin', 'forgotpassword.vibe');
     }
 }

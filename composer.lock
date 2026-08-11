@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "89ebc83b04f31d587c9cc3cf7d83160b",
+    "content-hash": "e668111c91f4d06070b1ea620c590beb",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -123,16 +123,16 @@
         },
         {
             "name": "bluefission/bluecore",
-            "version": "v0.1.0-alpha",
+            "version": "v0.1.1-alpha",
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/bluecore.git",
-                "reference": "1060f78f75ae0932f6cca14e9a972b1c1fae4313"
+                "reference": "0564300a38c2e5d4708face9a9769c519cb11c0a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/bluecore/zipball/1060f78f75ae0932f6cca14e9a972b1c1fae4313",
-                "reference": "1060f78f75ae0932f6cca14e9a972b1c1fae4313",
+                "url": "https://api.github.com/repos/BlueFissionTech/bluecore/zipball/0564300a38c2e5d4708face9a9769c519cb11c0a",
+                "reference": "0564300a38c2e5d4708face9a9769c519cb11c0a",
                 "shasum": ""
             },
             "require": {
@@ -192,7 +192,7 @@
                 "issues": "https://github.com/BlueFissionTech/bluecore/issues",
                 "source": "https://github.com/BlueFissionTech/bluecore"
             },
-            "time": "2026-08-09T14:57:08+00:00"
+            "time": "2026-08-10T23:28:59+00:00"
         },
         {
             "name": "bluefission/chronicler",

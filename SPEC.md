@@ -107,6 +107,9 @@ Acceptance criteria:
   field as trusted markup at an explicit composition boundary.
 - The application registers its Vibe renderer as the canonical `template`
   service and retains `vibe.theme` as a compatibility alias.
+- Ordinary theme rendering uses BlueCore's global `template(theme, file, data)`
+  facade. Rendering that carries application-owned trust policy may call the
+  canonical service directly rather than extending the helper signature.
 - Browser-side Reactor bindings remain distinct from server-side Vibe
   variables so initial rendering does not consume live client placeholders.
 - Rendered artifacts can be written only inside the application workspace.

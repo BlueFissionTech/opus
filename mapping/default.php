@@ -3,7 +3,7 @@ use BlueFission\Services\Mapping;
 use BlueFission\Net\HTTP;
 
 Mapping::add('/', function() {
-	return instance('template')->render(
+	return template(
 		'default',
 		'default.vibe',
 		[
@@ -11,9 +11,7 @@ Mapping::add('/', function() {
 			'name' => env('APP_NAME'),
 			'url' => '/',
 			'csrfToken' => HTTP::session('_token'),
-		],
-		[],
-		['title', 'name', 'url', 'csrfToken']
+		]
 	);
 }, 'index', 'get');
 
