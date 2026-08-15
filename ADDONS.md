@@ -24,28 +24,74 @@ Keep these responsibilities separate:
 
 ## Package layout
 
-Use a conventional Composer package with a clear PSR-4 namespace. An installed package currently occupies `addons/<directory>/`, where `<directory>` is the manager's discovery key. The following layout includes the files consumed directly by the BlueCore manager. Both datasource directories are required even when empty.
+Use a conventional Composer package with the PSR-4 namespace
+`AddOns\\<PackageName>\\` mapped to `logic/`. An installed package currently
+occupies `addons/<directory>/`, where `<directory>` is the manager's discovery
+key. Generate and validate the canonical structure with:
+
+```shell
+php bin/opus-addon.php generate sample_tools addons/sample_tools
+php bin/opus-addon.php validate addons/sample_tools
+```
+
+The output parent must already exist. Generation validates a temporary tree
+before publishing it and refuses to replace an existing destination.
+The discovery key uses lowercase snake case (`sample_tools`) because the locked
+lifecycle manager also uses it as the install/uninstall hook stem. Composer
+package slugs use the equivalent kebab case (`opus-addon-sample-tools`).
+Generated Composer metadata defaults to the valid `proprietary` license
+identifier. Replace it with the intended SPDX identifier only when the package
+has an approved open-source release license.
 
 ```text
 composer.json
 definition.json
 main.php
 README.md
-src/
-    Application/
+logic/
+    Business/
+        Http/
+        Managers/
+        Prompts/
     Domain/
-    Infrastructure/
-    Presentation/
-config/
+        Models/
+        Queries/
+        Repositories/
+        Values/
+    Registration/
+mapping/
+    api.php
+    app.php
+    console.php
+    default.php
+    menus.php
 resource/
-    migrations/
-    templates/
-    translations/
+    markup/
+        default.vibe
+    src/
 datasources/
     generator/     # required; may be empty
     structure/     # required; may be empty
 tests/
+phpunit.xml
 ```
+
+Mapping files return declarative values and must not require a fully booted
+application merely to load. In particular, `menus.php` returns an empty result
+when no navigation service is supplied so isolated contract validation does
+not invent a global navigation dependency. Invalid menu declarations remain a
+validation failure; optional capability handling is not an error-suppression
+boundary.
+
+Server-rendered templates use `.vibe`, canonical `{$value}` variables,
+executable `.vibe` includes, and named regions. Client-side Reactor bindings
+remain separate from the server template contract.
+
+Existing add-ons that map `AddOns\\<PackageName>\\` to the package root should
+migrate the mapping to `logic/` while correcting file namespaces. Run
+`composer dump-autoload -o` and the Opus validator before publishing that
+change. Keep compatibility shims explicit and temporary; the scaffold does not
+generate aliases for historical namespaces.
 
 ### Runtime discovery contract
 
