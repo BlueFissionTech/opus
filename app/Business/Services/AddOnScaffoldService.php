@@ -37,7 +37,7 @@ final class AddOnScaffoldService extends Service
     {
         try {
             $name = Str::make($name)->trim()->lower()->val();
-            if (!Str::make($name)->matches('/^[a-z][a-z0-9_]*$/')) {
+            if (!Str::make($name)->matches('/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/')) {
                 return $this->failure('name_invalid', 'Add-on name must be a lowercase lifecycle-safe key.');
             }
 

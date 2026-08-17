@@ -75,6 +75,19 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertDirectoryDoesNotExist($this->workspace . '/unsafe');
     }
 
+    public function testItRejectsNamesThatCannotProduceValidComposerSlugs(): void
+    {
+        $service = new AddOnScaffoldService($this->workspace);
+
+        foreach (['sample_', 'sample__tools'] as $name) {
+            $result = $service->generate($name, $name);
+
+            $this->assertFalse($result['created']);
+            $this->assertSame('name_invalid', $result['errors'][0]['code']);
+            $this->assertDirectoryDoesNotExist($this->workspace . '/' . $name);
+        }
+    }
+
     public function testItProtectsExistingDestinations(): void
     {
         mkdir($this->workspace . '/existing');
@@ -97,6 +110,21 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertFalse($result['created']);
         $this->assertSame('destination_name_mismatch', $result['errors'][0]['code']);
         $this->assertDirectoryDoesNotExist($this->workspace . '/addons/tools');
+    }
+
+    public function testValidatorRejectsARenamedInstalledDirectory(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('sample_tools', 'sample_tools');
+        mkdir($this->workspace . '/addons');
+        rename($this->workspace . '/sample_tools', $this->workspace . '/addons/tools');
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/addons/tools');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('installed_identity', $codes);
     }
 
     public function testPublicationDoesNotReplaceARacedDestination(): void
@@ -166,6 +194,17 @@ final class AddOnScaffoldServiceTest extends TestCase
             $this->workspace . '/broken/mapping/default.php',
             "<?php\nreturn [\\file_put_contents('side-effect', 'run')];\n"
         );
+        file_put_contents(
+            $this->workspace . '/broken/mapping/menus.php',
+            <<<'PHP'
+<?php
+
+return [(static function (): array {
+    file_put_contents('side-effect', 'run');
+    return [];
+})()];
+PHP
+        );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/broken');
         $codes = Arr::make($result['errors'])
@@ -177,7 +216,7 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertContains('template_extension', $codes);
         $this->assertContains('template_syntax', $codes);
         $this->assertContains('mapping_contract', $codes);
-        $this->assertGreaterThanOrEqual(4, Arr::make($codes)->filter(
+        $this->assertGreaterThanOrEqual(5, Arr::make($codes)->filter(
             fn (string $code): bool => $code === 'mapping_contract'
         )->count());
     }

@@ -82,6 +82,7 @@ final class AddOnContractValidator extends Service
         $definition = $this->readJson($root, 'definition.json', $errors);
         $namespace = $this->validateMetadata($composer, $definition, $errors);
 
+        $this->validateInstalledIdentity($root, $definition, $errors);
         $this->validateRegistration($root, $namespace, $definition, $errors);
         $this->validateThemes($root, $definition, $errors);
         $this->validatePhpFiles($root, $namespace, $errors);
@@ -101,7 +102,7 @@ final class AddOnContractValidator extends Service
         }
 
         $name = $definition->get('name');
-        if (!Str::is($name) || !Str::make($name)->matches('/^[a-z][a-z0-9_]*$/')) {
+        if (!Str::is($name) || !Str::make($name)->matches('/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/')) {
             $errors->push($this->problem('definition_name', 'definition.json', 'Definition name must be a lowercase lifecycle-safe key.'));
         }
         if (!Str::is($namespace) || !Str::make($namespace)->matches('/^AddOns\\\\[A-Z][A-Za-z0-9]*$/')) {
@@ -128,6 +129,22 @@ final class AddOnContractValidator extends Service
         }
 
         return $namespace;
+    }
+
+    private function validateInstalledIdentity(string $root, array $definition, Arr $errors): void
+    {
+        if (FileSystem::fileBasename(dirname($root)) !== 'addons') {
+            return;
+        }
+
+        $name = Arr::make($definition)->get('name');
+        if (!Str::is($name) || FileSystem::fileBasename($root) !== $name) {
+            $errors->push($this->problem(
+                'installed_identity',
+                'definition.json',
+                'Installed directory name must match the add-on lifecycle key.'
+            ));
+        }
     }
 
     private function validatePhpFiles(string $root, string $namespace, Arr $errors): void
@@ -449,6 +466,7 @@ final class AddOnContractValidator extends Service
         $callableBodyDepth = 0;
         $waitingForCallableBody = false;
         $arrowClosureLevel = null;
+        $closedCallableExpression = false;
         $disallowed = Arr::make([
             T_EVAL,
             T_EXIT,
@@ -467,6 +485,12 @@ final class AddOnContractValidator extends Service
             }
 
             $token = $tokens->shift();
+            if ($closedCallableExpression && $token === '(') {
+                return false;
+            }
+            if ($closedCallableExpression && $token !== ')') {
+                $closedCallableExpression = false;
+            }
             if (Arr::is($token)) {
                 $type = Arr::make($token)->get(0);
                 if ($type === T_FUNCTION) {
@@ -501,9 +525,13 @@ final class AddOnContractValidator extends Service
             if ($closing->hasKey($token)) {
                 if ($arrowClosureLevel === $delimiters->count()) {
                     $arrowClosureLevel = null;
+                    $closedCallableExpression = true;
                 }
                 if ($token === '}' && $callableBodyDepth > 0) {
                     $callableBodyDepth--;
+                    if ($callableBodyDepth === 0) {
+                        $closedCallableExpression = true;
+                    }
                 }
                 if ($token !== $delimiters->pop()) {
                     return false;
