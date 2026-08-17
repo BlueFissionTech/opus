@@ -531,7 +531,22 @@ final class AddOnContractValidator extends Service
 
     private function factoryClassImportName(Arr $tokens, string $class): ?string
     {
+        $structuralDepth = 0;
         foreach ($tokens as $index => $token) {
+            if ($token === '{') {
+                $structuralDepth++;
+                continue;
+            }
+            if ($token === '}') {
+                $structuralDepth--;
+                continue;
+            }
+            if ($structuralDepth !== 0) {
+                continue;
+            }
+            if ($this->tokenIs($token, T_RETURN)) {
+                break;
+            }
             if ($this->tokenIs($token, T_USE)
                 && $this->factoryClassTokenIs($tokens->get($index + 1), $class, null)
             ) {
@@ -696,7 +711,11 @@ final class AddOnContractValidator extends Service
                 && $arrowClosureLevels->isNotEmpty()
                 && $arrowClosureLevels->get($arrowClosureLevels->count() - 1) === $delimiters->count()
             ) {
-                $arrowClosureLevels->pop();
+                do {
+                    $arrowClosureLevels->pop();
+                } while ($arrowClosureLevels->isNotEmpty()
+                    && $arrowClosureLevels->get($arrowClosureLevels->count() - 1) === $delimiters->count()
+                );
             }
             if ($callableBodyDepth === 0
                 && $pendingCallableBodies === 0
@@ -719,10 +738,14 @@ final class AddOnContractValidator extends Service
                 continue;
             }
             if ($closing->hasKey($token)) {
-                if ($arrowClosureLevels->isNotEmpty()
+                $closedArrow = false;
+                while ($arrowClosureLevels->isNotEmpty()
                     && $arrowClosureLevels->get($arrowClosureLevels->count() - 1) === $delimiters->count()
                 ) {
                     $arrowClosureLevels->pop();
+                    $closedArrow = true;
+                }
+                if ($closedArrow) {
                     $closedCallableExpression = $arrowClosureLevels->isEmpty();
                 }
                 if ($token === '}' && $callableBodyDepth > 0) {

@@ -242,6 +242,30 @@ PHP
         $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
     }
 
+    public function testNestedArrowClosuresCannotHideAnEagerSiblingExpression(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('nested_arrow', 'nested_arrow');
+        file_put_contents(
+            $this->workspace . '/nested_arrow/mapping/api.php',
+            <<<'PHP'
+<?php
+
+return [
+    static fn (): callable => static fn (): int => 1,
+    file_put_contents('side-effect', 'run'),
+];
+PHP
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/nested_arrow');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('mapping_contract', $codes);
+    }
+
     public function testItRejectsIndirectEagerCallableExpressions(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('indirect', 'indirect');
@@ -458,6 +482,40 @@ PHP
         );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/factory_alias');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_factory', $codes);
+    }
+
+    public function testRegistrationFactoryIgnoresTraitUseStatementsWhenResolvingImports(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('trait_import', 'trait_import');
+        $main = $this->workspace . '/trait_import/main.php';
+        file_put_contents(
+            $main,
+            Str::make((string) FileSystem::fileContents($main))
+                ->replace('use AddOns\\TraitImport\\Registration\\AddOnRegistration;', '')
+                ->replace(
+                    'function trait_import_install(): void',
+                    <<<'PHP'
+function trait_import_decoy(): void
+{
+    class Decoy
+    {
+        use AddOns\TraitImport\Registration\AddOnRegistration;
+    }
+}
+
+function trait_import_install(): void
+PHP
+                )
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/trait_import');
         $codes = Arr::make($result['errors'])
             ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
             ->val();
