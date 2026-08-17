@@ -446,6 +446,21 @@ final class AddOnContractValidator extends Service
 
         $closing = Arr::make([')' => true, ']' => true, '}' => true]);
         $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
+        $callableBodyDepth = 0;
+        $waitingForCallableBody = false;
+        $disallowed = Arr::make([
+            T_EVAL,
+            T_EXIT,
+            T_FN,
+            T_INCLUDE,
+            T_INCLUDE_ONCE,
+            T_NEW,
+            T_REQUIRE,
+            T_REQUIRE_ONCE,
+            T_VARIABLE,
+            T_YIELD,
+            T_YIELD_FROM,
+        ]);
         while (!$delimiters->isEmpty()) {
             if ($tokens->isEmpty()) {
                 return false;
@@ -453,18 +468,41 @@ final class AddOnContractValidator extends Service
 
             $token = $tokens->shift();
             if (Arr::is($token)) {
+                $type = Arr::make($token)->get(0);
+                if ($type === T_FUNCTION) {
+                    $waitingForCallableBody = true;
+                } elseif ($callableBodyDepth === 0
+                    && !$waitingForCallableBody
+                    && ($disallowed->has($type, true)
+                        || ($type === T_STRING && $tokens->get(0) === '('))
+                ) {
+                    return false;
+                }
                 continue;
             }
             if ($pairs->hasKey($token)) {
                 $delimiters->push($pairs->get($token));
+                if ($token === '{') {
+                    if ($waitingForCallableBody) {
+                        $waitingForCallableBody = false;
+                        $callableBodyDepth = 1;
+                    } elseif ($callableBodyDepth > 0) {
+                        $callableBodyDepth++;
+                    }
+                }
                 continue;
             }
-            if ($closing->hasKey($token) && $token !== $delimiters->pop()) {
-                return false;
+            if ($closing->hasKey($token)) {
+                if ($token === '}' && $callableBodyDepth > 0) {
+                    $callableBodyDepth--;
+                }
+                if ($token !== $delimiters->pop()) {
+                    return false;
+                }
             }
         }
 
-        if ($tokens->shift() !== ';') {
+        if ($waitingForCallableBody || $callableBodyDepth !== 0 || $tokens->shift() !== ';') {
             return false;
         }
         if ($this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
@@ -562,7 +600,10 @@ final class AddOnContractValidator extends Service
             }
             $token = $tokens->shift();
             if (Arr::is($token)) {
-                if (!$allowed->has(Arr::make($token)->get(0), true)) {
+                $type = Arr::make($token)->get(0);
+                if (!$allowed->has($type, true)
+                    || ($type === T_STRING && $tokens->get(0) === '(')
+                ) {
                     return false;
                 }
                 continue;
@@ -590,7 +631,10 @@ final class AddOnContractValidator extends Service
                 }
                 $token = $tokens->shift();
                 if (Arr::is($token)) {
-                    if (!$allowed->has(Arr::make($token)->get(0), true)) {
+                    $type = Arr::make($token)->get(0);
+                    if (!$allowed->has($type, true)
+                        || ($type === T_STRING && $tokens->get(0) === '(')
+                    ) {
                         return false;
                     }
                     continue;

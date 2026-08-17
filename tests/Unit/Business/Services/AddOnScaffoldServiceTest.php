@@ -128,6 +128,10 @@ final class AddOnScaffoldServiceTest extends TestCase
             $this->workspace . '/broken/mapping/app.php',
             "<?php\nfile_put_contents('side-effect', 'run');\nreturn [];\n"
         );
+        file_put_contents(
+            $this->workspace . '/broken/mapping/console.php',
+            "<?php\nreturn [file_put_contents('side-effect', 'run')];\n"
+        );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/broken');
         $codes = Arr::make($result['errors'])
@@ -139,7 +143,7 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertContains('template_extension', $codes);
         $this->assertContains('template_syntax', $codes);
         $this->assertContains('mapping_contract', $codes);
-        $this->assertGreaterThanOrEqual(2, Arr::make($codes)->filter(
+        $this->assertGreaterThanOrEqual(3, Arr::make($codes)->filter(
             fn (string $code): bool => $code === 'mapping_contract'
         )->count());
     }
