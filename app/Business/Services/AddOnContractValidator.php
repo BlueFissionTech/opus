@@ -548,13 +548,28 @@ final class AddOnContractValidator extends Service
 
         $opening = $tokens->shift();
         if ($opening === '[') {
-            $delimiters = Arr::make([']']);
+            $closingToken = ']';
         } elseif ($this->tokenIs($opening, T_ARRAY) && $tokens->shift() === '(') {
-            $delimiters = Arr::make([')']);
+            $closingToken = ')';
         } else {
             return false;
         }
 
+        if (!$this->consumeSafeValueSequence($tokens, $closingToken)
+            || $tokens->shift() !== ';'
+        ) {
+            return false;
+        }
+        if ($this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
+            $tokens->shift();
+        }
+
+        return $tokens->isEmpty();
+    }
+
+    private function consumeSafeValueSequence(Arr $tokens, string $closingToken): bool
+    {
+        $delimiters = Arr::make([$closingToken]);
         $closing = Arr::make([')' => true, ']' => true, '}' => true]);
         $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
         $callableBodyDepth = 0;
@@ -639,18 +654,9 @@ final class AddOnContractValidator extends Service
             $previousToken = $token;
         }
 
-        if ($waitingForCallableBody
-            || $callableBodyDepth !== 0
-            || $arrowClosureLevel !== null
-            || $tokens->shift() !== ';'
-        ) {
-            return false;
-        }
-        if ($this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
-            $tokens->shift();
-        }
-
-        return $tokens->isEmpty();
+        return !$waitingForCallableBody
+            && $callableBodyDepth === 0
+            && $arrowClosureLevel === null;
     }
 
     private function isExecutableMapping(array $tokens): bool
@@ -664,15 +670,17 @@ final class AddOnContractValidator extends Service
         ) {
             return false;
         }
-        if ($this->tokenIs($tokens->get(0), T_USE)
-            && !$this->consumeMappingImport($tokens)
-        ) {
-            return false;
+        $hasMappingImport = false;
+        if ($this->tokenIs($tokens->get(0), T_USE)) {
+            if (!$this->consumeMappingImport($tokens)) {
+                return false;
+            }
+            $hasMappingImport = true;
         }
 
         $statements = 0;
         while (!$tokens->isEmpty() && !$this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
-            if (!$this->consumeMappingStatement($tokens)) {
+            if (!$this->consumeMappingStatement($tokens, $hasMappingImport)) {
                 return false;
             }
             $statements++;
@@ -697,14 +705,15 @@ final class AddOnContractValidator extends Service
             && $tokens->shift() === ';';
     }
 
-    private function consumeMappingStatement(Arr $tokens): bool
+    private function consumeMappingStatement(Arr $tokens, bool $hasMappingImport): bool
     {
         $class = $tokens->shift();
-        if (!$this->tokenIsOneOf($class, [T_STRING, T_NAME_QUALIFIED])
-            || !Arr::make(['Mapping', 'BlueFission\\Services\\Mapping'])->has(
-                Arr::make($class)->get(1),
-                true
-            )
+        if (!$this->tokenIsOneOf($class, [T_STRING, T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED])) {
+            return false;
+        }
+        $className = Str::make((string) Arr::make($class)->get(1))->trim('\\')->val();
+        if (($className === 'Mapping' && !$hasMappingImport)
+            || !Arr::make(['Mapping', 'BlueFission\\Services\\Mapping'])->has($className, true)
             || !$this->tokenIs($tokens->shift(), T_DOUBLE_COLON)
         ) {
             return false;
@@ -739,45 +748,7 @@ final class AddOnContractValidator extends Service
 
     private function consumeSafeMappingArguments(Arr $tokens): bool
     {
-        $delimiters = Arr::make([')']);
-        $pairs = Arr::make(['(' => ')', '[' => ']']);
-        $closings = Arr::make([')' => true, ']' => true]);
-        $previousToken = null;
-        while (!$delimiters->isEmpty()) {
-            if ($tokens->isEmpty()) {
-                return false;
-            }
-
-            $token = $tokens->shift();
-            if (Arr::is($token)) {
-                if (!$this->isSafeDeclarativeToken($token, $previousToken, $tokens)) {
-                    return false;
-                }
-                $previousToken = $token;
-                continue;
-            }
-            if ($token === '(' && $this->tokenCanBeInvoked($previousToken)) {
-                return false;
-            }
-            if ($pairs->hasKey($token)) {
-                $delimiters->push($pairs->get($token));
-                $previousToken = $token;
-                continue;
-            }
-            if ($closings->hasKey($token)) {
-                if ($token !== $delimiters->pop()) {
-                    return false;
-                }
-                $previousToken = $token;
-                continue;
-            }
-            if ($token !== ',') {
-                return false;
-            }
-            $previousToken = $token;
-        }
-
-        return true;
+        return $this->consumeSafeValueSequence($tokens, ')');
     }
 
     private function significantTokens(array $tokens): Arr

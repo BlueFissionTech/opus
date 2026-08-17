@@ -401,12 +401,36 @@ declare(strict_types=1);
 use BlueFission\Services\Mapping;
 
 Mapping::add('/health', ['HealthController', 'index'], 'health', 'get')->gateway('auth');
+Mapping::add('/lazy', static function (): array {
+    return [];
+}, 'lazy', 'get');
 PHP
         );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/mapped');
 
         $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
+    }
+
+    public function testExecutableMappingsRequireTheShortNameImport(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('missing_import', 'missing_import');
+        file_put_contents(
+            $this->workspace . '/missing_import/mapping/api.php',
+            <<<'PHP'
+<?php
+
+Mapping::add('/health', ['HealthController', 'index'], 'health', 'get');
+PHP
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/missing_import');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('mapping_contract', $codes);
     }
 
     public function testItUsesDeclaredRegistrationAndDirectoryThemeEntrypoints(): void
