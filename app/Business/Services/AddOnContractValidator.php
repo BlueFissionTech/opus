@@ -467,6 +467,7 @@ final class AddOnContractValidator extends Service
         $waitingForCallableBody = false;
         $arrowClosureLevel = null;
         $closedCallableExpression = false;
+        $previousToken = null;
         $disallowed = Arr::make([
             T_EVAL,
             T_EXIT,
@@ -488,6 +489,14 @@ final class AddOnContractValidator extends Service
             if ($closedCallableExpression && $token === '(') {
                 return false;
             }
+            if ($callableBodyDepth === 0
+                && !$waitingForCallableBody
+                && $arrowClosureLevel === null
+                && $token === '('
+                && $this->tokenCanBeInvoked($previousToken)
+            ) {
+                return false;
+            }
             if ($closedCallableExpression && $token !== ')') {
                 $closedCallableExpression = false;
             }
@@ -505,6 +514,7 @@ final class AddOnContractValidator extends Service
                 ) {
                     return false;
                 }
+                $previousToken = $token;
                 continue;
             }
             if ($token === ',' && $arrowClosureLevel === $delimiters->count()) {
@@ -520,6 +530,7 @@ final class AddOnContractValidator extends Service
                         $callableBodyDepth++;
                     }
                 }
+                $previousToken = $token;
                 continue;
             }
             if ($closing->hasKey($token)) {
@@ -537,6 +548,7 @@ final class AddOnContractValidator extends Service
                     return false;
                 }
             }
+            $previousToken = $token;
         }
 
         if ($waitingForCallableBody
@@ -747,6 +759,12 @@ final class AddOnContractValidator extends Service
             T_NAME_RELATIVE,
             T_STRING,
         ]);
+    }
+
+    private function tokenCanBeInvoked($token): bool
+    {
+        return $this->tokenIs($token, T_CONSTANT_ENCAPSED_STRING)
+            || Arr::make([']', ')', '}'])->has($token, true);
     }
 
     private function files(string $root, string $extension): array

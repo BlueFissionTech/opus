@@ -242,6 +242,27 @@ PHP
         $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
     }
 
+    public function testItRejectsIndirectEagerCallableExpressions(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('indirect', 'indirect');
+        file_put_contents(
+            $this->workspace . '/indirect/mapping/api.php',
+            "<?php\nreturn [(('file_put_contents'))('side-effect', 'run')];\n"
+        );
+        file_put_contents(
+            $this->workspace . '/indirect/mapping/app.php',
+            "<?php\nreturn [(['Example', 'run'])()];\n"
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/indirect');
+        $mappingErrors = Arr::make($result['errors'])->filter(
+            fn (array $error): bool => Arr::make($error)->get('code') === 'mapping_contract'
+        );
+
+        $this->assertFalse($result['valid']);
+        $this->assertCount(2, $mappingErrors->val());
+    }
+
     public function testItAcceptsSupportedExecutableMappings(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('mapped', 'mapped');
