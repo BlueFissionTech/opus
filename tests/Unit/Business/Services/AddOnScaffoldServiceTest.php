@@ -162,6 +162,10 @@ final class AddOnScaffoldServiceTest extends TestCase
             $this->workspace . '/broken/mapping/console.php',
             "<?php\nreturn [file_put_contents('side-effect', 'run')];\n"
         );
+        file_put_contents(
+            $this->workspace . '/broken/mapping/default.php',
+            "<?php\nreturn [\\file_put_contents('side-effect', 'run')];\n"
+        );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/broken');
         $codes = Arr::make($result['errors'])
@@ -173,9 +177,30 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertContains('template_extension', $codes);
         $this->assertContains('template_syntax', $codes);
         $this->assertContains('mapping_contract', $codes);
-        $this->assertGreaterThanOrEqual(3, Arr::make($codes)->filter(
+        $this->assertGreaterThanOrEqual(4, Arr::make($codes)->filter(
             fn (string $code): bool => $code === 'mapping_contract'
         )->count());
+    }
+
+    public function testItAcceptsLazyArrowClosuresInDeclarativeMappings(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('lazy', 'lazy');
+        file_put_contents(
+            $this->workspace . '/lazy/mapping/menus.php',
+            <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+return [
+    'register' => static fn (): array => service('navigation')->all(),
+];
+PHP
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/lazy');
+
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
     }
 
     public function testItAcceptsSupportedExecutableMappings(): void

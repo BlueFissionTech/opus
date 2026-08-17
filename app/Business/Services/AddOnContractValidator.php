@@ -448,10 +448,10 @@ final class AddOnContractValidator extends Service
         $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
         $callableBodyDepth = 0;
         $waitingForCallableBody = false;
+        $arrowClosureLevel = null;
         $disallowed = Arr::make([
             T_EVAL,
             T_EXIT,
-            T_FN,
             T_INCLUDE,
             T_INCLUDE_ONCE,
             T_NEW,
@@ -471,14 +471,20 @@ final class AddOnContractValidator extends Service
                 $type = Arr::make($token)->get(0);
                 if ($type === T_FUNCTION) {
                     $waitingForCallableBody = true;
+                } elseif ($type === T_FN) {
+                    $arrowClosureLevel = $delimiters->count();
                 } elseif ($callableBodyDepth === 0
                     && !$waitingForCallableBody
+                    && $arrowClosureLevel === null
                     && ($disallowed->has($type, true)
-                        || ($type === T_STRING && $tokens->get(0) === '('))
+                        || ($this->isCallableNameToken($token) && $tokens->get(0) === '('))
                 ) {
                     return false;
                 }
                 continue;
+            }
+            if ($token === ',' && $arrowClosureLevel === $delimiters->count()) {
+                $arrowClosureLevel = null;
             }
             if ($pairs->hasKey($token)) {
                 $delimiters->push($pairs->get($token));
@@ -493,6 +499,9 @@ final class AddOnContractValidator extends Service
                 continue;
             }
             if ($closing->hasKey($token)) {
+                if ($arrowClosureLevel === $delimiters->count()) {
+                    $arrowClosureLevel = null;
+                }
                 if ($token === '}' && $callableBodyDepth > 0) {
                     $callableBodyDepth--;
                 }
@@ -502,7 +511,11 @@ final class AddOnContractValidator extends Service
             }
         }
 
-        if ($waitingForCallableBody || $callableBodyDepth !== 0 || $tokens->shift() !== ';') {
+        if ($waitingForCallableBody
+            || $callableBodyDepth !== 0
+            || $arrowClosureLevel !== null
+            || $tokens->shift() !== ';'
+        ) {
             return false;
         }
         if ($this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
@@ -602,7 +615,7 @@ final class AddOnContractValidator extends Service
             if (Arr::is($token)) {
                 $type = Arr::make($token)->get(0);
                 if (!$allowed->has($type, true)
-                    || ($type === T_STRING && $tokens->get(0) === '(')
+                    || ($this->isCallableNameToken($token) && $tokens->get(0) === '(')
                 ) {
                     return false;
                 }
@@ -633,7 +646,7 @@ final class AddOnContractValidator extends Service
                 if (Arr::is($token)) {
                     $type = Arr::make($token)->get(0);
                     if (!$allowed->has($type, true)
-                        || ($type === T_STRING && $tokens->get(0) === '(')
+                        || ($this->isCallableNameToken($token) && $tokens->get(0) === '(')
                     ) {
                         return false;
                     }
@@ -696,6 +709,16 @@ final class AddOnContractValidator extends Service
     {
         return Arr::is($token)
             && Arr::make($types)->has(Arr::make($token)->get(0), true);
+    }
+
+    private function isCallableNameToken($token): bool
+    {
+        return $this->tokenIsOneOf($token, [
+            T_NAME_FULLY_QUALIFIED,
+            T_NAME_QUALIFIED,
+            T_NAME_RELATIVE,
+            T_STRING,
+        ]);
     }
 
     private function files(string $root, string $extension): array
