@@ -433,36 +433,100 @@ final class AddOnContractValidator extends Service
     {
         $tokens = $this->significantTokens($tokens);
         $importedClassName = $this->factoryClassImportName($tokens, $class);
-        $depth = 0;
-        while (!$tokens->isEmpty()) {
-            $token = $tokens->shift();
-            if ($token === '{') {
-                $depth++;
-                continue;
-            }
-            if ($token === '}') {
-                $depth--;
-                continue;
-            }
-            if ($depth !== 0 || !$this->tokenIs($token, T_RETURN)) {
-                continue;
-            }
-            if ($this->tokenIs($tokens->get(0), T_STATIC)) {
-                $tokens->shift();
-            }
-
-            $callable = $tokens->shift();
-            if ($this->tokenIs($callable, T_FN)) {
-                return $this->consumeArrowFactory($tokens, $class, $importedClassName);
-            }
-            if ($this->tokenIs($callable, T_FUNCTION)) {
-                return $this->consumeTraditionalFactory($tokens, $class, $importedClassName);
-            }
-
+        if (!$this->tokenIs($tokens->shift(), T_OPEN_TAG)) {
             return false;
+        }
+        if ($this->tokenIs($tokens->get(0), T_DECLARE)
+            && !$this->consumeStrictTypesDeclaration($tokens)
+        ) {
+            return false;
+        }
+        while ($this->tokenIs($tokens->get(0), T_USE)) {
+            if (!$this->consumeFactoryImport($tokens)) {
+                return false;
+            }
+        }
+        while ($this->tokenIs($tokens->get(0), T_FUNCTION)) {
+            if (!$this->consumeDeferredNamedFunction($tokens)) {
+                return false;
+            }
+        }
+        if (!$this->tokenIs($tokens->shift(), T_RETURN)) {
+            return false;
+        }
+        if ($this->tokenIs($tokens->get(0), T_STATIC)) {
+            $tokens->shift();
+        }
+
+        $callable = $tokens->shift();
+        if ($this->tokenIs($callable, T_FN)) {
+            return $this->consumeArrowFactory($tokens, $class, $importedClassName);
+        }
+        if ($this->tokenIs($callable, T_FUNCTION)) {
+            return $this->consumeTraditionalFactory($tokens, $class, $importedClassName);
         }
 
         return false;
+    }
+
+    private function consumeFactoryImport(Arr $tokens): bool
+    {
+        if (!$this->tokenIs($tokens->shift(), T_USE)
+            || !$this->isCallableNameToken($tokens->shift())
+        ) {
+            return false;
+        }
+        if ($this->tokenIs($tokens->get(0), T_AS)) {
+            $tokens->shift();
+            if (!$this->tokenIs($tokens->shift(), T_STRING)) {
+                return false;
+            }
+        }
+
+        return $tokens->shift() === ';';
+    }
+
+    private function consumeDeferredNamedFunction(Arr $tokens): bool
+    {
+        if (!$this->tokenIs($tokens->shift(), T_FUNCTION)
+            || !$this->tokenIs($tokens->shift(), T_STRING)
+        ) {
+            return false;
+        }
+
+        $signatureDepth = 0;
+        while (!$tokens->isEmpty()) {
+            $token = $tokens->shift();
+            if ($token === '(' || $token === '[') {
+                $signatureDepth++;
+                continue;
+            }
+            if ($token === ')' || $token === ']') {
+                $signatureDepth--;
+                if ($signatureDepth < 0) {
+                    return false;
+                }
+                continue;
+            }
+            if ($token === '{' && $signatureDepth === 0) {
+                break;
+            }
+            if ($token === ';' && $signatureDepth === 0) {
+                return false;
+            }
+        }
+
+        $bodyDepth = 1;
+        while (!$tokens->isEmpty() && $bodyDepth > 0) {
+            $token = $tokens->shift();
+            if ($token === '{') {
+                $bodyDepth++;
+            } elseif ($token === '}') {
+                $bodyDepth--;
+            }
+        }
+
+        return $signatureDepth === 0 && $bodyDepth === 0;
     }
 
     private function factoryClassImportName(Arr $tokens, string $class): ?string

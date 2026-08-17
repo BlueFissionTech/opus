@@ -415,6 +415,34 @@ PHP
         $this->assertContains('registration_factory', $codes);
     }
 
+    public function testRegistrationFactoryRejectsTopLevelExecution(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('factory_execution', 'factory_execution');
+        $root = $this->workspace . '/factory_execution';
+        $main = $root . '/main.php';
+        $marker = $root . '/executed.txt';
+        $eagerWrite = 'file_put_contents(' . var_export($marker, true) . ", 'run');";
+        file_put_contents(
+            $main,
+            Str::make((string) FileSystem::fileContents($main))
+                ->replace(
+                    'return static fn (): AddOnRegistration => new AddOnRegistration();',
+                    $eagerWrite . "\n"
+                        . 'return static fn (): AddOnRegistration => new AddOnRegistration();'
+                )
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($root);
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_factory', $codes);
+        $this->assertFalse(FileSystem::fileExists($marker));
+    }
+
     public function testRegistrationFactoryHonorsImportedAliases(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('factory_alias', 'factory_alias');
