@@ -8,6 +8,7 @@ use BlueFission\Arr;
 use BlueFission\Data\FileSystem;
 use BlueFission\Services\Service;
 use BlueFission\Str;
+use DirectoryIterator;
 use InvalidArgumentException;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -48,6 +49,14 @@ final class AddOnScaffoldService extends Service
             }
 
             $destination = $this->destination($target);
+            if ($this->isInstalledDestination($destination)
+                && FileSystem::fileBasename($destination) !== $name
+            ) {
+                return $this->failure(
+                    'destination_name_mismatch',
+                    'An installed add-on directory must match its lifecycle name.'
+                );
+            }
             if (FileSystem::fileExists($destination) || FileSystem::directoryExists($destination)) {
                 return $this->failure('destination_exists', 'Destination already exists.');
             }
@@ -81,14 +90,14 @@ final class AddOnScaffoldService extends Service
                     ];
                 }
 
-                if (!rename($staging, $destination)) {
-                    throw new RuntimeException('Generated add-on could not be published.');
+                if (!$this->publish($staging, $destination)) {
+                    return $this->failure('destination_exists', 'Destination already exists.');
                 }
 
                 return [
                     'created' => true,
                     'path' => $destination,
-                    'files' => array_keys($files),
+                    'files' => Arr::make($files)->keys()->val(),
                     'errors' => [],
                     'warnings' => $validation->get('warnings'),
                 ];
@@ -129,12 +138,19 @@ final class AddOnScaffoldService extends Service
             'namespace' => $namespace,
             'libraries' => [],
             'primary_file' => 'main.php',
+            'registration' => [
+                'class' => $namespace . '\\Registration\\AddOnRegistration',
+                'factory' => 'main.php',
+            ],
+            'themes' => [
+                'default' => [
+                    'directory' => 'resource/markup',
+                    'entrypoint' => 'default.vibe',
+                ],
+            ],
         ];
 
-        $registration = str_replace(
-            ['{{NAMESPACE}}'],
-            [$namespace],
-            <<<'PHP'
+        $registration = Str::make(<<<'PHP'
 <?php
 
 declare(strict_types=1);
@@ -155,11 +171,8 @@ final class AddOnRegistration
     }
 }
 PHP
-        );
-        $main = str_replace(
-            ['{{NAME}}', '{{NAMESPACE}}'],
-            [$name, $namespace],
-            <<<'PHP'
+        )->replace('{{NAMESPACE}}', $namespace)->val();
+        $main = Str::make(<<<'PHP'
 <?php
 
 declare(strict_types=1);
@@ -176,11 +189,14 @@ function {{NAME}}_uninstall(): void
 
 return static fn (): AddOnRegistration => new AddOnRegistration();
 PHP
-        );
+        )
+            ->replace('{{NAME}}', $name)
+            ->replace('{{NAMESPACE}}', $namespace)
+            ->val();
 
         return [
-            'composer.json' => json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n",
-            'definition.json' => json_encode($definition, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n",
+            'composer.json' => $this->json($composer),
+            'definition.json' => $this->json($definition),
             'main.php' => $main . "\n",
             'README.md' => "# {$className}\n\n{$className} is an Opus add-on.\n",
             'logic/Registration/AddOnRegistration.php' => $registration . "\n",
@@ -191,7 +207,7 @@ PHP
             'mapping/menus.php' => $this->menus(),
             'resource/markup/default.vibe' => "<section>\n  <h1>{\$title}</h1>\n</section>\n",
             'phpunit.xml' => $this->phpunitConfiguration(),
-            'tests/bootstrap.php' => "<?php\n\ndeclare(strict_types=1);\n\nrequire dirname(__DIR__) . '/vendor/autoload.php';\n",
+            'tests/bootstrap.php' => $this->testBootstrap(),
         ];
     }
 
@@ -236,6 +252,29 @@ PHP;
     </testsuites>
 </phpunit>
 XML;
+    }
+
+    private function testBootstrap(): string
+    {
+        return <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+$autoloaders = [
+    dirname(__DIR__) . '/vendor/autoload.php',
+    dirname(__DIR__, 3) . '/vendor/autoload.php',
+];
+
+foreach ($autoloaders as $autoloader) {
+    if (is_file($autoloader)) {
+        require $autoloader;
+        return;
+    }
+}
+
+throw new RuntimeException('Composer autoloader could not be resolved.');
+PHP;
     }
 
     private function directories(): array
@@ -305,6 +344,42 @@ XML;
         }
     }
 
+    private function publish(string $staging, string $destination): bool
+    {
+        // Creating the destination is the atomic no-clobber claim. Contents are
+        // moved only after this process owns that directory.
+        set_error_handler(static fn (): bool => true);
+        try {
+            $reserved = mkdir($destination, 0777);
+        } finally {
+            restore_error_handler();
+        }
+
+        if (!$reserved) {
+            if (FileSystem::fileExists($destination) || FileSystem::directoryExists($destination)) {
+                return false;
+            }
+
+            throw new RuntimeException('Generated add-on destination could not be reserved.');
+        }
+
+        foreach (new DirectoryIterator($staging) as $item) {
+            if ($item->isDot()) {
+                continue;
+            }
+
+            $target = $destination . DIRECTORY_SEPARATOR . $item->getFilename();
+            if (FileSystem::fileExists($target) || FileSystem::directoryExists($target)) {
+                throw new RuntimeException('Generated add-on destination changed during publication.');
+            }
+            if (!rename($item->getPathname(), $target)) {
+                throw new RuntimeException('Generated add-on contents could not be published.');
+            }
+        }
+
+        return true;
+    }
+
     private function removeDirectory(string $directory): void
     {
         $iterator = new RecursiveIteratorIterator(
@@ -333,6 +408,20 @@ XML;
     private function normalize(string $path): string
     {
         return Str::make(Str::replace($path, '\\', '/'))->trim('/')->val();
+    }
+
+    private function isInstalledDestination(string $destination): bool
+    {
+        $addons = $this->normalize($this->workspace . DIRECTORY_SEPARATOR . 'addons');
+
+        return $this->normalize(dirname($destination)) === $addons;
+    }
+
+    private function json(array $value): string
+    {
+        return Str::make(Arr::make($value)->toJson())
+            ->append(PHP_EOL)
+            ->val();
     }
 
     private function isAbsolute(string $path): bool

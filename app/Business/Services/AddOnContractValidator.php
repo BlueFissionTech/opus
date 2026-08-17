@@ -6,13 +6,13 @@ namespace App\Business\Services;
 
 use BlueFission\Arr;
 use BlueFission\Data\FileSystem;
+use BlueFission\Net\HTTP;
 use BlueFission\Services\Service;
 use BlueFission\Str;
 use BlueFission\Vibrato\Validation\VibeSyntaxValidator;
 use ParseError;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Throwable;
 
 final class AddOnContractValidator extends Service
 {
@@ -23,13 +23,11 @@ final class AddOnContractValidator extends Service
         'definition.json',
         'main.php',
         'README.md',
-        'logic/Registration/AddOnRegistration.php',
         'mapping/api.php',
         'mapping/app.php',
         'mapping/console.php',
         'mapping/default.php',
         'mapping/menus.php',
-        'resource/markup/default.vibe',
         'phpunit.xml',
         'tests/bootstrap.php',
     ];
@@ -84,6 +82,8 @@ final class AddOnContractValidator extends Service
         $definition = $this->readJson($root, 'definition.json', $errors);
         $namespace = $this->validateMetadata($composer, $definition, $errors);
 
+        $this->validateRegistration($root, $namespace, $definition, $errors);
+        $this->validateThemes($root, $definition, $errors);
         $this->validatePhpFiles($root, $namespace, $errors);
         $this->validateVibeFiles($root, $errors);
 
@@ -149,7 +149,7 @@ final class AddOnContractValidator extends Service
 
             if (Str::startsWith($relative, 'logic/') && $namespace !== '') {
                 $declared = $this->declaredNamespace($tokens);
-                $directory = Str::make(dirname(Str::sub($relative, strlen('logic/'))))
+                $directory = Str::make(dirname(Str::sub($relative, Str::len('logic/'))))
                     ->replace('.', '')
                     ->replace('/', '\\')
                     ->replace('\\\\', '\\')
@@ -161,8 +161,12 @@ final class AddOnContractValidator extends Service
                 }
             }
 
-            if (Str::startsWith($relative, 'mapping/') && !$this->hasTopLevelArrayReturn($tokens)) {
-                $errors->push($this->problem('mapping_contract', $relative, 'Mapping file must return a declarative array.'));
+            if (Str::startsWith($relative, 'mapping/') && !$this->isSupportedMapping($tokens)) {
+                $errors->push($this->problem(
+                    'mapping_contract',
+                    $relative,
+                    'Mapping file must return a declarative array or contain only supported Mapping registrations.'
+                ));
             }
         }
     }
@@ -207,16 +211,10 @@ final class AddOnContractValidator extends Service
             return [];
         }
 
-        try {
-            $decoded = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
-        } catch (Throwable $exception) {
-            $errors->push($this->problem('json_invalid', $relative, $exception->getMessage()));
-
-            return [];
-        }
+        $decoded = HTTP::jsonDecode($contents, true);
 
         if (!Arr::is($decoded)) {
-            $errors->push($this->problem('json_shape', $relative, 'JSON root must be an object.'));
+            $errors->push($this->problem('json_invalid', $relative, 'JSON root must be a valid object.'));
 
             return [];
         }
@@ -229,8 +227,9 @@ final class AddOnContractValidator extends Service
         $collect = false;
         $namespace = Str::make('');
 
+        $namespaceTokens = Arr::make([T_STRING, T_NAME_QUALIFIED, T_NS_SEPARATOR]);
         foreach ($tokens as $token) {
-            if (is_array($token) && $token[0] === T_NAMESPACE) {
+            if (Arr::is($token) && $token[0] === T_NAMESPACE) {
                 $collect = true;
                 continue;
             }
@@ -240,7 +239,7 @@ final class AddOnContractValidator extends Service
             if ($token === ';' || $token === '{') {
                 break;
             }
-            if (is_array($token) && Arr::make([T_STRING, T_NAME_QUALIFIED, T_NS_SEPARATOR])->has($token[0], true)) {
+            if (Arr::is($token) && $namespaceTokens->has($token[0], true)) {
                 $namespace->append($token[1]);
             }
         }
@@ -248,12 +247,151 @@ final class AddOnContractValidator extends Service
         return $namespace->val();
     }
 
-    private function hasTopLevelArrayReturn(array $tokens): bool
+    private function validateRegistration(string $root, string $namespace, array $definition, Arr $errors): void
     {
-        $depth = 0;
-        $returnFound = false;
+        $definition = Arr::make($definition);
+        $registration = Arr::make(
+            Arr::is($definition->get('registration')) ? $definition->get('registration') : []
+        );
+        $class = $registration->get('class');
+        $factory = $registration->get('factory');
 
-        foreach ($tokens as $token) {
+        if (!Str::is($class)
+            || $namespace === ''
+            || !Str::startsWith((string) $class, $namespace . '\\')
+        ) {
+            $errors->push($this->problem(
+                'registration_class',
+                'definition.json',
+                'Registration class must be declared beneath the package namespace.'
+            ));
+            return;
+        }
+
+        $classPath = 'logic/' . Str::make(Str::sub((string) $class, Str::len($namespace . '\\')))
+            ->replace('\\', '/')
+            ->append('.php')
+            ->val();
+        $classFile = $this->path($root, $classPath);
+        if (!FileSystem::fileExists($classFile)) {
+            $errors->push($this->problem('registration_class', $classPath, 'Registration class file is missing.'));
+        } else {
+            $source = FileSystem::fileContents($classFile);
+            if (Str::is($source)) {
+                try {
+                    $tokens = token_get_all($source, TOKEN_PARSE);
+                    $declared = Str::make($this->declaredNamespace($tokens))
+                        ->append('\\')
+                        ->append($this->declaredClass($tokens))
+                        ->val();
+                    if ($declared !== $class) {
+                        $errors->push($this->problem(
+                            'registration_class',
+                            $classPath,
+                            'Registration file must declare the configured class.'
+                        ));
+                    }
+                } catch (ParseError) {
+                    // The PHP syntax pass reports the malformed class file.
+                }
+            }
+        }
+
+        if (!Str::is($factory) || $factory !== $definition->get('primary_file')) {
+            $errors->push($this->problem(
+                'registration_factory',
+                'definition.json',
+                'Registration factory must reference the declared primary file.'
+            ));
+            return;
+        }
+
+        $factoryPath = $this->path($root, (string) $factory);
+        $source = FileSystem::fileContents($factoryPath);
+        if (!Str::is($source)) {
+            return;
+        }
+
+        try {
+            $tokens = token_get_all($source, TOKEN_PARSE);
+        } catch (ParseError) {
+            return;
+        }
+
+        if (!$this->returnsCallableFactory($tokens)) {
+            $errors->push($this->problem(
+                'registration_factory',
+                (string) $factory,
+                'Registration factory must return a callable.'
+            ));
+        }
+    }
+
+    private function validateThemes(string $root, array $definition, Arr $errors): void
+    {
+        $themes = Arr::make(
+            Arr::is(Arr::make($definition)->get('themes'))
+                ? Arr::make($definition)->get('themes')
+                : []
+        );
+        if ($themes->isEmpty()) {
+            $errors->push($this->problem(
+                'theme_manifest',
+                'definition.json',
+                'At least one Vibe theme entrypoint must be declared.'
+            ));
+            return;
+        }
+
+        $themes->each(function ($descriptor, $name) use ($root, $errors): void {
+            $descriptor = Arr::make(Arr::is($descriptor) ? $descriptor : []);
+            $directory = Str::make((string) $descriptor->get('directory'))->trim('/\\')->val();
+            $entrypoint = Str::make((string) $descriptor->get('entrypoint'))->trim('/\\')->val();
+            $relative = Str::make($directory)
+                ->append($directory === '' ? '' : '/')
+                ->append($entrypoint)
+                ->replace('\\', '/')
+                ->val();
+
+            if ($entrypoint === ''
+                || !Str::make($entrypoint)->endsWith('.vibe')
+                || Str::make($relative)->split('/')->has('..', true)
+                || !Str::startsWith($relative, 'resource/markup/')
+                || !FileSystem::fileExists($this->path($root, $relative))
+            ) {
+                $errors->push($this->problem(
+                    'theme_entrypoint',
+                    'definition.json',
+                    "Theme {$name} must declare an existing .vibe entrypoint under resource/markup."
+                ));
+            }
+        });
+    }
+
+    private function declaredClass(array $tokens): string
+    {
+        $tokens = $this->significantTokens($tokens);
+        while (!$tokens->isEmpty()) {
+            if (!$this->tokenIs($tokens->shift(), T_CLASS)) {
+                continue;
+            }
+
+            $name = $tokens->shift();
+
+            return $this->tokenIs($name, T_STRING)
+                ? (string) Arr::make($name)->get(1)
+                : '';
+        }
+
+        return '';
+    }
+
+    private function returnsCallableFactory(array $tokens): bool
+    {
+        $tokens = $this->significantTokens($tokens);
+        $depth = 0;
+        while (!$tokens->isEmpty()) {
+            $token = $tokens->shift();
             if ($token === '{') {
                 $depth++;
                 continue;
@@ -262,19 +400,258 @@ final class AddOnContractValidator extends Service
                 $depth--;
                 continue;
             }
-            if ($returnFound) {
-                if (is_array($token) && Arr::make([T_WHITESPACE, T_COMMENT, T_DOC_COMMENT])->has($token[0], true)) {
-                    continue;
-                }
+            if ($depth !== 0 || !$this->tokenIs($token, T_RETURN)) {
+                continue;
+            }
+            if ($this->tokenIs($tokens->get(0), T_STATIC)) {
+                $tokens->shift();
+            }
 
-                return $token === '[' || (is_array($token) && $token[0] === T_ARRAY);
-            }
-            if ($depth === 0 && is_array($token) && $token[0] === T_RETURN) {
-                $returnFound = true;
-            }
+            return $this->tokenIsOneOf($tokens->shift(), [T_FN, T_FUNCTION]);
         }
 
         return false;
+    }
+
+    private function isSupportedMapping(array $tokens): bool
+    {
+        return $this->isDeclarativeMapping($tokens)
+            || $this->isExecutableMapping($tokens);
+    }
+
+    private function isDeclarativeMapping(array $tokens): bool
+    {
+        $tokens = $this->significantTokens($tokens);
+
+        if (!$this->tokenIs($tokens->shift(), T_OPEN_TAG)) {
+            return false;
+        }
+        if ($this->tokenIs($tokens->get(0), T_DECLARE)
+            && !$this->consumeStrictTypesDeclaration($tokens)
+        ) {
+            return false;
+        }
+        if (!$this->tokenIs($tokens->shift(), T_RETURN)) {
+            return false;
+        }
+
+        $opening = $tokens->shift();
+        if ($opening === '[') {
+            $delimiters = Arr::make([']']);
+        } elseif ($this->tokenIs($opening, T_ARRAY) && $tokens->shift() === '(') {
+            $delimiters = Arr::make([')']);
+        } else {
+            return false;
+        }
+
+        $closing = Arr::make([')' => true, ']' => true, '}' => true]);
+        $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
+        while (!$delimiters->isEmpty()) {
+            if ($tokens->isEmpty()) {
+                return false;
+            }
+
+            $token = $tokens->shift();
+            if (Arr::is($token)) {
+                continue;
+            }
+            if ($pairs->hasKey($token)) {
+                $delimiters->push($pairs->get($token));
+                continue;
+            }
+            if ($closing->hasKey($token) && $token !== $delimiters->pop()) {
+                return false;
+            }
+        }
+
+        if ($tokens->shift() !== ';') {
+            return false;
+        }
+        if ($this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
+            $tokens->shift();
+        }
+
+        return $tokens->isEmpty();
+    }
+
+    private function isExecutableMapping(array $tokens): bool
+    {
+        $tokens = $this->significantTokens($tokens);
+        if (!$this->tokenIs($tokens->shift(), T_OPEN_TAG)) {
+            return false;
+        }
+        if ($this->tokenIs($tokens->get(0), T_DECLARE)
+            && !$this->consumeStrictTypesDeclaration($tokens)
+        ) {
+            return false;
+        }
+        if ($this->tokenIs($tokens->get(0), T_USE)
+            && !$this->consumeMappingImport($tokens)
+        ) {
+            return false;
+        }
+
+        $statements = 0;
+        while (!$tokens->isEmpty() && !$this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
+            if (!$this->consumeMappingStatement($tokens)) {
+                return false;
+            }
+            $statements++;
+        }
+        if ($this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
+            $tokens->shift();
+        }
+
+        return $statements > 0 && $tokens->isEmpty();
+    }
+
+    private function consumeMappingImport(Arr $tokens): bool
+    {
+        if (!$this->tokenIs($tokens->shift(), T_USE)) {
+            return false;
+        }
+
+        $name = $tokens->shift();
+
+        return $this->tokenIsOneOf($name, [T_NAME_QUALIFIED, T_STRING])
+            && Arr::make($name)->get(1) === 'BlueFission\\Services\\Mapping'
+            && $tokens->shift() === ';';
+    }
+
+    private function consumeMappingStatement(Arr $tokens): bool
+    {
+        $class = $tokens->shift();
+        if (!$this->tokenIsOneOf($class, [T_STRING, T_NAME_QUALIFIED])
+            || !Arr::make(['Mapping', 'BlueFission\\Services\\Mapping'])->has(
+                Arr::make($class)->get(1),
+                true
+            )
+            || !$this->tokenIs($tokens->shift(), T_DOUBLE_COLON)
+        ) {
+            return false;
+        }
+
+        $method = $tokens->shift();
+        if (!$this->tokenIs($method, T_STRING)
+            || !Arr::make(['add', 'crud'])->has(Arr::make($method)->get(1), true)
+            || $tokens->shift() !== '('
+        ) {
+            return false;
+        }
+
+        $delimiters = Arr::make([')']);
+        $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
+        $closings = Arr::make([')' => true, ']' => true, '}' => true]);
+        $allowed = Arr::make([
+            T_ARRAY,
+            T_CLASS,
+            T_CONSTANT_ENCAPSED_STRING,
+            T_DNUMBER,
+            T_DOUBLE_ARROW,
+            T_DOUBLE_COLON,
+            T_LNUMBER,
+            T_NAME_QUALIFIED,
+            T_NS_SEPARATOR,
+            T_OBJECT_OPERATOR,
+            T_STRING,
+        ]);
+
+        while (!$delimiters->isEmpty()) {
+            if ($tokens->isEmpty()) {
+                return false;
+            }
+            $token = $tokens->shift();
+            if (Arr::is($token)) {
+                if (!$allowed->has(Arr::make($token)->get(0), true)) {
+                    return false;
+                }
+                continue;
+            }
+            if ($pairs->hasKey($token)) {
+                $delimiters->push($pairs->get($token));
+                continue;
+            }
+            if ($closings->hasKey($token) && $token !== $delimiters->pop()) {
+                return false;
+            }
+        }
+
+        while ($this->tokenIs($tokens->get(0), T_OBJECT_OPERATOR)) {
+            $tokens->shift();
+            if (!$this->tokenIs($tokens->shift(), T_STRING)
+                || $tokens->shift() !== '('
+            ) {
+                return false;
+            }
+            $delimiters = Arr::make([')']);
+            while (!$delimiters->isEmpty()) {
+                if ($tokens->isEmpty()) {
+                    return false;
+                }
+                $token = $tokens->shift();
+                if (Arr::is($token)) {
+                    if (!$allowed->has(Arr::make($token)->get(0), true)) {
+                        return false;
+                    }
+                    continue;
+                }
+                if ($pairs->hasKey($token)) {
+                    $delimiters->push($pairs->get($token));
+                    continue;
+                }
+                if ($closings->hasKey($token) && $token !== $delimiters->pop()) {
+                    return false;
+                }
+            }
+        }
+
+        return $tokens->shift() === ';';
+    }
+
+    private function significantTokens(array $tokens): Arr
+    {
+        return Arr::make($tokens)
+            ->filter(fn ($token): bool => !$this->tokenIsOneOf(
+                $token,
+                [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT]
+            ))
+            ->values();
+    }
+
+    private function consumeStrictTypesDeclaration(Arr $tokens): bool
+    {
+        if (!$this->tokenIs($tokens->shift(), T_DECLARE)
+            || $tokens->shift() !== '('
+        ) {
+            return false;
+        }
+
+        $name = $tokens->shift();
+        $value = null;
+        if (!$this->tokenIs($name, T_STRING)
+            || Arr::make($name)->get(1) !== 'strict_types'
+            || $tokens->shift() !== '='
+        ) {
+            return false;
+        }
+
+        $value = $tokens->shift();
+
+        return $this->tokenIs($value, T_LNUMBER)
+            && Arr::make($value)->get(1) === '1'
+            && $tokens->shift() === ')'
+            && $tokens->shift() === ';';
+    }
+
+    private function tokenIs($token, int $type): bool
+    {
+        return Arr::is($token) && Arr::make($token)->get(0) === $type;
+    }
+
+    private function tokenIsOneOf($token, array $types): bool
+    {
+        return Arr::is($token)
+            && Arr::make($types)->has(Arr::make($token)->get(0), true);
     }
 
     private function files(string $root, string $extension): array
@@ -317,7 +694,11 @@ final class AddOnContractValidator extends Service
 
     private function problem(string $code, string $path, string $message): array
     {
-        return compact('code', 'path', 'message');
+        return Arr::make([
+            'code' => $code,
+            'path' => $path,
+            'message' => $message,
+        ])->val();
     }
 
     private function path(string $root, string $relative): string
@@ -329,7 +710,7 @@ final class AddOnContractValidator extends Service
 
     private function relative(string $root, string $path): string
     {
-        return Str::make(substr($path, strlen($root)))
+        return Str::make(Str::sub($path, Str::len($root)))
             ->trim('/\\')
             ->replace('\\', '/')
             ->val();
