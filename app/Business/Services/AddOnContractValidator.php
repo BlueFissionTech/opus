@@ -100,11 +100,7 @@ final class AddOnContractValidator extends Service
         if ($composer->get('type') !== 'opus-addon') {
             $errors->push($this->problem('composer_type', 'composer.json', 'Composer type must be opus-addon.'));
         }
-        if (!Str::is($composer->get('name'))
-            || !Str::make($composer->get('name'))->matches(
-                '/^[a-z0-9](?:[_.-]?[a-z0-9]+)*\/[a-z0-9](?:[_.-]?[a-z0-9]+)*$/'
-            )
-        ) {
+        if (!$this->isComposerPackageName($composer->get('name'))) {
             $errors->push($this->problem(
                 'composer_name',
                 'composer.json',
@@ -125,6 +121,25 @@ final class AddOnContractValidator extends Service
         }
         if (!Str::is($definition->get('version')) || Str::make($definition->get('version'))->trim()->isEmpty()) {
             $errors->push($this->problem('definition_version', 'definition.json', 'Definition version must be a nonempty string.'));
+        }
+
+        $libraries = $definition->get('libraries');
+        if (!Arr::is($libraries)) {
+            $errors->push($this->problem(
+                'libraries_manifest',
+                'definition.json',
+                'Libraries must be an array of Composer package names.'
+            ));
+        } else {
+            Arr::make($libraries)->each(function ($library) use ($errors): void {
+                if (!$this->isComposerPackageName($library)) {
+                    $errors->push($this->problem(
+                        'libraries_manifest',
+                        'definition.json',
+                        'Every library must use a valid lowercase Composer package name.'
+                    ));
+                }
+            });
         }
 
         $extra = Arr::make(Arr::is($composer->get('extra')) ? $composer->get('extra') : []);
@@ -479,19 +494,6 @@ final class AddOnContractValidator extends Service
         $arrowClosureLevel = null;
         $closedCallableExpression = false;
         $previousToken = null;
-        $disallowed = Arr::make([
-            T_EVAL,
-            T_EXIT,
-            T_INCLUDE,
-            T_INCLUDE_ONCE,
-            T_NEW,
-            T_PRINT,
-            T_REQUIRE,
-            T_REQUIRE_ONCE,
-            T_VARIABLE,
-            T_YIELD,
-            T_YIELD_FROM,
-        ]);
         while (!$delimiters->isEmpty()) {
             if ($tokens->isEmpty()) {
                 return false;
@@ -499,12 +501,6 @@ final class AddOnContractValidator extends Service
 
             $token = $tokens->shift();
             if ($closedCallableExpression && $token === '(') {
-                return false;
-            }
-            if ($callableBodyDepth === 0
-                && $arrowClosureLevel === null
-                && $token === '`'
-            ) {
                 return false;
             }
             if ($callableBodyDepth === 0
@@ -527,8 +523,7 @@ final class AddOnContractValidator extends Service
                 } elseif ($callableBodyDepth === 0
                     && !$waitingForCallableBody
                     && $arrowClosureLevel === null
-                    && ($disallowed->has($type, true)
-                        || ($this->isCallableNameToken($token) && $tokens->get(0) === '('))
+                    && !$this->isSafeDeclarativeToken($token, $previousToken, $tokens)
                 ) {
                     return false;
                 }
@@ -537,6 +532,13 @@ final class AddOnContractValidator extends Service
             }
             if ($token === ',' && $arrowClosureLevel === $delimiters->count()) {
                 $arrowClosureLevel = null;
+            }
+            if ($callableBodyDepth === 0
+                && !$waitingForCallableBody
+                && $arrowClosureLevel === null
+                && !Arr::make(['(', ')', '[', ']', ','])->has($token, true)
+            ) {
+                return false;
             }
             if ($pairs->hasKey($token)) {
                 $delimiters->push($pairs->get($token));
@@ -783,6 +785,54 @@ final class AddOnContractValidator extends Service
     {
         return $this->tokenIs($token, T_CONSTANT_ENCAPSED_STRING)
             || Arr::make([']', ')', '}'])->has($token, true);
+    }
+
+    private function isSafeDeclarativeToken($token, $previousToken, Arr $tokens): bool
+    {
+        if ($this->tokenIsOneOf($token, [
+            T_ARRAY,
+            T_CLASS_C,
+            T_CONSTANT_ENCAPSED_STRING,
+            T_DIR,
+            T_DNUMBER,
+            T_DOUBLE_ARROW,
+            T_FILE,
+            T_FUNC_C,
+            T_LINE,
+            T_LNUMBER,
+            T_METHOD_C,
+            T_NS_C,
+            T_TRAIT_C,
+        ])) {
+            return true;
+        }
+        if ($this->tokenIs($token, T_STATIC)) {
+            return $this->tokenIsOneOf($tokens->get(0), [T_FN, T_FUNCTION]);
+        }
+        if ($this->tokenIs($token, T_STRING)) {
+            $value = Str::make((string) Arr::make($token)->get(1))->lower()->val();
+            if (Arr::make(['false', 'null', 'true'])->has($value, true)) {
+                return true;
+            }
+        }
+        if ($this->isCallableNameToken($token)) {
+            return $this->tokenIs($tokens->get(0), T_DOUBLE_COLON)
+                && $this->tokenIs($tokens->get(1), T_CLASS);
+        }
+        if ($this->tokenIs($token, T_DOUBLE_COLON)) {
+            return $this->tokenIs($tokens->get(0), T_CLASS);
+        }
+
+        return $this->tokenIs($token, T_CLASS)
+            && $this->tokenIs($previousToken, T_DOUBLE_COLON);
+    }
+
+    private function isComposerPackageName($name): bool
+    {
+        return Str::is($name)
+            && Str::make($name)->matches(
+                '/^[a-z0-9](?:[_.-]?[a-z0-9]+)*\/[a-z0-9](?:[_.-]?[a-z0-9]+)*$/'
+            );
     }
 
     private function files(string $root, string $extension): array

@@ -284,6 +284,43 @@ PHP
         $this->assertCount(2, $mappingErrors->val());
     }
 
+    public function testItRejectsUnsafeEagerOperators(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('operator', 'operator');
+        file_put_contents(
+            $this->workspace . '/operator/mapping/api.php',
+            "<?php\nreturn [1 / 0];\n"
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/operator');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('mapping_contract', $codes);
+    }
+
+    public function testItValidatesEveryDeclaredLibraryName(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('libraries', 'libraries');
+        $definitionPath = $this->workspace . '/libraries/definition.json';
+        $definition = Arr::make($this->readJson($definitionPath));
+        $definition->set('libraries', ['bluefission/develation', 'not-a-package']);
+        file_put_contents(
+            $definitionPath,
+            Str::make($definition->toJson())->append(PHP_EOL)->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/libraries');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('libraries_manifest', $codes);
+    }
+
     public function testItAcceptsSupportedExecutableMappings(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('mapped', 'mapped');
