@@ -116,6 +116,36 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertFileDoesNotExist($destination . '/payload.txt');
     }
 
+    public function testPublicationLockKeepsTheStagedTreePrivate(): void
+    {
+        $staging = $this->workspace . '/staging';
+        $destination = $this->workspace . '/published';
+        mkdir($staging);
+        file_put_contents($staging . '/definition.json', '{}');
+        file_put_contents($staging . '/main.php', '<?php return [];');
+
+        $service = new AddOnScaffoldService($this->workspace);
+        $lockPath = (new \ReflectionMethod($service, 'publicationLockPath'))
+            ->invoke($service, $destination);
+        $lock = fopen($lockPath, 'c');
+        $this->assertIsResource($lock);
+        $this->assertTrue(flock($lock, LOCK_EX | LOCK_NB));
+
+        try {
+            $published = (new \ReflectionMethod($service, 'publish'))
+                ->invoke($service, $staging, $destination);
+
+            $this->assertFalse($published);
+            $this->assertDirectoryDoesNotExist($destination);
+            $this->assertFileExists($staging . '/definition.json');
+            $this->assertFileExists($staging . '/main.php');
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+            unlink($lockPath);
+        }
+    }
+
     public function testItReportsInvalidComposerAndTemplateContracts(): void
     {
         $service = new AddOnScaffoldService($this->workspace);

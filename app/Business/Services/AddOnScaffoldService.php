@@ -8,7 +8,6 @@ use BlueFission\Arr;
 use BlueFission\Data\FileSystem;
 use BlueFission\Services\Service;
 use BlueFission\Str;
-use DirectoryIterator;
 use InvalidArgumentException;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -346,38 +345,43 @@ PHP;
 
     private function publish(string $staging, string $destination): bool
     {
-        // Creating the destination is the atomic no-clobber claim. Contents are
-        // moved only after this process owns that directory.
-        set_error_handler(static fn (): bool => true);
-        try {
-            $reserved = mkdir($destination, 0777);
-        } finally {
-            restore_error_handler();
+        $lockPath = $this->publicationLockPath($destination);
+        $lock = fopen($lockPath, 'c');
+        if ($lock === false) {
+            throw new RuntimeException('Generated add-on publication lock could not be opened.');
         }
 
-        if (!$reserved) {
+        try {
+            if (!flock($lock, LOCK_EX | LOCK_NB)) {
+                return false;
+            }
             if (FileSystem::fileExists($destination) || FileSystem::directoryExists($destination)) {
                 return false;
             }
 
-            throw new RuntimeException('Generated add-on destination could not be reserved.');
+            // The complete staged tree becomes discoverable in one filesystem operation.
+            if (!rename($staging, $destination)) {
+                if (FileSystem::fileExists($destination) || FileSystem::directoryExists($destination)) {
+                    return false;
+                }
+
+                throw new RuntimeException('Generated add-on could not be published.');
+            }
+
+            return true;
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
         }
+    }
 
-        foreach (new DirectoryIterator($staging) as $item) {
-            if ($item->isDot()) {
-                continue;
-            }
-
-            $target = $destination . DIRECTORY_SEPARATOR . $item->getFilename();
-            if (FileSystem::fileExists($target) || FileSystem::directoryExists($target)) {
-                throw new RuntimeException('Generated add-on destination changed during publication.');
-            }
-            if (!rename($item->getPathname(), $target)) {
-                throw new RuntimeException('Generated add-on contents could not be published.');
-            }
-        }
-
-        return true;
+    private function publicationLockPath(string $destination): string
+    {
+        return sys_get_temp_dir()
+            . DIRECTORY_SEPARATOR
+            . 'opus-addon-publish-'
+            . Str::make($this->normalize($destination))->encrypt('sha1')->val()
+            . '.lock';
     }
 
     private function removeDirectory(string $directory): void
