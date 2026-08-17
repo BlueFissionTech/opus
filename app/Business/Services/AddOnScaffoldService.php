@@ -8,6 +8,7 @@ use BlueFission\Arr;
 use BlueFission\Data\FileSystem;
 use BlueFission\Services\Service;
 use BlueFission\Str;
+use DirectoryIterator;
 use InvalidArgumentException;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -359,13 +360,46 @@ PHP;
                 return false;
             }
 
-            // The complete staged tree becomes discoverable in one filesystem operation.
-            if (!rename($staging, $destination)) {
+            $definition = $staging . DIRECTORY_SEPARATOR . 'definition.json';
+            if (!FileSystem::fileExists($definition)) {
+                throw new RuntimeException('Generated add-on definition is missing.');
+            }
+
+            set_error_handler(static fn (): bool => true);
+            try {
+                $reserved = mkdir($destination, 0777);
+            } finally {
+                restore_error_handler();
+            }
+            if (!$reserved) {
                 if (FileSystem::fileExists($destination) || FileSystem::directoryExists($destination)) {
                     return false;
                 }
 
-                throw new RuntimeException('Generated add-on could not be published.');
+                throw new RuntimeException('Generated add-on destination could not be reserved.');
+            }
+
+            try {
+                foreach (new DirectoryIterator($staging) as $item) {
+                    if ($item->isDot() || $item->getFilename() === 'definition.json') {
+                        continue;
+                    }
+                    if (!rename(
+                        $item->getPathname(),
+                        $destination . DIRECTORY_SEPARATOR . $item->getFilename()
+                    )) {
+                        throw new RuntimeException('Generated add-on contents could not be published.');
+                    }
+                }
+
+                // BlueCore treats definition.json as the discovery marker.
+                if (!rename($definition, $destination . DIRECTORY_SEPARATOR . 'definition.json')) {
+                    throw new RuntimeException('Generated add-on definition could not be published.');
+                }
+            } catch (Throwable $exception) {
+                $this->removeDirectory($destination);
+
+                throw $exception;
             }
 
             return true;

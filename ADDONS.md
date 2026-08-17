@@ -35,11 +35,13 @@ php bin/opus-addon.php validate addons/sample_tools
 ```
 
 The output parent must already exist. Generation validates a temporary tree,
-holds a target-specific publication lock, rechecks the destination, and then
-publishes the complete tree with one rename operation. Runtime discovery never
-sees a partially populated add-on, and concurrent scaffold writers cannot
-replace one another's output. When the destination is an immediate child of
-`addons/`, its directory name must exactly match the requested lifecycle key.
+holds a target-specific publication lock, and claims the destination with an
+atomic no-clobber directory creation. It moves validated contents first and
+publishes `definition.json` last as the BlueCore discovery marker. Runtime
+discovery therefore cannot load a partially populated add-on, and cooperating
+or independent writers cannot have their destination replaced. When the
+destination is an immediate child of `addons/`, its directory name must exactly
+match the requested lifecycle key.
 The lifecycle key and installer directory use lowercase snake case
 (`sample_tools`) because the locked lifecycle manager also uses the key as the
 install/uninstall hook stem. Composer package slugs are normalized separately

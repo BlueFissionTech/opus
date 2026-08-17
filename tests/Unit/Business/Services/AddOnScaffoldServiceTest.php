@@ -263,6 +263,23 @@ PHP
         $this->assertCount(2, $mappingErrors->val());
     }
 
+    public function testItRejectsShellExpressionsInDeclarativeMappings(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('shell', 'shell');
+        file_put_contents(
+            $this->workspace . '/shell/mapping/api.php',
+            "<?php\nreturn [`echo unsafe`];\n"
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/shell');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('mapping_contract', $codes);
+    }
+
     public function testItAcceptsSupportedExecutableMappings(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('mapped', 'mapped');

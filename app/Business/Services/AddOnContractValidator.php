@@ -490,6 +490,12 @@ final class AddOnContractValidator extends Service
                 return false;
             }
             if ($callableBodyDepth === 0
+                && $arrowClosureLevel === null
+                && $token === '`'
+            ) {
+                return false;
+            }
+            if ($callableBodyDepth === 0
                 && !$waitingForCallableBody
                 && $arrowClosureLevel === null
                 && $token === '('
