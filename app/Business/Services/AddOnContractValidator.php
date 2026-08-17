@@ -450,10 +450,78 @@ final class AddOnContractValidator extends Service
                 $tokens->shift();
             }
 
-            return $this->tokenIsOneOf($tokens->shift(), [T_FN, T_FUNCTION]);
+            $callable = $tokens->shift();
+            if ($this->tokenIs($callable, T_FN)) {
+                return $this->consumeArrowFactory($tokens);
+            }
+            if ($this->tokenIs($callable, T_FUNCTION)) {
+                return $this->consumeTraditionalFactory($tokens);
+            }
+
+            return false;
         }
 
         return false;
+    }
+
+    private function consumeArrowFactory(Arr $tokens): bool
+    {
+        $delimiters = Arr::make([]);
+        $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
+        $closings = Arr::make([')' => true, ']' => true, '}' => true]);
+        while (!$tokens->isEmpty()) {
+            $token = $tokens->shift();
+            if (Arr::is($token)) {
+                continue;
+            }
+            if ($pairs->hasKey($token)) {
+                $delimiters->push($pairs->get($token));
+                continue;
+            }
+            if ($closings->hasKey($token)) {
+                if ($delimiters->isEmpty() || $token !== $delimiters->pop()) {
+                    return false;
+                }
+                continue;
+            }
+            if ($token === ';' && $delimiters->isEmpty()) {
+                return $this->factoryRemainderIsEmpty($tokens);
+            }
+        }
+
+        return false;
+    }
+
+    private function consumeTraditionalFactory(Arr $tokens): bool
+    {
+        $bodyDepth = 0;
+        $bodyStarted = false;
+        while (!$tokens->isEmpty()) {
+            $token = $tokens->shift();
+            if ($token === '{') {
+                $bodyStarted = true;
+                $bodyDepth++;
+                continue;
+            }
+            if ($token === '}' && $bodyStarted) {
+                $bodyDepth--;
+                if ($bodyDepth === 0) {
+                    return $tokens->shift() === ';'
+                        && $this->factoryRemainderIsEmpty($tokens);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function factoryRemainderIsEmpty(Arr $tokens): bool
+    {
+        if ($this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
+            $tokens->shift();
+        }
+
+        return $tokens->isEmpty();
     }
 
     private function isSupportedMapping(array $tokens): bool
@@ -650,44 +718,8 @@ final class AddOnContractValidator extends Service
             return false;
         }
 
-        $delimiters = Arr::make([')']);
-        $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
-        $closings = Arr::make([')' => true, ']' => true, '}' => true]);
-        $allowed = Arr::make([
-            T_ARRAY,
-            T_CLASS,
-            T_CONSTANT_ENCAPSED_STRING,
-            T_DNUMBER,
-            T_DOUBLE_ARROW,
-            T_DOUBLE_COLON,
-            T_LNUMBER,
-            T_NAME_QUALIFIED,
-            T_NS_SEPARATOR,
-            T_OBJECT_OPERATOR,
-            T_STRING,
-        ]);
-
-        while (!$delimiters->isEmpty()) {
-            if ($tokens->isEmpty()) {
-                return false;
-            }
-            $token = $tokens->shift();
-            if (Arr::is($token)) {
-                $type = Arr::make($token)->get(0);
-                if (!$allowed->has($type, true)
-                    || ($this->isCallableNameToken($token) && $tokens->get(0) === '(')
-                ) {
-                    return false;
-                }
-                continue;
-            }
-            if ($pairs->hasKey($token)) {
-                $delimiters->push($pairs->get($token));
-                continue;
-            }
-            if ($closings->hasKey($token) && $token !== $delimiters->pop()) {
-                return false;
-            }
+        if (!$this->consumeSafeMappingArguments($tokens)) {
+            return false;
         }
 
         while ($this->tokenIs($tokens->get(0), T_OBJECT_OPERATOR)) {
@@ -697,32 +729,55 @@ final class AddOnContractValidator extends Service
             ) {
                 return false;
             }
-            $delimiters = Arr::make([')']);
-            while (!$delimiters->isEmpty()) {
-                if ($tokens->isEmpty()) {
-                    return false;
-                }
-                $token = $tokens->shift();
-                if (Arr::is($token)) {
-                    $type = Arr::make($token)->get(0);
-                    if (!$allowed->has($type, true)
-                        || ($this->isCallableNameToken($token) && $tokens->get(0) === '(')
-                    ) {
-                        return false;
-                    }
-                    continue;
-                }
-                if ($pairs->hasKey($token)) {
-                    $delimiters->push($pairs->get($token));
-                    continue;
-                }
-                if ($closings->hasKey($token) && $token !== $delimiters->pop()) {
-                    return false;
-                }
+            if (!$this->consumeSafeMappingArguments($tokens)) {
+                return false;
             }
         }
 
         return $tokens->shift() === ';';
+    }
+
+    private function consumeSafeMappingArguments(Arr $tokens): bool
+    {
+        $delimiters = Arr::make([')']);
+        $pairs = Arr::make(['(' => ')', '[' => ']']);
+        $closings = Arr::make([')' => true, ']' => true]);
+        $previousToken = null;
+        while (!$delimiters->isEmpty()) {
+            if ($tokens->isEmpty()) {
+                return false;
+            }
+
+            $token = $tokens->shift();
+            if (Arr::is($token)) {
+                if (!$this->isSafeDeclarativeToken($token, $previousToken, $tokens)) {
+                    return false;
+                }
+                $previousToken = $token;
+                continue;
+            }
+            if ($token === '(' && $this->tokenCanBeInvoked($previousToken)) {
+                return false;
+            }
+            if ($pairs->hasKey($token)) {
+                $delimiters->push($pairs->get($token));
+                $previousToken = $token;
+                continue;
+            }
+            if ($closings->hasKey($token)) {
+                if ($token !== $delimiters->pop()) {
+                    return false;
+                }
+                $previousToken = $token;
+                continue;
+            }
+            if ($token !== ',') {
+                return false;
+            }
+            $previousToken = $token;
+        }
+
+        return true;
     }
 
     private function significantTokens(array $tokens): Arr
@@ -811,20 +866,32 @@ final class AddOnContractValidator extends Service
         }
         if ($this->tokenIs($token, T_STRING)) {
             $value = Str::make((string) Arr::make($token)->get(1))->lower()->val();
-            if (Arr::make(['false', 'null', 'true'])->has($value, true)) {
+            if (Arr::make(['false', 'null', 'true'])->has($value, true)
+                && $tokens->get(0) !== '('
+            ) {
                 return true;
             }
         }
+        if ($this->tokenTextIs($token, 'class')
+            && $this->tokenIs($previousToken, T_DOUBLE_COLON)
+        ) {
+            return true;
+        }
         if ($this->isCallableNameToken($token)) {
             return $this->tokenIs($tokens->get(0), T_DOUBLE_COLON)
-                && $this->tokenIs($tokens->get(1), T_CLASS);
+                && $this->tokenTextIs($tokens->get(1), 'class');
         }
         if ($this->tokenIs($token, T_DOUBLE_COLON)) {
-            return $this->tokenIs($tokens->get(0), T_CLASS);
+            return $this->tokenTextIs($tokens->get(0), 'class');
         }
 
-        return $this->tokenIs($token, T_CLASS)
-            && $this->tokenIs($previousToken, T_DOUBLE_COLON);
+        return false;
+    }
+
+    private function tokenTextIs($token, string $text): bool
+    {
+        return Arr::is($token)
+            && Str::make((string) Arr::make($token)->get(1))->lower()->val() === $text;
     }
 
     private function isComposerPackageName($name): bool

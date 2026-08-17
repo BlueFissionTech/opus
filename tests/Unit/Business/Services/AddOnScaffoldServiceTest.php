@@ -253,6 +253,10 @@ PHP
             $this->workspace . '/indirect/mapping/app.php',
             "<?php\nreturn [(['Example', 'run'])()];\n"
         );
+        file_put_contents(
+            $this->workspace . '/indirect/mapping/default.php',
+            "<?php\nreturn [true()];\n"
+        );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/indirect');
         $mappingErrors = Arr::make($result['errors'])->filter(
@@ -260,7 +264,7 @@ PHP
         );
 
         $this->assertFalse($result['valid']);
-        $this->assertCount(2, $mappingErrors->val());
+        $this->assertCount(3, $mappingErrors->val());
     }
 
     public function testItRejectsShellExpressionsInDeclarativeMappings(): void
@@ -319,6 +323,69 @@ PHP
 
         $this->assertFalse($result['valid']);
         $this->assertContains('libraries_manifest', $codes);
+    }
+
+    public function testItAcceptsClassReferencesAsSafeDeclarativeValues(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('class_ref', 'class_ref');
+        file_put_contents(
+            $this->workspace . '/class_ref/mapping/api.php',
+            "<?php\nreturn ['handler' => HealthController::class];\n"
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/class_ref');
+
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
+    }
+
+    public function testItRejectsUnsafeExecutableMappingArguments(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('executable', 'executable');
+        file_put_contents(
+            $this->workspace . '/executable/mapping/api.php',
+            <<<'PHP'
+<?php
+
+use BlueFission\Services\Mapping;
+
+Mapping::add('/x', ['Controller', 'index'], 1 / 0, 'get');
+PHP
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/executable');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('mapping_contract', $codes);
+    }
+
+    public function testRegistrationFactoryMustBeTheCompleteReturnExpression(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('factory', 'factory');
+        $main = $this->workspace . '/factory/main.php';
+        file_put_contents(
+            $main,
+            Str::make((string) FileSystem::fileContents($main))
+                ->replace(
+                    'return static fn (): AddOnRegistration => new AddOnRegistration();',
+                    <<<'PHP'
+return static function (): AddOnRegistration {
+    return new AddOnRegistration();
+} ? 1 : 0;
+PHP
+                )
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/factory');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_factory', $codes);
     }
 
     public function testItAcceptsSupportedExecutableMappings(): void
