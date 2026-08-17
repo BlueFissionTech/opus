@@ -100,6 +100,17 @@ final class AddOnContractValidator extends Service
         if ($composer->get('type') !== 'opus-addon') {
             $errors->push($this->problem('composer_type', 'composer.json', 'Composer type must be opus-addon.'));
         }
+        if (!Str::is($composer->get('name'))
+            || !Str::make($composer->get('name'))->matches(
+                '/^[a-z0-9](?:[_.-]?[a-z0-9]+)*\/[a-z0-9](?:[_.-]?[a-z0-9]+)*$/'
+            )
+        ) {
+            $errors->push($this->problem(
+                'composer_name',
+                'composer.json',
+                'Composer package name must use a valid lowercase vendor/package slug.'
+            ));
+        }
 
         $name = $definition->get('name');
         if (!Str::is($name) || !Str::make($name)->matches('/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/')) {
@@ -474,6 +485,7 @@ final class AddOnContractValidator extends Service
             T_INCLUDE,
             T_INCLUDE_ONCE,
             T_NEW,
+            T_PRINT,
             T_REQUIRE,
             T_REQUIRE_ONCE,
             T_VARIABLE,

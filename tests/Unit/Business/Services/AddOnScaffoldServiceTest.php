@@ -270,14 +270,18 @@ PHP
             $this->workspace . '/shell/mapping/api.php',
             "<?php\nreturn [`echo unsafe`];\n"
         );
+        file_put_contents(
+            $this->workspace . '/shell/mapping/app.php',
+            "<?php\nreturn [print 'unsafe'];\n"
+        );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/shell');
-        $codes = Arr::make($result['errors'])
-            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
-            ->val();
+        $mappingErrors = Arr::make($result['errors'])->filter(
+            fn (array $error): bool => Arr::make($error)->get('code') === 'mapping_contract'
+        );
 
         $this->assertFalse($result['valid']);
-        $this->assertContains('mapping_contract', $codes);
+        $this->assertCount(2, $mappingErrors->val());
     }
 
     public function testItAcceptsSupportedExecutableMappings(): void
