@@ -257,6 +257,10 @@ PHP
             $this->workspace . '/indirect/mapping/default.php',
             "<?php\nreturn [true()];\n"
         );
+        file_put_contents(
+            $this->workspace . '/indirect/mapping/console.php',
+            "<?php\nreturn [stdClass::class()];\n"
+        );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/indirect');
         $mappingErrors = Arr::make($result['errors'])->filter(
@@ -264,7 +268,7 @@ PHP
         );
 
         $this->assertFalse($result['valid']);
-        $this->assertCount(3, $mappingErrors->val());
+        $this->assertCount(4, $mappingErrors->val());
     }
 
     public function testItRejectsShellExpressionsInDeclarativeMappings(): void
@@ -388,6 +392,29 @@ PHP
         $this->assertContains('registration_factory', $codes);
     }
 
+    public function testRegistrationFactoryMustProduceTheConfiguredClass(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('factory_result', 'factory_result');
+        $main = $this->workspace . '/factory_result/main.php';
+        file_put_contents(
+            $main,
+            Str::make((string) FileSystem::fileContents($main))
+                ->replace(
+                    'return static fn (): AddOnRegistration => new AddOnRegistration();',
+                    'return static fn (): int => 1;'
+                )
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/factory_result');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_factory', $codes);
+    }
+
     public function testItAcceptsSupportedExecutableMappings(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('mapped', 'mapped');
@@ -404,6 +431,13 @@ Mapping::add('/health', ['HealthController', 'index'], 'health', 'get')->gateway
 Mapping::add('/lazy', static function (): array {
     return [];
 }, 'lazy', 'get');
+Mapping::add('/nested', static function (): array {
+    $inner = static function (): array {
+        return [];
+    };
+
+    return $inner();
+}, 'nested', 'get');
 PHP
         );
 

@@ -361,11 +361,11 @@ final class AddOnContractValidator extends Service
             return;
         }
 
-        if (!$this->returnsCallableFactory($tokens)) {
+        if (!$this->returnsCallableFactory($tokens, (string) $class)) {
             $errors->push($this->problem(
                 'registration_factory',
                 (string) $factory,
-                'Registration factory must return a callable.'
+                'Registration factory must return a callable that constructs the configured class.'
             ));
         }
     }
@@ -429,9 +429,10 @@ final class AddOnContractValidator extends Service
         return '';
     }
 
-    private function returnsCallableFactory(array $tokens): bool
+    private function returnsCallableFactory(array $tokens, string $class): bool
     {
         $tokens = $this->significantTokens($tokens);
+        $hasClassImport = $this->hasFactoryClassImport($tokens, $class);
         $depth = 0;
         while (!$tokens->isEmpty()) {
             $token = $tokens->shift();
@@ -452,10 +453,10 @@ final class AddOnContractValidator extends Service
 
             $callable = $tokens->shift();
             if ($this->tokenIs($callable, T_FN)) {
-                return $this->consumeArrowFactory($tokens);
+                return $this->consumeArrowFactory($tokens, $class, $hasClassImport);
             }
             if ($this->tokenIs($callable, T_FUNCTION)) {
-                return $this->consumeTraditionalFactory($tokens);
+                return $this->consumeTraditionalFactory($tokens, $class, $hasClassImport);
             }
 
             return false;
@@ -464,55 +465,62 @@ final class AddOnContractValidator extends Service
         return false;
     }
 
-    private function consumeArrowFactory(Arr $tokens): bool
+    private function hasFactoryClassImport(Arr $tokens, string $class): bool
     {
-        $delimiters = Arr::make([]);
-        $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
-        $closings = Arr::make([')' => true, ']' => true, '}' => true]);
-        while (!$tokens->isEmpty()) {
-            $token = $tokens->shift();
-            if (Arr::is($token)) {
-                continue;
-            }
-            if ($pairs->hasKey($token)) {
-                $delimiters->push($pairs->get($token));
-                continue;
-            }
-            if ($closings->hasKey($token)) {
-                if ($delimiters->isEmpty() || $token !== $delimiters->pop()) {
-                    return false;
-                }
-                continue;
-            }
-            if ($token === ';' && $delimiters->isEmpty()) {
-                return $this->factoryRemainderIsEmpty($tokens);
+        foreach ($tokens as $index => $token) {
+            if ($this->tokenIs($token, T_USE)
+                && $this->factoryClassTokenIs($tokens->get($index + 1), $class, false)
+            ) {
+                return true;
             }
         }
 
         return false;
     }
 
-    private function consumeTraditionalFactory(Arr $tokens): bool
+    private function consumeArrowFactory(Arr $tokens, string $class, bool $hasClassImport): bool
     {
-        $bodyDepth = 0;
-        $bodyStarted = false;
-        while (!$tokens->isEmpty()) {
-            $token = $tokens->shift();
-            if ($token === '{') {
-                $bodyStarted = true;
-                $bodyDepth++;
-                continue;
-            }
-            if ($token === '}' && $bodyStarted) {
-                $bodyDepth--;
-                if ($bodyDepth === 0) {
-                    return $tokens->shift() === ';'
-                        && $this->factoryRemainderIsEmpty($tokens);
-                }
-            }
+        return $tokens->shift() === '('
+            && $tokens->shift() === ')'
+            && $tokens->shift() === ':'
+            && $this->factoryClassTokenIs($tokens->shift(), $class, $hasClassImport)
+            && $this->tokenIs($tokens->shift(), T_DOUBLE_ARROW)
+            && $this->tokenIs($tokens->shift(), T_NEW)
+            && $this->factoryClassTokenIs($tokens->shift(), $class, $hasClassImport)
+            && $tokens->shift() === '('
+            && $tokens->shift() === ')'
+            && $tokens->shift() === ';'
+            && $this->factoryRemainderIsEmpty($tokens);
+    }
+
+    private function consumeTraditionalFactory(Arr $tokens, string $class, bool $hasClassImport): bool
+    {
+        return $tokens->shift() === '('
+            && $tokens->shift() === ')'
+            && $tokens->shift() === ':'
+            && $this->factoryClassTokenIs($tokens->shift(), $class, $hasClassImport)
+            && $tokens->shift() === '{'
+            && $this->tokenIs($tokens->shift(), T_RETURN)
+            && $this->tokenIs($tokens->shift(), T_NEW)
+            && $this->factoryClassTokenIs($tokens->shift(), $class, $hasClassImport)
+            && $tokens->shift() === '('
+            && $tokens->shift() === ')'
+            && $tokens->shift() === ';'
+            && $tokens->shift() === '}'
+            && $tokens->shift() === ';'
+            && $this->factoryRemainderIsEmpty($tokens);
+    }
+
+    private function factoryClassTokenIs($token, string $class, bool $hasClassImport): bool
+    {
+        if (!$this->isCallableNameToken($token)) {
+            return false;
         }
 
-        return false;
+        $name = Str::make((string) Arr::make($token)->get(1))->trim('\\')->val();
+        $shortName = Str::make($class)->split('\\')->pop();
+
+        return $name === $class || ($hasClassImport && $name === $shortName);
     }
 
     private function factoryRemainderIsEmpty(Arr $tokens): bool
@@ -573,7 +581,7 @@ final class AddOnContractValidator extends Service
         $closing = Arr::make([')' => true, ']' => true, '}' => true]);
         $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
         $callableBodyDepth = 0;
-        $waitingForCallableBody = false;
+        $pendingCallableBodies = 0;
         $arrowClosureLevel = null;
         $closedCallableExpression = false;
         $previousToken = null;
@@ -587,7 +595,7 @@ final class AddOnContractValidator extends Service
                 return false;
             }
             if ($callableBodyDepth === 0
-                && !$waitingForCallableBody
+                && $pendingCallableBodies === 0
                 && $arrowClosureLevel === null
                 && $token === '('
                 && $this->tokenCanBeInvoked($previousToken)
@@ -600,11 +608,11 @@ final class AddOnContractValidator extends Service
             if (Arr::is($token)) {
                 $type = Arr::make($token)->get(0);
                 if ($type === T_FUNCTION) {
-                    $waitingForCallableBody = true;
-                } elseif ($type === T_FN) {
+                    $pendingCallableBodies++;
+                } elseif ($type === T_FN && $callableBodyDepth === 0) {
                     $arrowClosureLevel = $delimiters->count();
                 } elseif ($callableBodyDepth === 0
-                    && !$waitingForCallableBody
+                    && $pendingCallableBodies === 0
                     && $arrowClosureLevel === null
                     && !$this->isSafeDeclarativeToken($token, $previousToken, $tokens)
                 ) {
@@ -617,7 +625,7 @@ final class AddOnContractValidator extends Service
                 $arrowClosureLevel = null;
             }
             if ($callableBodyDepth === 0
-                && !$waitingForCallableBody
+                && $pendingCallableBodies === 0
                 && $arrowClosureLevel === null
                 && !Arr::make(['(', ')', '[', ']', ','])->has($token, true)
             ) {
@@ -626,9 +634,9 @@ final class AddOnContractValidator extends Service
             if ($pairs->hasKey($token)) {
                 $delimiters->push($pairs->get($token));
                 if ($token === '{') {
-                    if ($waitingForCallableBody) {
-                        $waitingForCallableBody = false;
-                        $callableBodyDepth = 1;
+                    if ($pendingCallableBodies > 0) {
+                        $pendingCallableBodies--;
+                        $callableBodyDepth++;
                     } elseif ($callableBodyDepth > 0) {
                         $callableBodyDepth++;
                     }
@@ -654,7 +662,7 @@ final class AddOnContractValidator extends Service
             $previousToken = $token;
         }
 
-        return !$waitingForCallableBody
+        return $pendingCallableBodies === 0
             && $callableBodyDepth === 0
             && $arrowClosureLevel === null;
     }
@@ -845,6 +853,7 @@ final class AddOnContractValidator extends Service
         }
         if ($this->tokenTextIs($token, 'class')
             && $this->tokenIs($previousToken, T_DOUBLE_COLON)
+            && $tokens->get(0) !== '('
         ) {
             return true;
         }
