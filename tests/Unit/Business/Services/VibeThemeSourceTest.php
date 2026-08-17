@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Business\Services;
 
+use BlueFission\Data\FileSystem;
+use BlueFission\Net\HTTP;
+use BlueFission\Str;
 use BlueFission\Vibrato\Reader;
 use BlueFission\Vibrato\Validation\VibeSyntaxValidator;
 use PHPUnit\Framework\TestCase;
@@ -46,13 +49,13 @@ final class VibeThemeSourceTest extends TestCase
         $validator = new VibeSyntaxValidator();
 
         foreach ($this->vibeFiles() as $file) {
-            $source = file_get_contents($file->getPathname());
+            $source = FileSystem::fileContents($file->getPathname());
             $this->assertIsString($source);
 
             $result = $validator->validate($source);
             $this->assertTrue(
                 $result->isValid(),
-                $file->getPathname() . ': ' . json_encode($result->errors(), JSON_UNESCAPED_SLASHES)
+                $file->getPathname() . ': ' . HTTP::jsonEncode($result->errors())
             );
         }
     }
@@ -109,7 +112,7 @@ final class VibeThemeSourceTest extends TestCase
     {
         $htmlFiles = [];
         foreach ($this->allThemeFiles() as $file) {
-            if (strtolower($file->getExtension()) === 'html') {
+            if (Str::lower($file->getExtension()) === 'html') {
                 $htmlFiles[] = $file->getPathname();
             }
         }
@@ -122,7 +125,7 @@ final class VibeThemeSourceTest extends TestCase
     {
         $files = [];
         foreach ($this->allThemeFiles() as $file) {
-            if (strtolower($file->getExtension()) === 'vibe') {
+            if (Str::lower($file->getExtension()) === 'vibe') {
                 $files[] = $file;
             }
         }
@@ -153,7 +156,7 @@ final class VibeThemeSourceTest extends TestCase
     {
         foreach (['admin', 'default'] as $theme) {
             $themeDirectory = $this->markupDirectory . DIRECTORY_SEPARATOR . $theme;
-            if (str_starts_with($path, $themeDirectory . DIRECTORY_SEPARATOR)) {
+            if (Str::startsWith($path, $themeDirectory . DIRECTORY_SEPARATOR)) {
                 return $themeDirectory;
             }
         }

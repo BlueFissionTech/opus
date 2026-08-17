@@ -3,6 +3,7 @@ namespace App\Business\Databases;
 
 use BlueFission\Data\Storage\Storage;
 use BlueFission\Connections\Curl;
+use BlueFission\Net\HTTP;
 
 // https://betterprogramming.pub/enhancing-chatgpt-with-infinite-external-memory-using-vector-database-and-chatgpt-retrieval-plugin-b6f4ea16ab8
 class Pinecone extends Storage
@@ -51,7 +52,7 @@ class Pinecone extends Storage
         $response = $this->client->result();
         $this->client->close();
 
-        return json_decode($response, true);
+        return HTTP::jsonDecode((string) $response, true);
     }
 
     public function createIndex($metric = "cosine")

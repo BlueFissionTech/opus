@@ -1,6 +1,7 @@
 <?php
 namespace App\Business\Http\Api\Admin;
 
+use BlueFission\Arr;
 use BlueFission\Services\Service;
 use BlueFission\Services\Request;
 use BlueFission\Connections\Database\MySQLLink;
@@ -23,7 +24,7 @@ class AddOnController extends Service {
             $addons[$addon['name']]->is_active = $addon['is_active'];
         }
 
-        $list = array_values($addons);
+        $list = Arr::make($addons)->values()->val();
 
         return response($list);
     }

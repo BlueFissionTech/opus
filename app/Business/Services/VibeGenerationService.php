@@ -226,6 +226,7 @@ class VibeGenerationService extends Service
             return false;
         }
 
+        // Keep byte offsets native at this low-level stream boundary.
         $offset = 0;
         $length = strlen($contents);
         while ($offset < $length) {

@@ -11,6 +11,7 @@ use BotMan\BotMan\Messages\Outgoing\Question;
 use BotMan\BotMan\Messages\Outgoing\Actions\Button;
 use BotMan\BotMan\Users\User;
 use BlueFission\HTML\HTML;
+use BlueFission\Str;
 
 class CommandLineDriver extends HttpDriver
 {
@@ -91,7 +92,7 @@ class CommandLineDriver extends HttpDriver
         }
 
         // echo '> ';
-        $input = trim(fgets(STDIN));
+        $input = Str::trim((string) fgets(STDIN));
 
         // Check if the input is a number and corresponds to a button
         if (is_numeric($input) && isset($buttons[$input - 1])) {

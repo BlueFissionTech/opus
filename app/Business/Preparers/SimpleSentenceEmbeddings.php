@@ -1,6 +1,7 @@
 <?php
 namespace App\Business\Preparers;
 
+use BlueFission\Arr;
 use Phpml\Tokenization\WhitespaceTokenizer;
 use Phpml\Vectorization\Word2Vec;
 
@@ -31,19 +32,20 @@ class SimpleSentenceEmbeddings
     {
         $tokenizer = new WhitespaceTokenizer();
         $tokens = $tokenizer->tokenize($sentence);
-        $wordVectors = [];
+        $wordVectors = Arr::make([]);
 
         foreach ($tokens as $token) {
             if (isset($this->model->vocabulary[$token])) {
-                $wordVectors[] = $this->model->getVector($token);
+                $wordVectors->push($this->model->getVector($token));
             }
         }
 
-        if (count($wordVectors) == 0) {
+        // The model API and numeric reduction operate on raw vector arrays.
+        if ($wordVectors->isEmpty()) {
             return array_fill(0, $this->model->dimensions, 0.0);
         }
 
-        $sentenceVector = array_reduce($wordVectors, function ($carry, $item) {
+        $sentenceVector = array_reduce($wordVectors->val(), function ($carry, $item) {
             foreach ($item as $key => $value) {
                 $carry[$key] += $value;
             }
@@ -51,7 +53,7 @@ class SimpleSentenceEmbeddings
         }, array_fill(0, $this->model->dimensions, 0.0));
 
         foreach ($sentenceVector as $key => $value) {
-            $sentenceVector[$key] /= count($wordVectors);
+            $sentenceVector[$key] /= $wordVectors->count();
         }
 
         return $sentenceVector;
@@ -63,7 +65,7 @@ class SimpleSentenceEmbeddings
         $embeddedChunks = [];
 
         foreach ($chunkedSentences as $chunk) {
-            $embeddedChunks[] = $this->embedSentence(implode(' ', $chunk));
+            $embeddedChunks[] = $this->embedSentence(Arr::make($chunk)->join(' ')->val());
         }
 
         return $embeddedChunks;
@@ -71,14 +73,15 @@ class SimpleSentenceEmbeddings
 
     private function chunkSentences(array $sentences): array
     {
-        $chunkedSentences = [];
-        $count = count($sentences);
+        $chunkedSentences = Arr::make([]);
+        $sentences = Arr::make($sentences);
+        $count = $sentences->count();
 
         for ($i = 0; $i < $count; $i += $this->chunkSize - $this->overlap) {
-            $chunkedSentences[] = array_slice($sentences, $i, $this->chunkSize);
+            $chunkedSentences->push($sentences->slice($i, $this->chunkSize)->val());
         }
 
-        return $chunkedSentences;
+        return $chunkedSentences->val();
     }
 }
 
