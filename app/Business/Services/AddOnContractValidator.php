@@ -432,7 +432,7 @@ final class AddOnContractValidator extends Service
     private function returnsCallableFactory(array $tokens, string $class): bool
     {
         $tokens = $this->significantTokens($tokens);
-        $hasClassImport = $this->hasFactoryClassImport($tokens, $class);
+        $importedClassName = $this->factoryClassImportName($tokens, $class);
         $depth = 0;
         while (!$tokens->isEmpty()) {
             $token = $tokens->shift();
@@ -453,10 +453,10 @@ final class AddOnContractValidator extends Service
 
             $callable = $tokens->shift();
             if ($this->tokenIs($callable, T_FN)) {
-                return $this->consumeArrowFactory($tokens, $class, $hasClassImport);
+                return $this->consumeArrowFactory($tokens, $class, $importedClassName);
             }
             if ($this->tokenIs($callable, T_FUNCTION)) {
-                return $this->consumeTraditionalFactory($tokens, $class, $hasClassImport);
+                return $this->consumeTraditionalFactory($tokens, $class, $importedClassName);
             }
 
             return false;
@@ -465,44 +465,53 @@ final class AddOnContractValidator extends Service
         return false;
     }
 
-    private function hasFactoryClassImport(Arr $tokens, string $class): bool
+    private function factoryClassImportName(Arr $tokens, string $class): ?string
     {
         foreach ($tokens as $index => $token) {
             if ($this->tokenIs($token, T_USE)
-                && $this->factoryClassTokenIs($tokens->get($index + 1), $class, false)
+                && $this->factoryClassTokenIs($tokens->get($index + 1), $class, null)
             ) {
-                return true;
+                $next = $tokens->get($index + 2);
+                if ($next === ';') {
+                    return (string) Str::make($class)->split('\\')->pop();
+                }
+                if ($this->tokenIs($next, T_AS)
+                    && $this->tokenIs($tokens->get($index + 3), T_STRING)
+                    && $tokens->get($index + 4) === ';'
+                ) {
+                    return (string) Arr::make($tokens->get($index + 3))->get(1);
+                }
             }
         }
 
-        return false;
+        return null;
     }
 
-    private function consumeArrowFactory(Arr $tokens, string $class, bool $hasClassImport): bool
+    private function consumeArrowFactory(Arr $tokens, string $class, ?string $importedClassName): bool
     {
         return $tokens->shift() === '('
             && $tokens->shift() === ')'
             && $tokens->shift() === ':'
-            && $this->factoryClassTokenIs($tokens->shift(), $class, $hasClassImport)
+            && $this->factoryClassTokenIs($tokens->shift(), $class, $importedClassName)
             && $this->tokenIs($tokens->shift(), T_DOUBLE_ARROW)
             && $this->tokenIs($tokens->shift(), T_NEW)
-            && $this->factoryClassTokenIs($tokens->shift(), $class, $hasClassImport)
+            && $this->factoryClassTokenIs($tokens->shift(), $class, $importedClassName)
             && $tokens->shift() === '('
             && $tokens->shift() === ')'
             && $tokens->shift() === ';'
             && $this->factoryRemainderIsEmpty($tokens);
     }
 
-    private function consumeTraditionalFactory(Arr $tokens, string $class, bool $hasClassImport): bool
+    private function consumeTraditionalFactory(Arr $tokens, string $class, ?string $importedClassName): bool
     {
         return $tokens->shift() === '('
             && $tokens->shift() === ')'
             && $tokens->shift() === ':'
-            && $this->factoryClassTokenIs($tokens->shift(), $class, $hasClassImport)
+            && $this->factoryClassTokenIs($tokens->shift(), $class, $importedClassName)
             && $tokens->shift() === '{'
             && $this->tokenIs($tokens->shift(), T_RETURN)
             && $this->tokenIs($tokens->shift(), T_NEW)
-            && $this->factoryClassTokenIs($tokens->shift(), $class, $hasClassImport)
+            && $this->factoryClassTokenIs($tokens->shift(), $class, $importedClassName)
             && $tokens->shift() === '('
             && $tokens->shift() === ')'
             && $tokens->shift() === ';'
@@ -511,16 +520,14 @@ final class AddOnContractValidator extends Service
             && $this->factoryRemainderIsEmpty($tokens);
     }
 
-    private function factoryClassTokenIs($token, string $class, bool $hasClassImport): bool
+    private function factoryClassTokenIs($token, string $class, ?string $importedClassName): bool
     {
         if (!$this->isCallableNameToken($token)) {
             return false;
         }
 
         $name = Str::make((string) Arr::make($token)->get(1))->trim('\\')->val();
-        $shortName = Str::make($class)->split('\\')->pop();
-
-        return $name === $class || ($hasClassImport && $name === $shortName);
+        return $name === $class || (Str::is($importedClassName) && $name === $importedClassName);
     }
 
     private function factoryRemainderIsEmpty(Arr $tokens): bool
@@ -582,7 +589,7 @@ final class AddOnContractValidator extends Service
         $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
         $callableBodyDepth = 0;
         $pendingCallableBodies = 0;
-        $arrowClosureLevel = null;
+        $arrowClosureLevels = Arr::make([]);
         $closedCallableExpression = false;
         $previousToken = null;
         while (!$delimiters->isEmpty()) {
@@ -596,7 +603,7 @@ final class AddOnContractValidator extends Service
             }
             if ($callableBodyDepth === 0
                 && $pendingCallableBodies === 0
-                && $arrowClosureLevel === null
+                && $arrowClosureLevels->isEmpty()
                 && $token === '('
                 && $this->tokenCanBeInvoked($previousToken)
             ) {
@@ -610,10 +617,10 @@ final class AddOnContractValidator extends Service
                 if ($type === T_FUNCTION) {
                     $pendingCallableBodies++;
                 } elseif ($type === T_FN && $callableBodyDepth === 0) {
-                    $arrowClosureLevel = $delimiters->count();
+                    $arrowClosureLevels->push($delimiters->count());
                 } elseif ($callableBodyDepth === 0
                     && $pendingCallableBodies === 0
-                    && $arrowClosureLevel === null
+                    && $arrowClosureLevels->isEmpty()
                     && !$this->isSafeDeclarativeToken($token, $previousToken, $tokens)
                 ) {
                     return false;
@@ -621,12 +628,15 @@ final class AddOnContractValidator extends Service
                 $previousToken = $token;
                 continue;
             }
-            if ($token === ',' && $arrowClosureLevel === $delimiters->count()) {
-                $arrowClosureLevel = null;
+            if ($token === ','
+                && $arrowClosureLevels->isNotEmpty()
+                && $arrowClosureLevels->get($arrowClosureLevels->count() - 1) === $delimiters->count()
+            ) {
+                $arrowClosureLevels->pop();
             }
             if ($callableBodyDepth === 0
                 && $pendingCallableBodies === 0
-                && $arrowClosureLevel === null
+                && $arrowClosureLevels->isEmpty()
                 && !Arr::make(['(', ')', '[', ']', ','])->has($token, true)
             ) {
                 return false;
@@ -645,13 +655,15 @@ final class AddOnContractValidator extends Service
                 continue;
             }
             if ($closing->hasKey($token)) {
-                if ($arrowClosureLevel === $delimiters->count()) {
-                    $arrowClosureLevel = null;
-                    $closedCallableExpression = true;
+                if ($arrowClosureLevels->isNotEmpty()
+                    && $arrowClosureLevels->get($arrowClosureLevels->count() - 1) === $delimiters->count()
+                ) {
+                    $arrowClosureLevels->pop();
+                    $closedCallableExpression = $arrowClosureLevels->isEmpty();
                 }
                 if ($token === '}' && $callableBodyDepth > 0) {
                     $callableBodyDepth--;
-                    if ($callableBodyDepth === 0) {
+                    if ($callableBodyDepth === 0 && $arrowClosureLevels->isEmpty()) {
                         $closedCallableExpression = true;
                     }
                 }
@@ -664,7 +676,7 @@ final class AddOnContractValidator extends Service
 
         return $pendingCallableBodies === 0
             && $callableBodyDepth === 0
-            && $arrowClosureLevel === null;
+            && $arrowClosureLevels->isEmpty();
     }
 
     private function isExecutableMapping(array $tokens): bool

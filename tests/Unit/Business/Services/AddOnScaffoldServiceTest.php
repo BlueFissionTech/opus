@@ -415,6 +415,29 @@ PHP
         $this->assertContains('registration_factory', $codes);
     }
 
+    public function testRegistrationFactoryHonorsImportedAliases(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('factory_alias', 'factory_alias');
+        $main = $this->workspace . '/factory_alias/main.php';
+        file_put_contents(
+            $main,
+            Str::make((string) FileSystem::fileContents($main))
+                ->replace(
+                    'use AddOns\\FactoryAlias\\Registration\\AddOnRegistration;',
+                    'use AddOns\\FactoryAlias\\Registration\\AddOnRegistration as RenamedRegistration;'
+                )
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/factory_alias');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_factory', $codes);
+    }
+
     public function testItAcceptsSupportedExecutableMappings(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('mapped', 'mapped');
@@ -438,6 +461,10 @@ Mapping::add('/nested', static function (): array {
 
     return $inner();
 }, 'nested', 'get');
+Mapping::add('/nested-arrow', static fn (): array => helper(
+    static fn (): array => [],
+    service('items')
+), 'nested-arrow', 'get');
 PHP
         );
 
