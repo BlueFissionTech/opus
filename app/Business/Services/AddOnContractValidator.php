@@ -418,6 +418,25 @@ final class AddOnContractValidator extends Service
         $namespaceDepth = 0;
         $namespacePending = false;
         $interpolationDepth = 0;
+        $parenthesisDepth = 0;
+        $alternativeScopeDepth = 0;
+        $alternativeScopePending = false;
+        $alternativeOpenTokens = Arr::make([
+            T_DECLARE,
+            T_FOR,
+            T_FOREACH,
+            T_IF,
+            T_SWITCH,
+            T_WHILE,
+        ]);
+        $alternativeEndTokens = Arr::make([
+            T_ENDDECLARE,
+            T_ENDFOR,
+            T_ENDFOREACH,
+            T_ENDIF,
+            T_ENDSWITCH,
+            T_ENDWHILE,
+        ]);
         $previousToken = null;
         while (!$tokens->isEmpty()) {
             $token = $tokens->shift();
@@ -433,8 +452,20 @@ final class AddOnContractValidator extends Service
                     $previousToken = $token;
                     continue;
                 }
+                if ($alternativeOpenTokens->has($type, true)) {
+                    $alternativeScopePending = true;
+                    $previousToken = $token;
+                    continue;
+                }
+                if ($alternativeEndTokens->has($type, true)) {
+                    $alternativeScopeDepth--;
+                    $previousToken = $token;
+                    continue;
+                }
                 if ($type !== T_CLASS
                     || $structuralDepth !== $namespaceDepth
+                    || $alternativeScopeDepth !== 0
+                    || $alternativeScopePending
                     || $this->tokenIs($previousToken, T_NEW)
                 ) {
                     $previousToken = $token;
@@ -460,6 +491,22 @@ final class AddOnContractValidator extends Service
                 $namespacePending = false;
                 $previousToken = $token;
                 continue;
+            }
+            if ($token === '(') {
+                $parenthesisDepth++;
+            } elseif ($token === ')') {
+                $parenthesisDepth--;
+            }
+            if ($alternativeScopePending && $parenthesisDepth === 0) {
+                if ($token === ':') {
+                    $alternativeScopeDepth++;
+                    $alternativeScopePending = false;
+                    $previousToken = $token;
+                    continue;
+                }
+                if ($token === '{' || $token === ';') {
+                    $alternativeScopePending = false;
+                }
             }
             if ($token === '{') {
                 $structuralDepth++;

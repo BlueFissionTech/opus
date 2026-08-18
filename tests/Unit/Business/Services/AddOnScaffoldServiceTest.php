@@ -464,6 +464,28 @@ PHP
         $this->assertContains('registration_class', $codes);
     }
 
+    public function testRegistrationClassCannotBeConditionallyDeclaredWithAlternativeSyntax(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('conditional_registration', 'conditional_registration');
+        $registration = $this->workspace
+            . '/conditional_registration/logic/Registration/AddOnRegistration.php';
+        file_put_contents(
+            $registration,
+            Str::make((string) FileSystem::fileContents($registration))
+                ->replace('final class AddOnRegistration', "if (false):\nfinal class AddOnRegistration")
+                ->append("\nendif;\n")
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/conditional_registration');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_class', $codes);
+    }
+
     public function testRegistrationFactoryRejectsTopLevelExecution(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('factory_execution', 'factory_execution');
