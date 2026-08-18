@@ -559,6 +559,30 @@ PHP
         $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
     }
 
+    public function testItAcceptsInterpolatedStringsInsideDeferredMappings(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('interpolation', 'interpolation');
+        file_put_contents(
+            $this->workspace . '/interpolation/mapping/api.php',
+            <<<'PHP'
+<?php
+
+use BlueFission\Services\Mapping;
+
+Mapping::add(
+    '/hello',
+    static fn (string $name): string => "Hello {$name}",
+    'hello',
+    'get'
+);
+PHP
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/interpolation');
+
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
+    }
+
     public function testExecutableMappingsRequireTheShortNameImport(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('missing_import', 'missing_import');

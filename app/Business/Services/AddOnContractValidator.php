@@ -669,6 +669,7 @@ final class AddOnContractValidator extends Service
         $callableBodyDepth = 0;
         $pendingCallableBodies = 0;
         $arrowClosureLevels = Arr::make([]);
+        $interpolationDepth = 0;
         $closedCallableExpression = false;
         $previousToken = null;
         while (!$delimiters->isEmpty()) {
@@ -693,7 +694,11 @@ final class AddOnContractValidator extends Service
             }
             if (Arr::is($token)) {
                 $type = Arr::make($token)->get(0);
-                if ($type === T_FUNCTION) {
+                if (($type === T_CURLY_OPEN || $type === T_DOLLAR_OPEN_CURLY_BRACES)
+                    && ($callableBodyDepth > 0 || $arrowClosureLevels->isNotEmpty())
+                ) {
+                    $interpolationDepth++;
+                } elseif ($type === T_FUNCTION) {
                     $pendingCallableBodies++;
                 } elseif ($type === T_FN && $callableBodyDepth === 0) {
                     $arrowClosureLevels->push($delimiters->count());
@@ -704,6 +709,11 @@ final class AddOnContractValidator extends Service
                 ) {
                     return false;
                 }
+                $previousToken = $token;
+                continue;
+            }
+            if ($token === '}' && $interpolationDepth > 0) {
+                $interpolationDepth--;
                 $previousToken = $token;
                 continue;
             }
@@ -763,7 +773,8 @@ final class AddOnContractValidator extends Service
 
         return $pendingCallableBodies === 0
             && $callableBodyDepth === 0
-            && $arrowClosureLevels->isEmpty();
+            && $arrowClosureLevels->isEmpty()
+            && $interpolationDepth === 0;
     }
 
     private function isExecutableMapping(array $tokens): bool
