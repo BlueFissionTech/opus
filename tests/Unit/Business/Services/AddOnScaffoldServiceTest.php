@@ -526,6 +526,27 @@ PHP
         $this->assertContains('registration_class', $codes);
     }
 
+    public function testRegistrationClassMustBeConcrete(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('abstract_registration', 'abstract_registration');
+        $registration = $this->workspace
+            . '/abstract_registration/logic/Registration/AddOnRegistration.php';
+        file_put_contents(
+            $registration,
+            Str::make((string) FileSystem::fileContents($registration))
+                ->replace('final class AddOnRegistration', 'abstract class AddOnRegistration')
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/abstract_registration');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_class', $codes);
+    }
+
     public function testRegistrationFactoryRejectsTopLevelExecution(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('factory_execution', 'factory_execution');
@@ -679,6 +700,12 @@ Mapping::add(
     '/default-array',
     static fn (array $value = ['x' => 1]): array => $value,
     'default-array',
+    'get'
+);
+Mapping::add(
+    '/keyed-yield',
+    static fn (): \Generator => yield 1 => service('item'),
+    'keyed-yield',
     'get'
 );
 PHP

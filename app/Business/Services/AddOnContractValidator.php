@@ -473,6 +473,7 @@ final class AddOnContractValidator extends Service
                     || $alternativeScopeDepth !== 0
                     || $alternativeScopePending
                     || $this->tokenIs($previousToken, T_NEW)
+                    || $this->tokenIs($previousToken, T_ABSTRACT)
                 ) {
                     $previousToken = $token;
                     continue;
@@ -803,6 +804,7 @@ final class AddOnContractValidator extends Service
         $callableBodyDepth = 0;
         $pendingCallableBodies = 0;
         $arrowClosureLevels = Arr::make([]);
+        $yieldLevels = Arr::make([]);
         $interpolationDepth = 0;
         $closedCallableExpression = false;
         $previousToken = null;
@@ -839,6 +841,8 @@ final class AddOnContractValidator extends Service
                         'level' => $delimiters->count(),
                         'started' => false,
                     ]);
+                } elseif ($type === T_YIELD && $arrowClosureLevels->isNotEmpty()) {
+                    $yieldLevels->push($delimiters->count());
                 } elseif ($type === T_DOUBLE_ARROW && $arrowClosureLevels->isNotEmpty()) {
                     $index = $arrowClosureLevels->count() - 1;
                     $arrow = Arr::make($arrowClosureLevels->get($index));
@@ -847,6 +851,13 @@ final class AddOnContractValidator extends Service
                     ) {
                         $arrow->set('started', true);
                         $arrowClosureLevels->set($index, $arrow->val());
+                        $previousToken = $token;
+                        continue;
+                    }
+                    if ($yieldLevels->isNotEmpty()
+                        && $yieldLevels->get($yieldLevels->count() - 1) === $delimiters->count()
+                    ) {
+                        $yieldLevels->pop();
                         $previousToken = $token;
                         continue;
                     }
@@ -884,6 +895,12 @@ final class AddOnContractValidator extends Service
                     && Arr::make($arrowClosureLevels->get($arrowClosureLevels->count() - 1))
                         ->get('level') === $delimiters->count()
                 );
+            }
+            if (($token === ',' || $closing->hasKey($token))
+                && $yieldLevels->isNotEmpty()
+                && $yieldLevels->get($yieldLevels->count() - 1) === $delimiters->count()
+            ) {
+                $yieldLevels->pop();
             }
             if ($callableBodyDepth === 0
                 && $pendingCallableBodies === 0
@@ -933,6 +950,7 @@ final class AddOnContractValidator extends Service
         return $pendingCallableBodies === 0
             && $callableBodyDepth === 0
             && $arrowClosureLevels->isEmpty()
+            && $yieldLevels->isEmpty()
             && $interpolationDepth === 0;
     }
 
