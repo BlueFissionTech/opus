@@ -561,9 +561,15 @@ final class AddOnContractValidator extends Service
 
     private function consumeFactoryImport(Arr $tokens): bool
     {
-        if (!$this->tokenIs($tokens->shift(), T_USE)
-            || !$this->isCallableNameToken($tokens->shift())
+        if (!$this->tokenIs($tokens->shift(), T_USE)) {
+            return false;
+        }
+        if ($this->tokenIs($tokens->get(0), T_FUNCTION)
+            || $this->tokenIs($tokens->get(0), T_CONST)
         ) {
+            $tokens->shift();
+        }
+        if (!$this->isCallableNameToken($tokens->shift())) {
             return false;
         }
         if ($this->tokenIs($tokens->get(0), T_AS)) {

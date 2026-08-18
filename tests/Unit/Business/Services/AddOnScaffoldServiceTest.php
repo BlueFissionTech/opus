@@ -397,6 +397,15 @@ PHP
             $main,
             Str::make((string) FileSystem::fileContents($main))
                 ->replace(
+                    'use AddOns\\HookInterpolation\\Registration\\AddOnRegistration;',
+                    <<<'PHP'
+use function Vendor\Package\prepare;
+use const Vendor\Package\STATUS;
+
+use AddOns\HookInterpolation\Registration\AddOnRegistration;
+PHP
+                )
+                ->replace(
                     'return static fn (): AddOnRegistration => new AddOnRegistration();',
                     <<<'PHP'
 return static function (): AddOnRegistration {
