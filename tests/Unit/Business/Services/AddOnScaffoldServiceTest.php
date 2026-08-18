@@ -534,7 +534,7 @@ PHP
         file_put_contents(
             $registration,
             Str::make((string) FileSystem::fileContents($registration))
-                ->replace('final class AddOnRegistration', 'abstract class AddOnRegistration')
+                ->replace('final class AddOnRegistration', 'abstract readonly class AddOnRegistration')
                 ->val()
         );
 
@@ -545,6 +545,53 @@ PHP
 
         $this->assertFalse($result['valid']);
         $this->assertContains('registration_class', $codes);
+    }
+
+    public function testRegistrationClassMustSupportPublicDefaultConstruction(): void
+    {
+        $invalidConstructors = Arr::make([
+            'private_constructor' => 'private function __construct() {}',
+            'required_constructor' => 'public function __construct(string $name) {}',
+        ]);
+        $invalidConstructors->each(function (string $constructor, string $name): void {
+            (new AddOnScaffoldService($this->workspace))->generate($name, $name);
+            $registration = $this->workspace . "/{$name}/logic/Registration/AddOnRegistration.php";
+            file_put_contents(
+                $registration,
+                Str::make((string) FileSystem::fileContents($registration))
+                    ->replace(
+                        "final class AddOnRegistration\n{",
+                        "final class AddOnRegistration\n{\n    {$constructor}"
+                    )
+                    ->val()
+            );
+
+            $result = (new AddOnContractValidator())->validate($this->workspace . "/{$name}");
+            $codes = Arr::make($result['errors'])
+                ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+                ->val();
+
+            $this->assertFalse($result['valid']);
+            $this->assertContains('registration_class', $codes);
+        });
+
+        (new AddOnScaffoldService($this->workspace))->generate('optional_constructor', 'optional_constructor');
+        $registration = $this->workspace
+            . '/optional_constructor/logic/Registration/AddOnRegistration.php';
+        file_put_contents(
+            $registration,
+            Str::make((string) FileSystem::fileContents($registration))
+                ->replace(
+                    "final class AddOnRegistration\n{",
+                    "final class AddOnRegistration\n{\n"
+                        . "    public function __construct(string \$name = 'default') {}"
+                )
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/optional_constructor');
+
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
     }
 
     public function testRegistrationFactoryRejectsTopLevelExecution(): void

@@ -323,12 +323,14 @@ final class AddOnContractValidator extends Service
             if (Str::is($source)) {
                 try {
                     $tokens = token_get_all($source, TOKEN_PARSE);
-                    $declared = $this->declaredClassName($tokens);
-                    if ($declared !== $class) {
+                    $declared = $this->registrationClassDeclaration($tokens);
+                    if ($declared->get('name') !== $class
+                        || !$declared->get('default_constructible')
+                    ) {
                         $errors->push($this->problem(
                             'registration_class',
                             $classPath,
-                            'Registration file must declare the configured class.'
+                            'Registration file must declare a concrete, publicly default-constructible configured class.'
                         ));
                     }
                 } catch (ParseError) {
@@ -408,7 +410,7 @@ final class AddOnContractValidator extends Service
         });
     }
 
-    private function declaredClassName(array $tokens): string
+    private function registrationClassDeclaration(array $tokens): Arr
     {
         $tokens = $this->significantTokens($tokens);
         $structuralDepth = 0;
@@ -421,6 +423,7 @@ final class AddOnContractValidator extends Service
         $parenthesisDepth = 0;
         $alternativeScopeDepth = 0;
         $alternativeScopePending = false;
+        $abstractClassPending = false;
         $alternativeOpenTokens = Arr::make([
             T_DECLARE,
             T_FOR,
@@ -468,13 +471,26 @@ final class AddOnContractValidator extends Service
                     $previousToken = $token;
                     continue;
                 }
-                if ($type !== T_CLASS
-                    || $structuralDepth !== $namespaceDepth
-                    || $alternativeScopeDepth !== 0
-                    || $alternativeScopePending
-                    || $this->tokenIs($previousToken, T_NEW)
-                    || $this->tokenIs($previousToken, T_ABSTRACT)
+                if ($type === T_ABSTRACT
+                    && $structuralDepth === $namespaceDepth
+                    && $alternativeScopeDepth === 0
+                    && !$alternativeScopePending
                 ) {
+                    $abstractClassPending = true;
+                    $previousToken = $token;
+                    continue;
+                }
+                if ($type !== T_CLASS) {
+                    $previousToken = $token;
+                    continue;
+                }
+
+                $validScope = $structuralDepth === $namespaceDepth
+                    && $alternativeScopeDepth === 0
+                    && !$alternativeScopePending
+                    && !$this->tokenIs($previousToken, T_NEW);
+                if (!$validScope || $abstractClassPending) {
+                    $abstractClassPending = false;
                     $previousToken = $token;
                     continue;
                 }
@@ -482,13 +498,16 @@ final class AddOnContractValidator extends Service
                 $name = $tokens->shift();
 
                 if (!$this->tokenIs($name, T_STRING)) {
-                    return '';
+                    return Arr::make([]);
                 }
 
-                return Str::make($namespace->val())
-                    ->append($namespace->isEmpty() ? '' : '\\')
-                    ->append((string) Arr::make($name)->get(1))
-                    ->val();
+                return Arr::make([
+                    'name' => Str::make($namespace->val())
+                        ->append($namespace->isEmpty() ? '' : '\\')
+                        ->append((string) Arr::make($name)->get(1))
+                        ->val(),
+                    'default_constructible' => $this->classHasPublicDefaultConstructor($tokens),
+                ]);
             }
             if ($token === '}' && $interpolationDepth > 0) {
                 $interpolationDepth--;
@@ -529,7 +548,112 @@ final class AddOnContractValidator extends Service
             $previousToken = $token;
         }
 
-        return '';
+        return Arr::make([]);
+    }
+
+    private function classHasPublicDefaultConstructor(Arr $tokens): bool
+    {
+        while (!$tokens->isEmpty() && $tokens->shift() !== '{') {
+        }
+        if ($tokens->isEmpty()) {
+            return false;
+        }
+
+        $bodyDepth = 1;
+        $visibility = T_PUBLIC;
+        while (!$tokens->isEmpty() && $bodyDepth > 0) {
+            $token = $tokens->shift();
+            if ($token === '{') {
+                $bodyDepth++;
+                continue;
+            }
+            if ($token === '}') {
+                $bodyDepth--;
+                if ($bodyDepth === 1) {
+                    $visibility = T_PUBLIC;
+                }
+                continue;
+            }
+            if ($bodyDepth !== 1) {
+                continue;
+            }
+            if ($token === ';') {
+                $visibility = T_PUBLIC;
+                continue;
+            }
+            if ($this->tokenIsOneOf($token, [T_PRIVATE, T_PROTECTED, T_PUBLIC])) {
+                $visibility = (int) Arr::make($token)->get(0);
+                continue;
+            }
+            if (!$this->tokenIs($token, T_FUNCTION)) {
+                continue;
+            }
+
+            $name = $tokens->shift();
+            if ($name === '&'
+                || $this->tokenIsOneOf($name, [
+                    T_AMPERSAND_FOLLOWED_BY_VAR_OR_VARARG,
+                    T_AMPERSAND_NOT_FOLLOWED_BY_VAR_OR_VARARG,
+                ])
+            ) {
+                $name = $tokens->shift();
+            }
+            if (!$this->tokenIs($name, T_STRING)
+                || Str::make((string) Arr::make($name)->get(1))->lower()->val() !== '__construct'
+            ) {
+                continue;
+            }
+
+            return $visibility === T_PUBLIC
+                && $this->constructorAllowsNoArguments($tokens);
+        }
+
+        return true;
+    }
+
+    private function constructorAllowsNoArguments(Arr $tokens): bool
+    {
+        while (!$tokens->isEmpty() && $tokens->shift() !== '(') {
+        }
+        if ($tokens->isEmpty()) {
+            return false;
+        }
+
+        $depth = 1;
+        $hasParameter = false;
+        $optional = false;
+        while (!$tokens->isEmpty()) {
+            $token = $tokens->shift();
+            if ($token === '(' || $token === '[' || $token === '{') {
+                $depth++;
+                continue;
+            }
+            if ($token === ')' || $token === ']' || $token === '}') {
+                $depth--;
+                if ($depth === 0) {
+                    return !$hasParameter || $optional;
+                }
+                continue;
+            }
+            if ($depth !== 1) {
+                continue;
+            }
+            if ($token === ',') {
+                if ($hasParameter && !$optional) {
+                    return false;
+                }
+                $hasParameter = false;
+                $optional = false;
+                continue;
+            }
+            if ($token === '=' || $this->tokenIs($token, T_ELLIPSIS)) {
+                $optional = true;
+            } elseif ($this->tokenIs($token, T_VARIABLE)) {
+                $hasParameter = true;
+            }
+        }
+
+        return false;
     }
 
     private function returnsCallableFactory(array $tokens, string $class): bool
