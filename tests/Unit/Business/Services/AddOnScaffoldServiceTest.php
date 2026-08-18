@@ -439,6 +439,31 @@ PHP
         $this->assertContains('registration_factory', $codes);
     }
 
+    public function testRegistrationClassMustBeDeclaredAtNamespaceScope(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('nested_registration', 'nested_registration');
+        $registration = $this->workspace
+            . '/nested_registration/logic/Registration/AddOnRegistration.php';
+        file_put_contents(
+            $registration,
+            Str::make((string) FileSystem::fileContents($registration))
+                ->replace(
+                    'final class AddOnRegistration',
+                    "function declare_registration(): void\n{\nfinal class AddOnRegistration"
+                )
+                ->append("\n}\n")
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/nested_registration');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_class', $codes);
+    }
+
     public function testRegistrationFactoryRejectsTopLevelExecution(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('factory_execution', 'factory_execution');

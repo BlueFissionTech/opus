@@ -414,16 +414,59 @@ final class AddOnContractValidator extends Service
     private function declaredClass(array $tokens): string
     {
         $tokens = $this->significantTokens($tokens);
+        $structuralDepth = 0;
+        $namespaceDepth = 0;
+        $namespacePending = false;
+        $interpolationDepth = 0;
+        $previousToken = null;
         while (!$tokens->isEmpty()) {
-            if (!$this->tokenIs($tokens->shift(), T_CLASS)) {
+            $token = $tokens->shift();
+            if (Arr::is($token)) {
+                $type = Arr::make($token)->get(0);
+                if ($type === T_CURLY_OPEN || $type === T_DOLLAR_OPEN_CURLY_BRACES) {
+                    $interpolationDepth++;
+                    $previousToken = $token;
+                    continue;
+                }
+                if ($type === T_NAMESPACE) {
+                    $namespacePending = true;
+                    $previousToken = $token;
+                    continue;
+                }
+                if ($type !== T_CLASS
+                    || $structuralDepth !== $namespaceDepth
+                    || $this->tokenIs($previousToken, T_NEW)
+                ) {
+                    $previousToken = $token;
+                    continue;
+                }
+
+                $name = $tokens->shift();
+
+                return $this->tokenIs($name, T_STRING)
+                    ? (string) Arr::make($name)->get(1)
+                    : '';
+            }
+            if ($token === '}' && $interpolationDepth > 0) {
+                $interpolationDepth--;
+                $previousToken = $token;
                 continue;
             }
-
-            $name = $tokens->shift();
-
-            return $this->tokenIs($name, T_STRING)
-                ? (string) Arr::make($name)->get(1)
-                : '';
+            if ($namespacePending && ($token === ';' || $token === '{')) {
+                if ($token === '{') {
+                    $structuralDepth++;
+                }
+                $namespaceDepth = $structuralDepth;
+                $namespacePending = false;
+                $previousToken = $token;
+                continue;
+            }
+            if ($token === '{') {
+                $structuralDepth++;
+            } elseif ($token === '}') {
+                $structuralDepth--;
+            }
+            $previousToken = $token;
         }
 
         return '';
