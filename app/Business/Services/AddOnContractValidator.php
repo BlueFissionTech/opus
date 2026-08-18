@@ -517,8 +517,20 @@ final class AddOnContractValidator extends Service
         }
 
         $bodyDepth = 1;
+        $interpolationDepth = 0;
         while (!$tokens->isEmpty() && $bodyDepth > 0) {
             $token = $tokens->shift();
+            if (Arr::is($token)) {
+                $type = Arr::make($token)->get(0);
+                if ($type === T_CURLY_OPEN || $type === T_DOLLAR_OPEN_CURLY_BRACES) {
+                    $interpolationDepth++;
+                }
+                continue;
+            }
+            if ($token === '}' && $interpolationDepth > 0) {
+                $interpolationDepth--;
+                continue;
+            }
             if ($token === '{') {
                 $bodyDepth++;
             } elseif ($token === '}') {
@@ -526,13 +538,27 @@ final class AddOnContractValidator extends Service
             }
         }
 
-        return $signatureDepth === 0 && $bodyDepth === 0;
+        return $signatureDepth === 0
+            && $bodyDepth === 0
+            && $interpolationDepth === 0;
     }
 
     private function factoryClassImportName(Arr $tokens, string $class): ?string
     {
         $structuralDepth = 0;
+        $interpolationDepth = 0;
         foreach ($tokens as $index => $token) {
+            if (Arr::is($token)) {
+                $type = Arr::make($token)->get(0);
+                if ($type === T_CURLY_OPEN || $type === T_DOLLAR_OPEN_CURLY_BRACES) {
+                    $interpolationDepth++;
+                    continue;
+                }
+            }
+            if ($token === '}' && $interpolationDepth > 0) {
+                $interpolationDepth--;
+                continue;
+            }
             if ($token === '{') {
                 $structuralDepth++;
                 continue;

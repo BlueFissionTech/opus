@@ -524,6 +524,31 @@ PHP
         $this->assertContains('registration_factory', $codes);
     }
 
+    public function testRegistrationFactoryAcceptsInterpolationInsideLifecycleHooks(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('hook_interpolation', 'hook_interpolation');
+        $main = $this->workspace . '/hook_interpolation/main.php';
+        file_put_contents(
+            $main,
+            Str::make((string) FileSystem::fileContents($main))
+                ->replace(
+                    "function hook_interpolation_install(): void\n{\n}",
+                    <<<'PHP'
+function hook_interpolation_install(): void
+{
+    $name = 'hook_interpolation';
+    $message = "Installing {$name}";
+}
+PHP
+                )
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/hook_interpolation');
+
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
+    }
+
     public function testItAcceptsSupportedExecutableMappings(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('mapped', 'mapped');
