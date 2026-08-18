@@ -323,10 +323,7 @@ final class AddOnContractValidator extends Service
             if (Str::is($source)) {
                 try {
                     $tokens = token_get_all($source, TOKEN_PARSE);
-                    $declared = Str::make($this->declaredNamespace($tokens))
-                        ->append('\\')
-                        ->append($this->declaredClass($tokens))
-                        ->val();
+                    $declared = $this->declaredClassName($tokens);
                     if ($declared !== $class) {
                         $errors->push($this->problem(
                             'registration_class',
@@ -411,12 +408,15 @@ final class AddOnContractValidator extends Service
         });
     }
 
-    private function declaredClass(array $tokens): string
+    private function declaredClassName(array $tokens): string
     {
         $tokens = $this->significantTokens($tokens);
         $structuralDepth = 0;
         $namespaceDepth = 0;
         $namespacePending = false;
+        $namespace = Str::make('');
+        $pendingNamespace = Str::make('');
+        $namespaceTokens = Arr::make([T_STRING, T_NAME_QUALIFIED, T_NS_SEPARATOR]);
         $interpolationDepth = 0;
         $parenthesisDepth = 0;
         $alternativeScopeDepth = 0;
@@ -449,6 +449,12 @@ final class AddOnContractValidator extends Service
                 }
                 if ($type === T_NAMESPACE) {
                     $namespacePending = true;
+                    $pendingNamespace = Str::make('');
+                    $previousToken = $token;
+                    continue;
+                }
+                if ($namespacePending && $namespaceTokens->has($type, true)) {
+                    $pendingNamespace->append((string) Arr::make($token)->get(1));
                     $previousToken = $token;
                     continue;
                 }
@@ -474,9 +480,14 @@ final class AddOnContractValidator extends Service
 
                 $name = $tokens->shift();
 
-                return $this->tokenIs($name, T_STRING)
-                    ? (string) Arr::make($name)->get(1)
-                    : '';
+                if (!$this->tokenIs($name, T_STRING)) {
+                    return '';
+                }
+
+                return Str::make($namespace->val())
+                    ->append($namespace->isEmpty() ? '' : '\\')
+                    ->append((string) Arr::make($name)->get(1))
+                    ->val();
             }
             if ($token === '}' && $interpolationDepth > 0) {
                 $interpolationDepth--;
@@ -484,6 +495,7 @@ final class AddOnContractValidator extends Service
                 continue;
             }
             if ($namespacePending && ($token === ';' || $token === '{')) {
+                $namespace = $pendingNamespace;
                 if ($token === '{') {
                     $structuralDepth++;
                 }
@@ -823,8 +835,27 @@ final class AddOnContractValidator extends Service
                 } elseif ($type === T_FUNCTION) {
                     $pendingCallableBodies++;
                 } elseif ($type === T_FN && $callableBodyDepth === 0) {
-                    $arrowClosureLevels->push($delimiters->count());
-                } elseif ($callableBodyDepth === 0
+                    $arrowClosureLevels->push([
+                        'level' => $delimiters->count(),
+                        'started' => false,
+                    ]);
+                } elseif ($type === T_DOUBLE_ARROW && $arrowClosureLevels->isNotEmpty()) {
+                    $index = $arrowClosureLevels->count() - 1;
+                    $arrow = Arr::make($arrowClosureLevels->get($index));
+                    if (!$arrow->get('started')) {
+                        $arrow->set('started', true);
+                        $arrowClosureLevels->set($index, $arrow->val());
+                        $previousToken = $token;
+                        continue;
+                    }
+                    while ($arrowClosureLevels->isNotEmpty()
+                        && Arr::make($arrowClosureLevels->get($arrowClosureLevels->count() - 1))
+                            ->get('level') === $delimiters->count()
+                    ) {
+                        $arrowClosureLevels->pop();
+                    }
+                }
+                if ($callableBodyDepth === 0
                     && $pendingCallableBodies === 0
                     && $arrowClosureLevels->isEmpty()
                     && !$this->isSafeDeclarativeToken($token, $previousToken, $tokens)
@@ -841,12 +872,14 @@ final class AddOnContractValidator extends Service
             }
             if ($token === ','
                 && $arrowClosureLevels->isNotEmpty()
-                && $arrowClosureLevels->get($arrowClosureLevels->count() - 1) === $delimiters->count()
+                && Arr::make($arrowClosureLevels->get($arrowClosureLevels->count() - 1))
+                    ->get('level') === $delimiters->count()
             ) {
                 do {
                     $arrowClosureLevels->pop();
                 } while ($arrowClosureLevels->isNotEmpty()
-                    && $arrowClosureLevels->get($arrowClosureLevels->count() - 1) === $delimiters->count()
+                    && Arr::make($arrowClosureLevels->get($arrowClosureLevels->count() - 1))
+                        ->get('level') === $delimiters->count()
                 );
             }
             if ($callableBodyDepth === 0
@@ -872,7 +905,8 @@ final class AddOnContractValidator extends Service
             if ($closing->hasKey($token)) {
                 $closedArrow = false;
                 while ($arrowClosureLevels->isNotEmpty()
-                    && $arrowClosureLevels->get($arrowClosureLevels->count() - 1) === $delimiters->count()
+                    && Arr::make($arrowClosureLevels->get($arrowClosureLevels->count() - 1))
+                        ->get('level') === $delimiters->count()
                 ) {
                     $arrowClosureLevels->pop();
                     $closedArrow = true;

@@ -289,6 +289,10 @@ PHP
             $this->workspace . '/indirect/mapping/menus.php',
             "<?php\nreturn [(static function (): void {})[0]];\n"
         );
+        file_put_contents(
+            $this->workspace . '/indirect/mapping/arrow-key.php',
+            "<?php\nreturn [static fn (): int => 1 => file_put_contents('side-effect', 'run')];\n"
+        );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/indirect');
         $mappingErrors = Arr::make($result['errors'])->filter(
@@ -296,7 +300,7 @@ PHP
         );
 
         $this->assertFalse($result['valid']);
-        $this->assertCount(5, $mappingErrors->val());
+        $this->assertCount(6, $mappingErrors->val());
     }
 
     public function testItRejectsShellExpressionsInDeclarativeMappings(): void
@@ -482,6 +486,38 @@ PHP
         );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/conditional_registration');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_class', $codes);
+    }
+
+    public function testRegistrationClassMustBelongToItsDeclaredNamespace(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('split_namespace', 'split_namespace');
+        $registration = $this->workspace
+            . '/split_namespace/logic/Registration/AddOnRegistration.php';
+        file_put_contents(
+            $registration,
+            <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace AddOns\SplitNamespace\Registration {
+}
+
+namespace Other {
+    final class AddOnRegistration
+    {
+    }
+}
+PHP
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/split_namespace');
         $codes = Arr::make($result['errors'])
             ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
             ->val();
