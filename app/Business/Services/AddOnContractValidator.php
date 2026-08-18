@@ -800,7 +800,7 @@ final class AddOnContractValidator extends Service
             }
 
             $token = $tokens->shift();
-            if ($closedCallableExpression && $token === '(') {
+            if ($closedCallableExpression && ($token === '(' || $token === '[')) {
                 return false;
             }
             if ($callableBodyDepth === 0

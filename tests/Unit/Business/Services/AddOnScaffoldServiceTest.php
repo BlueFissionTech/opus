@@ -285,6 +285,10 @@ PHP
             $this->workspace . '/indirect/mapping/console.php',
             "<?php\nreturn [stdClass::class()];\n"
         );
+        file_put_contents(
+            $this->workspace . '/indirect/mapping/menus.php',
+            "<?php\nreturn [(static function (): void {})[0]];\n"
+        );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/indirect');
         $mappingErrors = Arr::make($result['errors'])->filter(
@@ -292,7 +296,7 @@ PHP
         );
 
         $this->assertFalse($result['valid']);
-        $this->assertCount(4, $mappingErrors->val());
+        $this->assertCount(5, $mappingErrors->val());
     }
 
     public function testItRejectsShellExpressionsInDeclarativeMappings(): void
@@ -396,15 +400,6 @@ PHP
         file_put_contents(
             $main,
             Str::make((string) FileSystem::fileContents($main))
-                ->replace(
-                    'use AddOns\\HookInterpolation\\Registration\\AddOnRegistration;',
-                    <<<'PHP'
-use function Vendor\Package\prepare;
-use const Vendor\Package\STATUS;
-
-use AddOns\HookInterpolation\Registration\AddOnRegistration;
-PHP
-                )
                 ->replace(
                     'return static fn (): AddOnRegistration => new AddOnRegistration();',
                     <<<'PHP'
@@ -584,24 +579,36 @@ PHP
     {
         (new AddOnScaffoldService($this->workspace))->generate('hook_interpolation', 'hook_interpolation');
         $main = $this->workspace . '/hook_interpolation/main.php';
-        file_put_contents(
-            $main,
-            Str::make((string) FileSystem::fileContents($main))
-                ->replace(
-                    "function hook_interpolation_install(): void\n{\n}",
-                    <<<'PHP'
+        $source = Str::make((string) FileSystem::fileContents($main))
+            ->replace(
+                'use AddOns\\HookInterpolation\\Registration\\AddOnRegistration;',
+                <<<'PHP'
+use function Vendor\Package\prepare;
+use const Vendor\Package\STATUS;
+
+use AddOns\HookInterpolation\Registration\AddOnRegistration;
+PHP
+            )
+            ->replace(
+                "function hook_interpolation_install(): void\n{\n}",
+                <<<'PHP'
 function hook_interpolation_install(): void
 {
     $name = 'hook_interpolation';
     $message = "Installing {$name}";
 }
 PHP
-                )
-                ->val()
+            )
+            ->val();
+        file_put_contents(
+            $main,
+            $source
         );
 
         $result = (new AddOnContractValidator())->validate($this->workspace . '/hook_interpolation');
 
+        $this->assertStringContainsString('use function Vendor\\Package\\prepare;', $source);
+        $this->assertStringContainsString('use const Vendor\\Package\\STATUS;', $source);
         $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
     }
 
