@@ -553,7 +553,15 @@ final class AddOnContractValidator extends Service
 
     private function classHasPublicDefaultConstructor(Arr $tokens): bool
     {
-        while (!$tokens->isEmpty() && $tokens->shift() !== '{') {
+        $inheritsConstructor = false;
+        while (!$tokens->isEmpty()) {
+            $token = $tokens->shift();
+            if ($this->tokenIs($token, T_EXTENDS)) {
+                $inheritsConstructor = true;
+            }
+            if ($token === '{') {
+                break;
+            }
         }
         if ($tokens->isEmpty()) {
             return false;
@@ -608,7 +616,7 @@ final class AddOnContractValidator extends Service
                 && $this->constructorAllowsNoArguments($tokens);
         }
 
-        return true;
+        return !$inheritsConstructor;
     }
 
     private function constructorAllowsNoArguments(Arr $tokens): bool

@@ -594,6 +594,30 @@ PHP
         $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
     }
 
+    public function testRegistrationClassCannotRelyOnAnUnresolvedInheritedConstructor(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('inherited_constructor', 'inherited_constructor');
+        $registration = $this->workspace
+            . '/inherited_constructor/logic/Registration/AddOnRegistration.php';
+        file_put_contents(
+            $registration,
+            Str::make((string) FileSystem::fileContents($registration))
+                ->replace(
+                    'final class AddOnRegistration',
+                    'final class AddOnRegistration extends \\Vendor\\ParentRegistration'
+                )
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/inherited_constructor');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_class', $codes);
+    }
+
     public function testRegistrationFactoryRejectsTopLevelExecution(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('factory_execution', 'factory_execution');
