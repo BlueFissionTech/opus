@@ -842,13 +842,16 @@ final class AddOnContractValidator extends Service
                 } elseif ($type === T_DOUBLE_ARROW && $arrowClosureLevels->isNotEmpty()) {
                     $index = $arrowClosureLevels->count() - 1;
                     $arrow = Arr::make($arrowClosureLevels->get($index));
-                    if (!$arrow->get('started')) {
+                    if (!$arrow->get('started')
+                        && $arrow->get('level') === $delimiters->count()
+                    ) {
                         $arrow->set('started', true);
                         $arrowClosureLevels->set($index, $arrow->val());
                         $previousToken = $token;
                         continue;
                     }
-                    while ($arrowClosureLevels->isNotEmpty()
+                    while ($arrow->get('started')
+                        && $arrowClosureLevels->isNotEmpty()
                         && Arr::make($arrowClosureLevels->get($arrowClosureLevels->count() - 1))
                             ->get('level') === $delimiters->count()
                     ) {

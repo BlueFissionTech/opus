@@ -675,6 +675,12 @@ Mapping::add('/nested-arrow', static fn (): array => helper(
     static fn (): array => [],
     service('items')
 ), 'nested-arrow', 'get');
+Mapping::add(
+    '/default-array',
+    static fn (array $value = ['x' => 1]): array => $value,
+    'default-array',
+    'get'
+);
 PHP
         );
 
