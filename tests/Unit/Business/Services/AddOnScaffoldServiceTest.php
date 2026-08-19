@@ -559,8 +559,8 @@ PHP
             file_put_contents(
                 $registration,
                 Str::make((string) FileSystem::fileContents($registration))
-                    ->replace(
-                        "final class AddOnRegistration\n{",
+                    ->replacePattern(
+                        '/final class AddOnRegistration\R\{/',
                         "final class AddOnRegistration\n{\n    {$constructor}"
                     )
                     ->val()
@@ -571,8 +571,8 @@ PHP
                 ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
                 ->val();
 
-            $this->assertFalse($result['valid']);
-            $this->assertContains('registration_class', $codes);
+            $this->assertFalse($result['valid'], "{$name} registration should be rejected.");
+            $this->assertContains('registration_class', $codes, "{$name} should report registration_class.");
         });
 
         (new AddOnScaffoldService($this->workspace))->generate('optional_constructor', 'optional_constructor');
@@ -581,8 +581,8 @@ PHP
         file_put_contents(
             $registration,
             Str::make((string) FileSystem::fileContents($registration))
-                ->replace(
-                    "final class AddOnRegistration\n{",
+                ->replacePattern(
+                    '/final class AddOnRegistration\R\{/',
                     "final class AddOnRegistration\n{\n"
                         . "    public function __construct(string \$name = 'default') {}"
                 )
