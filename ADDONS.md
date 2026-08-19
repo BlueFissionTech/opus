@@ -24,28 +24,101 @@ Keep these responsibilities separate:
 
 ## Package layout
 
-Use a conventional Composer package with a clear PSR-4 namespace. An installed package currently occupies `addons/<directory>/`, where `<directory>` is the manager's discovery key. The following layout includes the files consumed directly by the BlueCore manager. Both datasource directories are required even when empty.
+Use a conventional Composer package with the PSR-4 namespace
+`AddOns\\<PackageName>\\` mapped to `logic/`. An installed package currently
+occupies `addons/<directory>/`, where `<directory>` is the manager's discovery
+key. Generate and validate the canonical structure with:
+
+```shell
+php bin/opus-addon.php generate sample_tools addons/sample_tools
+php bin/opus-addon.php validate addons/sample_tools
+```
+
+The output parent must already exist. Generation validates a temporary tree,
+holds a target-specific publication lock, and claims the destination with an
+atomic no-clobber directory creation. It moves validated contents first and
+publishes `definition.json` last as the BlueCore discovery marker. Runtime
+discovery therefore cannot load a partially populated add-on, and cooperating
+or independent writers cannot have their destination replaced. When the
+destination is an immediate child of `addons/`, its directory name must exactly
+match the requested lifecycle key.
+The lifecycle key and installer directory use lowercase snake case
+(`sample_tools`) because the locked lifecycle manager also uses the key as the
+install/uninstall hook stem. Composer package slugs are normalized separately
+to kebab case (`opus-addon-sample-tools`). Their current values correspond, but
+they are distinct package and runtime identities.
+Generated Composer metadata defaults to the valid `proprietary` license
+identifier. Replace it with the intended SPDX identifier only when the package
+has an approved open-source release license.
 
 ```text
 composer.json
 definition.json
 main.php
 README.md
-src/
-    Application/
+logic/
+    Business/
+        Http/
+        Managers/
+        Prompts/
     Domain/
-    Infrastructure/
-    Presentation/
-config/
+        Models/
+        Queries/
+        Repositories/
+        Values/
+    Registration/
+mapping/
+    api.php
+    app.php
+    console.php
+    default.php
+    menus.php
 resource/
-    migrations/
-    templates/
-    translations/
+    markup/
+        default.vibe
+    src/
 datasources/
     generator/     # required; may be empty
     structure/     # required; may be empty
 tests/
+phpunit.xml
 ```
+
+Mapping files use one of two contracts. The generated form contains an optional
+strict-types declaration followed by a single returned array. Existing packages
+may instead import `BlueFission\Services\Mapping` and contain only
+`Mapping::add()` or `Mapping::crud()` registrations with fluent mapping policy
+calls. Arbitrary top-level assignments, includes, and function calls remain
+invalid. In particular, `menus.php` returns an empty result when no navigation
+service is supplied so isolated contract validation does not invent a global
+navigation dependency. Invalid menu declarations remain a validation failure;
+optional capability handling is not an error-suppression boundary.
+
+`definition.json` declares registration behavior through a package-owned class
+and a primary-file factory. The validator derives the registration file from
+the declared class instead of requiring a fixed filename. Theme entries declare
+a directory beneath `resource/markup/` and a `.vibe` entrypoint; this supports
+both a single-file default and directory-backed themes. Generated test bootstrap
+code first resolves a package-local Composer autoloader and then an application-
+root autoloader for packages installed under `addons/`.
+
+Server-rendered templates use `.vibe`, canonical `{$value}` variables,
+executable `.vibe` includes, and named regions. Client-side Reactor bindings
+remain separate from the server template contract.
+
+Existing add-ons that map `AddOns\\<PackageName>\\` to the package root should
+migrate the mapping to `logic/` while correcting file namespaces. Run
+`composer dump-autoload -o` and the Opus validator before publishing that
+change. Keep compatibility shims explicit and temporary; the scaffold does not
+generate aliases for historical namespaces.
+
+Canonical namespace casing is `AddOns\\`. Packages using historical `Addons\\`
+casing must update Composer PSR-4 metadata, declarations, and references in the
+same compatibility release; do not maintain permanent case-only aliases.
+Domain value objects belong in `logic/Domain/Values`. Packages using
+`Domain/Value` or `Domain/ValueObjects` should move the files and update their
+namespaces together, with a temporary explicit forwarding class only when a
+published API requires a migration window.
 
 ### Runtime discovery contract
 
