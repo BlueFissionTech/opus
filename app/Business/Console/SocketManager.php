@@ -2,6 +2,7 @@
 // https://nomadphp.com/blog/92/build-a-chat-system-with-php-sockets-and-w3c-web-sockets-apis
 namespace App\Business\Console;
 
+use BlueFission\Net\HTTP;
 use BlueFission\Services\Service;
 
 class SocketManager extends Service {
@@ -35,7 +36,7 @@ class SocketManager extends Service {
 				$socket_new = socket_accept($socket);	$clients[] = $socket_new; 
 				$header = socket_read($socket_new, 1024);
 				$this->perform_handshaking($header, $socket_new, $host, $port); 
-				socket_getpeername($socket_new, $ip);	$response = $this->mask(json_encode(array('type'=>'system', 'message'=>$ip.' connected')));
+				socket_getpeername($socket_new, $ip);	$response = $this->mask(HTTP::jsonEncode(['type'=>'system', 'message'=>$ip.' connected']));
 				$this->send_message($response); 
 				$found_socket = array_search($socket, $changed);
 				unset($changed[$found_socket]);
@@ -45,8 +46,8 @@ class SocketManager extends Service {
 
 				while(socket_recv($changed_socket, $buf, 1024, 0) >= 1)
 				{
-					$received_text = $this->unmask($buf);	$tst_msg = json_decode($received_text, true);	$user_name = $tst_msg['name'];	$user_message = $tst_msg['message'];	$user_color = $tst_msg['color']; 
-					$response_text = $this->mask(json_encode(array('type'=>'usermsg', 'name'=>$user_name, 'message'=>$user_message, 'color'=>$user_color)));
+					$received_text = $this->unmask($buf);	$tst_msg = HTTP::jsonDecode($received_text, true);	$user_name = $tst_msg['name'];	$user_message = $tst_msg['message'];	$user_color = $tst_msg['color'];
+					$response_text = $this->mask(HTTP::jsonEncode(['type'=>'usermsg', 'name'=>$user_name, 'message'=>$user_message, 'color'=>$user_color]));
 					send_message($response_text);	break 2;	
 				}
 
@@ -56,7 +57,7 @@ class SocketManager extends Service {
 					socket_getpeername($changed_socket, $ip);
 					unset($clients[$found_socket]);
 
-					$response = $this->mask(json_encode(array('type'=>'system', 'message'=>$ip.' disconnected')));
+					$response = $this->mask(HTTP::jsonEncode(['type'=>'system', 'message'=>$ip.' disconnected']));
 					$this->send_message($response);
 				}
 			}
@@ -76,6 +77,7 @@ class SocketManager extends Service {
 	}
 	
 	private function unmask($text) {
+		// WebSocket frame offsets and lengths are byte-level protocol operations.
 		$length = ord($text[1]) & 127;
 		if($length == 126) {
 			$masks = substr($text, 4, 4);

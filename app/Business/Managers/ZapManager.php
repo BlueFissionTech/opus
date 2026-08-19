@@ -1,6 +1,8 @@
 <?php
 namespace App\Business\Managers;
 
+use BlueFission\Net\HTTP;
+
 class ZapManager {
     private $apiKey;
     private $apiUrl = 'https://api.zapier.com/v1/';
@@ -16,7 +18,7 @@ class ZapManager {
             'http' => [
                 'header'  => "Content-Type: application/json\r\nAuthorization: Basic " . base64_encode($this->apiKey . ":"),
                 'method'  => $method,
-                'content' => json_encode($data)
+                'content' => HTTP::jsonEncode($data)
             ]
         ];
 
@@ -26,7 +28,7 @@ class ZapManager {
             throw new \Exception('Error calling Zapier API: ' . $http_response_header[0]);
         }
 
-        return json_decode($result, true);
+        return HTTP::jsonDecode($result, true);
     }
 
     public function searchZaps($query) {

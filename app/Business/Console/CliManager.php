@@ -3,6 +3,7 @@ namespace App\Business\Console;
 
 use BotMan\BotMan\BotMan;
 use BlueFission\Services\Service;
+use BlueFission\Str;
 use App\Business\Console\BotMan\CommandLineDriver;
 // use BlueFission\Wise\Cmd\CommandProcessor;
 
@@ -25,7 +26,7 @@ class CliManager extends Service {
 		$last_line = false;
 		$message = '';
 		while (!$last_line) {
-		    $next_line = trim(fgets($fp, 1024)); // read the special file to get the user input from keyboard
+		    $next_line = Str::trim((string) fgets($fp, 1024)); // read the special file to get the user input from keyboard
 		    if ("." == $next_line) {
 		      $last_line = true;
 		    } else {
@@ -66,7 +67,7 @@ class CliManager extends Service {
         	printf("%c%c",0x08,0x08);
 			echo "\e[0m> ";
 
-	        $next_line = trim(fgets($fp, 1024)); // read the special file to get the user input from keyboard
+	        $next_line = Str::trim((string) fgets($fp, 1024)); // read the special file to get the user input from keyboard
 	        if ("." == $next_line) {
 	            $last_line = true;
 	        } else {

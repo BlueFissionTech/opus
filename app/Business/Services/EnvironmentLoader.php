@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Business\Services;
 
+use BlueFission\Str;
+
 final class EnvironmentLoader
 {
     public static function import(string $file): void
@@ -14,24 +16,24 @@ final class EnvironmentLoader
         }
 
         foreach ($variables as $variable) {
-            $variable = trim($variable);
-            if ($variable === '' || str_starts_with($variable, '#')) {
+            $variable = Str::make($variable)->trim();
+            if ($variable->isEmpty() || $variable->startsWith('#')) {
                 continue;
             }
 
-            $separator = strpos($variable, '=');
-            if ($separator === false) {
+            $parts = $variable->split('=');
+            if ($parts->count() < 2) {
                 continue;
             }
 
-            $name = trim(substr($variable, 0, $separator));
-            if ($name === '') {
+            $name = Str::make((string) $parts->shift())->trim();
+            if ($name->isEmpty()) {
                 continue;
             }
 
-            $value = trim(substr($variable, $separator + 1));
-            putenv($name . '=' . $value);
-            $_ENV[$name] = $value;
+            $value = $parts->join('=')->trim()->val();
+            putenv($name->val() . '=' . $value);
+            $_ENV[$name->val()] = $value;
         }
     }
 }

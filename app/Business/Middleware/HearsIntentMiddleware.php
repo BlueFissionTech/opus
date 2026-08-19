@@ -9,6 +9,9 @@ use BotMan\BotMan\Messages\Incoming\IncomingMessage;
 use BotMan\BotMan\Messages\Outgoing\OutgoingMessage;
 use BlueFission\Automata\Intent\Matcher;
 use BlueFission\Automata\Context;
+use BlueFission\Arr;
+use BlueFission\Net\HTTP;
+use BlueFission\Str;
 
 class HearsIntentMiddleware implements Received, Sending
 {
@@ -56,11 +59,11 @@ class HearsIntentMiddleware implements Received, Sending
 
     protected function replyWithSkillResponse(BotMan $bot, $response)
     {
-        if (is_string($response) && $response != "") {
+        if (Str::is($response) && Str::make($response)->isNotEmpty()) {
             $bot->reply($response);
-        } elseif (is_array($response)) {
+        } elseif (Arr::is($response)) {
             // If the response is an array, you can convert it to JSON or handle it differently based on your needs
-            $bot->reply(json_encode($response));
+            $bot->reply(HTTP::jsonEncode($response));
         } else {
             // Handle other response types if necessary
         }

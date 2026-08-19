@@ -6,6 +6,7 @@ namespace App\Business\Services;
 
 use BlueFission\Arr;
 use BlueFission\Data\FileSystem;
+use BlueFission\Net\HTTP;
 use BlueFission\Services\Service;
 use BlueFission\Str;
 use RuntimeException;
@@ -203,7 +204,7 @@ class RuntimeContractProofService extends Service
             throw new RuntimeException("Runtime contract manifest could not be read.");
         }
 
-        $decoded = json_decode($contents, true);
+        $decoded = HTTP::jsonDecode($contents, true);
         if (!Arr::is($decoded)) {
             throw new RuntimeException("Runtime contract manifest is not valid JSON.");
         }

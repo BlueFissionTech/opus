@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Business\Services;
 
 use App\Business\Services\VibeGenerationService;
+use BlueFission\Arr;
 use BlueFission\Data\FileSystem;
 use BlueFission\Str;
 use PHPUnit\Framework\TestCase;
@@ -29,8 +30,8 @@ class VibeGenerationServiceTest extends TestCase
             'kernel' => 'Wise',
         ]);
 
-        $this->assertTrue($result['valid'], json_encode($result['errors']));
-        $this->assertSame('Opus kernel: Wise', trim($result['output']));
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
+        $this->assertSame('Opus kernel: Wise', Str::make($result['output'])->trim()->val());
         $this->assertSame('Wise', $result['variables']['kernel'] ?? null);
     }
 
@@ -48,9 +49,12 @@ class VibeGenerationServiceTest extends TestCase
             'agent' => 'ready',
         ]);
 
-        $this->assertTrue($result['valid'], json_encode($result['errors']));
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
         $this->assertTrue(FileSystem::fileExists($target));
-        $this->assertSame('Add-on agent: ready', trim((string) FileSystem::fileContents($target)));
+        $this->assertSame(
+            'Add-on agent: ready',
+            Str::make((string) FileSystem::fileContents($target))->trim()->val()
+        );
 
         unlink($source);
         unlink($target);
@@ -116,7 +120,7 @@ class VibeGenerationServiceTest extends TestCase
         try {
             $result = $service->writeRenderedFile($source, $target);
 
-            $this->assertTrue($result['valid'], json_encode($result['errors']));
+            $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
             $this->assertSame('Replacement content', FileSystem::fileContents($target));
             $this->assertSame('Outside original', FileSystem::fileContents($outside));
         } finally {
@@ -151,7 +155,7 @@ class VibeGenerationServiceTest extends TestCase
 
         $result = $service->writeRenderedFile($source, $target);
 
-        $this->assertTrue($result['valid'], json_encode($result['errors']));
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
         $this->assertSame(0644, fileperms($target) & 0777);
 
         unlink($source);
@@ -222,7 +226,7 @@ class VibeGenerationServiceTest extends TestCase
             chdir($originalDirectory);
         }
 
-        $this->assertTrue($result['valid'], json_encode($result['errors']));
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
         $this->assertSame($expectedTarget, $result['path']);
         $this->assertTrue(FileSystem::fileExists($expectedTarget));
 
@@ -246,7 +250,7 @@ class VibeGenerationServiceTest extends TestCase
 
         $result = $service->writeRenderedFile($source, $target);
 
-        $this->assertTrue($result['valid'], json_encode($result['errors']));
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
         $this->assertTrue(FileSystem::fileExists($target));
 
         unlink($source);

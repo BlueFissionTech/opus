@@ -5,6 +5,7 @@ namespace App\Business\Commands;
 use BlueFission\Services\Service;
 use App\Domain\User\Repositories\UserRepositorySql;
 use BlueFission\BlueCore\Auth as Authenticator;
+use BlueFission\Arr;
 use BlueFission\Str;
 use App\Business\Http\Api\Admin\UserController;
 
@@ -56,7 +57,7 @@ class UserResource extends Service
                 break;
 
             case 'list':
-                if ( count($args) > 0) {
+                if (Arr::make($args)->isNotEmpty()) {
                     $this->listProperties();
                 } elseif ($this->isAdmin()) {
                     $this->_response = $this->listUsers();
@@ -131,7 +132,7 @@ class UserResource extends Service
     {
         if ($this->authenticator->isAuthenticated()) {
             $user = $this->userRepository->find(USER_ID);
-            $properties = implode(', ', array_keys($user['data']));
+            $properties = Arr::make($user['data'])->keys()->join(', ')->val();
             $this->_response = "The following properties are available: {$properties}.";
         } else {
             $this->_response = "User is not authenticated.";
@@ -176,8 +177,9 @@ class UserResource extends Service
     {
         if ($this->isAdmin()) {
             $users = $this->userRepository->all();
-            $usernames = array_column($users, 'username');
-            $this->_response = "Usernames:\n" . implode("\n", $usernames);
+            $usernames = Arr::make($users)
+                ->map(fn (array $user) => Arr::make($user)->get('username'));
+            $this->_response = "Usernames:\n" . $usernames->join("\n")->val();
         } else {
             $this->_response = "User is not authenticated.";
         }
@@ -194,7 +196,8 @@ class UserResource extends Service
             $user = $this->userRepository->find($args[0]);
 
             if ($user) {
-                $this->_response = "Username: {$user['username']}\nGoals:\n" . implode("\n", $user['goals']);
+                $this->_response = "Username: {$user['username']}\nGoals:\n"
+                    . Arr::make($user['goals'])->join("\n")->val();
             } else {
                 $this->_response = "User not found.";
             }

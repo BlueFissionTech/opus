@@ -111,4 +111,27 @@ class RuntimeContractProofServiceTest extends TestCase
 
         $service->manifest();
     }
+
+    public function testInvalidJsonManifestRaisesAContractError(): void
+    {
+        $root = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opus-invalid-manifest-'
+            . bin2hex(random_bytes(8));
+        $directory = $root . DIRECTORY_SEPARATOR . 'examples' . DIRECTORY_SEPARATOR . 'jenss';
+        mkdir($directory, 0777, true);
+        file_put_contents($directory . DIRECTORY_SEPARATOR . 'runtime-contract-proof.json', '{invalid');
+
+        try {
+            $service = new RuntimeContractProofService($root);
+
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage('Runtime contract manifest is not valid JSON.');
+
+            $service->manifest();
+        } finally {
+            unlink($directory . DIRECTORY_SEPARATOR . 'runtime-contract-proof.json');
+            rmdir($directory);
+            rmdir(dirname($directory));
+            rmdir($root);
+        }
+    }
 }
