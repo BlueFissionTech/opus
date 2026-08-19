@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e668111c91f4d06070b1ea620c590beb",
+    "content-hash": "1d7d340fb9780dfce27f503b576584e9",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -238,16 +238,16 @@
         },
         {
             "name": "bluefission/develation",
-            "version": "v1.3.42",
+            "version": "v1.3.43",
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/develation.git",
-                "reference": "9731b85193e15b769c21ff12f4ee658eabbeb174"
+                "reference": "1707d69d6e12cb888af16a3dc64f92ab3ca6e2f6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/develation/zipball/9731b85193e15b769c21ff12f4ee658eabbeb174",
-                "reference": "9731b85193e15b769c21ff12f4ee658eabbeb174",
+                "url": "https://api.github.com/repos/BlueFissionTech/develation/zipball/1707d69d6e12cb888af16a3dc64f92ab3ca6e2f6",
+                "reference": "1707d69d6e12cb888af16a3dc64f92ab3ca6e2f6",
                 "shasum": ""
             },
             "require": {
@@ -265,7 +265,9 @@
             "suggest": {
                 "cboden/ratchet": "Install to use the optional BlueFission\\Async\\Sock Ratchet websocket transport.",
                 "ext-memcached": "Install to use Memcached storage and MemQueue.",
-                "ext-redis": "Install to use Redis connections, storage, and reliable queues."
+                "ext-mongodb": "Install with mongodb/mongodb to use the MongoLink database adapter.",
+                "ext-redis": "Install to use Redis connections, storage, and reliable queues.",
+                "mongodb/mongodb": "Install with ext-mongodb to use the MongoLink database adapter."
             },
             "type": "library",
             "autoload": {
@@ -308,7 +310,7 @@
                 "issues": "https://github.com/BlueFissionTech/develation/issues",
                 "source": "https://github.com/BlueFissionTech/develation"
             },
-            "time": "2026-08-17T19:23:43+00:00"
+            "time": "2026-08-19T22:53:03+00:00"
         },
         {
             "name": "bluefission/jenerator",
@@ -353,18 +355,24 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefissiontech/opus-addon-hoom",
-                "reference": "f25c2196e03deaece9a61b590c1e57ba00a572d3"
+                "reference": "98db9a8a50a0d5f76bc330db788d60d5a4eb8c82"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefissiontech/opus-addon-hoom/zipball/f25c2196e03deaece9a61b590c1e57ba00a572d3",
-                "reference": "f25c2196e03deaece9a61b590c1e57ba00a572d3",
+                "url": "https://api.github.com/repos/bluefissiontech/opus-addon-hoom/zipball/98db9a8a50a0d5f76bc330db788d60d5a4eb8c82",
+                "reference": "98db9a8a50a0d5f76bc330db788d60d5a4eb8c82",
                 "shasum": ""
             },
             "require": {
-                "firebase/php-jwt": "^6.0",
-                "php": "^8.0",
+                "bluefission/automata": "^1.0.0@alpha",
+                "bluefission/bluecore": "^0.1.1@alpha",
+                "bluefission/develation": "^1.3.41",
+                "firebase/php-jwt": "^7.0",
+                "php": "^8.2",
                 "phpseclib/phpseclib": "^3.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^11.5"
             },
             "default-branch": true,
             "type": "opus-addon",
@@ -374,8 +382,16 @@
             },
             "autoload": {
                 "psr-4": {
-                    "AddOns\\Hoom\\": "./"
+                    "AddOns\\Hoom\\": "logic/"
                 }
+            },
+            "scripts": {
+                "check:autoload": [
+                    "composer dump-autoload --optimize --strict-psr"
+                ],
+                "test": [
+                    "phpunit --do-not-cache-result"
+                ]
             },
             "license": [
                 "MIT"
@@ -387,7 +403,7 @@
                 }
             ],
             "description": "AddOn for advanced user/entity login and session management",
-            "time": "2025-07-13T22:51:22+00:00"
+            "time": "2026-08-19T14:25:09+00:00"
         },
         {
             "name": "bluefission/opus-addon-kapsle",
@@ -1184,16 +1200,16 @@
         },
         {
             "name": "firebase/php-jwt",
-            "version": "v6.11.1",
+            "version": "v7.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/php-jwt.git",
-                "reference": "d1e91ecf8c598d073d0995afa8cd5c75c6e19e66"
+                "reference": "b374a5d1a4f1f67fadc2165cdb284645945e2fc0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/php-jwt/zipball/d1e91ecf8c598d073d0995afa8cd5c75c6e19e66",
-                "reference": "d1e91ecf8c598d073d0995afa8cd5c75c6e19e66",
+                "url": "https://api.github.com/repos/googleapis/php-jwt/zipball/b374a5d1a4f1f67fadc2165cdb284645945e2fc0",
+                "reference": "b374a5d1a4f1f67fadc2165cdb284645945e2fc0",
                 "shasum": ""
             },
             "require": {
@@ -1201,6 +1217,8 @@
             },
             "require-dev": {
                 "guzzlehttp/guzzle": "^7.4",
+                "phpfastcache/phpfastcache": "^9.2",
+                "phpseclib/phpseclib": "~3.0",
                 "phpspec/prophecy-phpunit": "^2.0",
                 "phpunit/phpunit": "^9.5",
                 "psr/cache": "^2.0||^3.0",
@@ -1209,7 +1227,8 @@
             },
             "suggest": {
                 "ext-sodium": "Support EdDSA (Ed25519) signatures",
-                "paragonie/sodium_compat": "Support EdDSA (Ed25519) signatures when libsodium is not present"
+                "paragonie/sodium_compat": "Support EdDSA (Ed25519) signatures when libsodium is not present",
+                "phpseclib/phpseclib": "Support PS256 (RSASSA-PSS) signatures"
             },
             "type": "library",
             "autoload": {
@@ -1234,16 +1253,16 @@
                 }
             ],
             "description": "A simple library to encode and decode JSON Web Tokens (JWT) in PHP. Should conform to the current spec.",
-            "homepage": "https://github.com/firebase/php-jwt",
+            "homepage": "https://github.com/googleapis/php-jwt",
             "keywords": [
                 "jwt",
                 "php"
             ],
             "support": {
                 "issues": "https://github.com/googleapis/php-jwt/issues",
-                "source": "https://github.com/googleapis/php-jwt/tree/v6.11.1"
+                "source": "https://github.com/googleapis/php-jwt/tree/v7.1.0"
             },
-            "time": "2025-04-09T20:32:01+00:00"
+            "time": "2026-06-11T17:54:14+00:00"
         },
         {
             "name": "google/auth",
@@ -1924,16 +1943,16 @@
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "2.5.1",
+            "version": "2.5.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29"
+                "reference": "2823687acff28b2dbe67b2508a6b300e2c3fa4ce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/9ad1e4fc607446a055b95870c7f668e93b5cff29",
-                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/2823687acff28b2dbe67b2508a6b300e2c3fa4ce",
+                "reference": "2823687acff28b2dbe67b2508a6b300e2c3fa4ce",
                 "shasum": ""
             },
             "require": {
@@ -1988,7 +2007,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
-                "source": "https://github.com/guzzle/promises/tree/2.5.1"
+                "source": "https://github.com/guzzle/promises/tree/2.5.2"
             },
             "funding": [
                 {
@@ -2004,7 +2023,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-08T15:48:39+00:00"
+            "time": "2026-08-05T19:30:54+00:00"
         },
         {
             "name": "guzzlehttp/psr7",
@@ -2987,16 +3006,16 @@
         },
         {
             "name": "phpseclib/phpseclib",
-            "version": "3.0.55",
+            "version": "3.0.56",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpseclib/phpseclib.git",
-                "reference": "db9744e6d47e742b1f974e965ad49bdd041105af"
+                "reference": "7adbbe38cde25e2df2116dbf2673c407e24fa305"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/db9744e6d47e742b1f974e965ad49bdd041105af",
-                "reference": "db9744e6d47e742b1f974e965ad49bdd041105af",
+                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/7adbbe38cde25e2df2116dbf2673c407e24fa305",
+                "reference": "7adbbe38cde25e2df2116dbf2673c407e24fa305",
                 "shasum": ""
             },
             "require": {
@@ -3077,7 +3096,7 @@
             ],
             "support": {
                 "issues": "https://github.com/phpseclib/phpseclib/issues",
-                "source": "https://github.com/phpseclib/phpseclib/tree/3.0.55"
+                "source": "https://github.com/phpseclib/phpseclib/tree/3.0.56"
             },
             "funding": [
                 {
@@ -3093,7 +3112,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-14T23:24:10+00:00"
+            "time": "2026-08-03T04:36:50+00:00"
         },
         {
             "name": "psr/cache",
