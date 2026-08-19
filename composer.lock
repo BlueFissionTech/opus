@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e668111c91f4d06070b1ea620c590beb",
+    "content-hash": "1d7d340fb9780dfce27f503b576584e9",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -238,16 +238,16 @@
         },
         {
             "name": "bluefission/develation",
-            "version": "v1.3.42",
+            "version": "v1.3.43",
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/develation.git",
-                "reference": "9731b85193e15b769c21ff12f4ee658eabbeb174"
+                "reference": "1707d69d6e12cb888af16a3dc64f92ab3ca6e2f6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/develation/zipball/9731b85193e15b769c21ff12f4ee658eabbeb174",
-                "reference": "9731b85193e15b769c21ff12f4ee658eabbeb174",
+                "url": "https://api.github.com/repos/BlueFissionTech/develation/zipball/1707d69d6e12cb888af16a3dc64f92ab3ca6e2f6",
+                "reference": "1707d69d6e12cb888af16a3dc64f92ab3ca6e2f6",
                 "shasum": ""
             },
             "require": {
@@ -265,7 +265,9 @@
             "suggest": {
                 "cboden/ratchet": "Install to use the optional BlueFission\\Async\\Sock Ratchet websocket transport.",
                 "ext-memcached": "Install to use Memcached storage and MemQueue.",
-                "ext-redis": "Install to use Redis connections, storage, and reliable queues."
+                "ext-mongodb": "Install with mongodb/mongodb to use the MongoLink database adapter.",
+                "ext-redis": "Install to use Redis connections, storage, and reliable queues.",
+                "mongodb/mongodb": "Install with ext-mongodb to use the MongoLink database adapter."
             },
             "type": "library",
             "autoload": {
@@ -308,7 +310,7 @@
                 "issues": "https://github.com/BlueFissionTech/develation/issues",
                 "source": "https://github.com/BlueFissionTech/develation"
             },
-            "time": "2026-08-17T19:23:43+00:00"
+            "time": "2026-08-19T22:53:03+00:00"
         },
         {
             "name": "bluefission/jenerator",
