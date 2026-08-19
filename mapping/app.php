@@ -14,6 +14,7 @@ use BlueFission\Wise\Res\VariableResource;
 use BlueFission\Wise\Res\StackResource;
 use BlueFission\Wise\Res\QueueResource;
 use BlueFission\Wise\Res\FileResource;
+use BlueFission\Wise\Commands\FileResource as LegacyFileResource;
 use BlueFission\Wise\Res\NoteResource;
 use BlueFission\Wise\Res\TodoResource;
 use BlueFission\Wise\Res\StepResource;
@@ -24,6 +25,7 @@ use BlueFission\Wise\Res\EntityResource;
 use BlueFission\Wise\Res\AIResource;
 use BlueFission\Wise\Res\APIResource;
 use BlueFission\Wise\Res\ActionResource;
+use App\Business\Services\WiseResourceClassResolver;
 use App\Business\Commands\UserResource;
 
 $app = App::instance();
@@ -188,7 +190,10 @@ $app->delegate( 'stack', StackResource::class );
 $app->register( 'stack', 'add', 'handle' );
 $app->register( 'stack', 'get', 'handle' );
 
-$app->delegate( 'file', FileResource::class );
+$app->delegate(
+    'file',
+    WiseResourceClassResolver::resolve(FileResource::class, LegacyFileResource::class)
+);
 $app->register( 'file', 'make', 'handle' );
 $app->register( 'file', 'edit', 'handle' );
 $app->register( 'file', 'add', 'handle' );
