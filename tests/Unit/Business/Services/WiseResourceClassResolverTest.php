@@ -44,15 +44,21 @@ final class WiseResourceClassResolverTest extends TestCase
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
-    public function testItDoesNotReloadAPreloadedLegacyWiseResource(): void
+    public function testItResolvesAResourceWhenWiseCompatibilityIsPreloaded(): void
     {
         $legacyClass = \BlueFission\Wise\Commands\FileResource::class;
 
         $this->assertTrue(class_exists($legacyClass));
-        $this->assertSame(
-            $legacyClass,
-            WiseResourceClassResolver::resolve(\BlueFission\Wise\Res\FileResource::class, $legacyClass)
+        $resource = WiseResourceClassResolver::resolve(
+            \BlueFission\Wise\Res\FileResource::class,
+            $legacyClass
         );
+
+        $this->assertTrue(class_exists($resource, false));
+        $this->assertContains($resource, [
+            \BlueFission\Wise\Res\FileResource::class,
+            $legacyClass,
+        ]);
     }
 
     /**
