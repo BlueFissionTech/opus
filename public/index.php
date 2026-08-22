@@ -9,18 +9,18 @@ use BlueFission\Utils\Loader;
 use BlueFission\Utils\Util;
 use BlueFission\BlueCore\Engine as App;
 
-// Require the autoloader for composer-based dependencies
-require '../vendor/autoload.php';
-require '../common/helpers/functions.php';
-require '../common/helpers/settings.php';
+// Resolve the active host autoloader before loading application settings.
+$runtimePaths = require dirname(__DIR__) . '/common/bootstrap/runtime.php';
+require $runtimePaths->packageRoot() . '/common/helpers/functions.php';
+require $runtimePaths->packageRoot() . '/common/helpers/settings.php';
 
 // Require the autoloader for non-composer based scripts
 // Initialize the Loader utility for non-composer compatible scripts
 $loader = Loader::instance();
-$loader->addPath(dirname(getcwd()));
-$loader->addPath(dirname(getcwd()).DIRECTORY_SEPARATOR."core");
-$loader->addPath(dirname(getcwd()).DIRECTORY_SEPARATOR."mod");
-$loader->addPath(dirname(getcwd()).DIRECTORY_SEPARATOR."app");
+$loader->addPath($runtimePaths->hostRoot());
+$loader->addPath($runtimePaths->packageRoot());
+$loader->addPath($runtimePaths->hostRoot() . DIRECTORY_SEPARATOR . "mod");
+$loader->addPath($runtimePaths->hostRoot() . DIRECTORY_SEPARATOR . "app");
 
 // Start a session
 session_start();

@@ -29,6 +29,21 @@ release aliases in the consumer template. All other discovered
 `bluefission/*` packages must have canonical GitHub VCS routes in both the Opus
 root and the consumer template.
 
+Run Composer-installed root and entrypoint coverage with:
+
+```powershell
+vendor\bin\phpunit --do-not-cache-result tests\Unit\Business\Services\RuntimePathResolverTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\RuntimeSettingsTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\InstalledAddOnEntrypointTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\TerminalBootstrapOrderTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\Registration\AppRegistrationTest.php
+```
+
+The resolver fixtures model source checkouts and Composer source/distribution
+installs. The entrypoint tests verify Composer binary metadata, active host
+autoload precedence, distinct host/package constants, package-owned themes,
+and clean login/administration template rendering.
+
 ## Runtime Contract Validation
 
 The default PHPUnit suite checks that the runtime contract files are present and

@@ -22,4 +22,13 @@ class ComposerMetadataTest extends TestCase
         $this->assertArrayNotHasKey('cboden/ratchet', $composer['require'] ?? []);
         $this->assertArrayHasKey('cboden/ratchet', $composer['suggest'] ?? []);
     }
+
+    public function testAddOnCommandIsPublishedAsAComposerBinary(): void
+    {
+        $contents = FileSystem::fileContents(__DIR__ . '/../../composer.json');
+        $composer = HTTP::jsonDecode((string) $contents, true, []);
+
+        $this->assertContains('bin/opus-addon.php', $composer['bin'] ?? []);
+        $this->assertFileExists(__DIR__ . '/../../bin/opus-addon.php');
+    }
 }

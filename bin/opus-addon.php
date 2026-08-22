@@ -7,7 +7,7 @@ use App\Business\Services\AddOnScaffoldService;
 use BlueFission\Arr;
 use BlueFission\Str;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+$runtimePaths = require dirname(__DIR__) . '/common/bootstrap/runtime.php';
 
 $command = $argv[1] ?? '';
 

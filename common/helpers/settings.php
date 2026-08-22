@@ -1,13 +1,20 @@
 <?php
 
+use App\Business\Services\RuntimePathResolver;
+
+$runtimePaths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover();
+
 // TODO: set this in a config file
 date_default_timezone_set('America/New_York');
 
 if (!defined("APP_ROOT") ){
-	define('APP_ROOT', dirname(dirname(dirname(__FILE__))).'/');	
+	define('APP_ROOT', $runtimePaths->hostRoot() . DIRECTORY_SEPARATOR);
 }
 if (!defined("OPUS_ROOT") ){
-	define('OPUS_ROOT', APP_ROOT);
+	define('OPUS_ROOT', $runtimePaths->packageRoot() . DIRECTORY_SEPARATOR);
+}
+if (!defined("OPUS_RESOURCE_ROOT") ){
+	define('OPUS_RESOURCE_ROOT', $runtimePaths->packageResourceRoot() . DIRECTORY_SEPARATOR);
 }
 if (!defined("PROJECT_ROOT") ){
 	define('PROJECT_ROOT', APP_ROOT . 'core');

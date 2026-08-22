@@ -1,5 +1,7 @@
 <?php
-require 'vendor/autoload.php';
+$runtimePaths = require __DIR__ . '/common/bootstrap/runtime.php';
+require $runtimePaths->packageRoot() . '/common/helpers/functions.php';
+require $runtimePaths->packageRoot() . '/common/helpers/settings.php';
 
 use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;
