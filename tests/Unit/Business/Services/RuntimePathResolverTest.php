@@ -35,6 +35,10 @@ final class RuntimePathResolverTest extends TestCase
             if (!$path instanceof SplFileInfo) {
                 continue;
             }
+            if ($path->isLink()) {
+                unlink($path->getPathname());
+                continue;
+            }
             $path->isDir() ? rmdir($path->getPathname()) : unlink($path->getPathname());
         }
         rmdir($this->workspace);
@@ -81,6 +85,28 @@ final class RuntimePathResolverTest extends TestCase
 
         $this->assertSame(realpath($host . '/vendor/autoload.php'), $resolver->autoloadPath());
         $this->assertDirectoryDoesNotExist($package . '/.git');
+    }
+
+    public function testSymlinkedCoreInstallPreservesHostAutoloaderDiscovery(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {
+            $this->markTestSkipped('Directory symlinks are unavailable in this environment.');
+        }
+
+        $source = $this->package($this->workspace . '/source/opus');
+        $host = $this->workspace . '/linked-host';
+        mkdir($host, 0777, true);
+        $this->autoload($host . '/vendor/autoload.php');
+        $link = $host . '/core';
+        if (!@symlink($source, $link)) {
+            $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
+        }
+
+        $resolver = RuntimePathResolver::discover($link);
+
+        $this->assertSame(realpath($source), $resolver->packageRoot());
+        $this->assertSame(realpath($host . '/vendor/autoload.php'), $resolver->autoloadPath());
+        $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
     public function testStandaloneVendorInstallUsesTheHostAutoloader(): void
@@ -132,6 +158,29 @@ final class RuntimePathResolverTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $resolver->packageResourcePath(DIRECTORY_SEPARATOR . 'outside');
+    }
+
+    public function testResourceSymlinksCannotEscapeTheOwningRoot(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {
+            $this->markTestSkipped('Directory symlinks are unavailable in this environment.');
+        }
+
+        $package = $this->package($this->workspace . '/package');
+        $outside = $this->workspace . '/outside';
+        mkdir($outside, 0777, true);
+        file_put_contents($outside . '/template.vibe', '<h1>Outside</h1>');
+        mkdir($package . '/resource/themes', 0777, true);
+        $link = $package . '/resource/themes/link';
+        if (!@symlink($outside, $link)) {
+            $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
+        }
+        $resolver = RuntimePathResolver::discover($package);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must remain inside their owning root');
+
+        $resolver->packageResourcePath('themes/link/template.vibe');
     }
 
     private function package(string $root): string
