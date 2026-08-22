@@ -22,4 +22,33 @@ class ComposerMetadataTest extends TestCase
         $this->assertArrayNotHasKey('cboden/ratchet', $composer['require'] ?? []);
         $this->assertArrayHasKey('cboden/ratchet', $composer['suggest'] ?? []);
     }
+
+    public function testWiseRuntimeProfilesHaveExplicitDependencyContracts(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $composer = $this->readJson($root . '/composer.json');
+        $required = $this->readJson($root . '/templates/composer/opus-root.json');
+        $optional = $this->readJson($root . '/templates/composer/opus-root-optional-wise.json');
+
+        $this->assertArrayNotHasKey('bluefission/wise', $composer['require'] ?? []);
+        $this->assertSame('dev-main', $composer['require-dev']['bluefission/wise'] ?? null);
+        $this->assertArrayHasKey('bluefission/wise', $composer['suggest'] ?? []);
+        $this->assertSame('dev-main', $required['require']['bluefission/wise'] ?? null);
+        $this->assertArrayNotHasKey('bluefission/wise', $optional['require'] ?? []);
+        $this->assertArrayNotHasKey('bluefission/wise', $optional['repositories'] ?? []);
+    }
+
+    /** @return array<string, mixed> */
+    private function readJson(string $path): array
+    {
+        $contents = FileSystem::fileContents($path);
+
+        $this->assertIsString($contents);
+
+        $decoded = HTTP::jsonDecode($contents, true, []);
+
+        $this->assertIsArray($decoded);
+
+        return $decoded;
+    }
 }

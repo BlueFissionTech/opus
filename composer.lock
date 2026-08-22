@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1d7d340fb9780dfce27f503b576584e9",
+    "content-hash": "7278a0aa90fc26a37954eab2971d7950",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -483,14 +483,26 @@
             },
             "require": {
                 "bluefission/automata": "^1.0.0-alpha.2",
-                "bluefission/develation": "^1.3.41",
-                "bluefission/synematic": "dev-main",
+                "bluefission/develation": "^1.3.43",
                 "ext-json": "*",
                 "nyholm/psr7": "^1.8",
                 "php": ">=8.2"
             },
+            "require-dev": {
+                "phpunit/phpunit": "^10.5 || ^11.5"
+            },
+            "suggest": {
+                "bluefission/annex-php-sdk": "Adds protocol handshake and trust-contract transport integration.",
+                "bluefission/bluecore": "Adds framework bridge and middleware hosting capabilities.",
+                "bluefission/synematic": "Adds workflow, provenance, privacy, and interoperability coordination."
+            },
             "default-branch": true,
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "0.1.x-dev"
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "BlueFission\\Presence\\": "src/"
@@ -795,6 +807,9 @@
             "require-dev": {
                 "php": ">=8.0.0",
                 "phpunit/phpunit": "^11.1@dev"
+            },
+            "suggest": {
+                "bluefission/presence": "Enables advanced authentication, authorization, and session integration."
             },
             "default-branch": true,
             "type": "package",
