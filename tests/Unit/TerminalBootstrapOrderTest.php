@@ -21,4 +21,16 @@ class TerminalBootstrapOrderTest extends TestCase
         $this->assertNotFalse($settings);
         $this->assertLessThan($settings, $autoload);
     }
+
+    public function testWebSocketWorkerLoadsSharedSettingsAfterComposer(): void
+    {
+        $worker = FileSystem::fileContents(dirname(__DIR__, 2) . '/websocket-server.php');
+        $this->assertIsString($worker);
+        $autoload = Str::pos($worker, "require 'vendor/autoload.php';");
+        $settings = Str::pos($worker, "require 'common/helpers/settings.php';");
+
+        $this->assertNotFalse($autoload);
+        $this->assertNotFalse($settings);
+        $this->assertLessThan($settings, $autoload);
+    }
 }

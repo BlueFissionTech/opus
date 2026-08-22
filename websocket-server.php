@@ -1,5 +1,7 @@
 <?php
 require 'vendor/autoload.php';
+require 'common/helpers/functions.php';
+require 'common/helpers/settings.php';
 
 use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;
