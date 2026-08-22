@@ -8,6 +8,11 @@ use BlueFission\Str;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+$entrypoint = realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
+if ($entrypoint === false || $entrypoint !== realpath(__FILE__)) {
+    return;
+}
+
 $apiKey = getenv('ZAPIER_API_KEY');
 if (!Str::is($apiKey) || Str::isEmpty($apiKey)) {
     fwrite(STDERR, "ZAPIER_API_KEY is required.\n");

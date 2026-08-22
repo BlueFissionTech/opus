@@ -16,6 +16,15 @@ final class ZapManagerTest extends TestCase
         $this->assertTrue(class_exists(ZapManager::class));
     }
 
+    public function testExampleCanBeIncludedWithoutExecutingOrExiting(): void
+    {
+        ob_start();
+        require dirname(__DIR__, 4) . '/examples/zap-manager.php';
+        $output = ob_get_clean();
+
+        $this->assertSame('', $output);
+    }
+
     public function testUnavailableCredentialsReturnAStableFailure(): void
     {
         $connection = $this->connection();
