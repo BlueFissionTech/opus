@@ -60,7 +60,10 @@ final class VibeContextPolicy
         $url = Str::make($value)->trim();
         $rawUrl = $url->val();
 
-        if (preg_match('/[\x00-\x20\x7F]/', $rawUrl) === 1 || Str::startsWith($rawUrl, '//')) {
+        if (
+            preg_match('/[\x00-\x20\x7F]/', $rawUrl) === 1
+            || preg_match('~^[\\\\/]{2}~', $rawUrl) === 1
+        ) {
             throw new \InvalidArgumentException('Vibe URL values must not contain controls or protocol-relative targets.');
         }
 
@@ -77,9 +80,7 @@ final class VibeContextPolicy
 
     private function protectScript(mixed $value): string
     {
-        if (is_object($value) || is_resource($value)) {
-            throw new \InvalidArgumentException('Vibe script values must be JSON-compatible scalars or arrays.');
-        }
+        $this->assertScriptValue($value);
 
         $encoded = HTTP::jsonEncode($value);
         if (!Str::is($encoded)) {
@@ -92,6 +93,26 @@ final class VibeContextPolicy
             ->replace('>', '\\u003E')
             ->replace("'", '\\u0027')
             ->val();
+    }
+
+    private function assertScriptValue(mixed $value): void
+    {
+        if (Arr::is($value)) {
+            Arr::make($value)->each(fn (mixed $item): mixed => $this->validateScriptItem($item));
+
+            return;
+        }
+
+        if (is_object($value) || is_resource($value)) {
+            throw new \InvalidArgumentException('Vibe script values must be JSON-compatible scalars or arrays.');
+        }
+    }
+
+    private function validateScriptItem(mixed $value): mixed
+    {
+        $this->assertScriptValue($value);
+
+        return $value;
     }
 
     private function trustedMarkup(mixed $value): string

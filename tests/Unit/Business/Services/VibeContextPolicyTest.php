@@ -57,6 +57,8 @@ final class VibeContextPolicyTest extends TestCase
             'mixed case javascript' => ['JaVaScRiPt:alert(1)'],
             'data' => ['data:text/html,<script>alert(1)</script>'],
             'protocol relative' => ['//example.com/path'],
+            'backslash protocol relative' => ['\\\\example.com/path'],
+            'mixed slash protocol relative' => ['/\\example.com/path'],
             'control' => ["https://example.com/\nscript"],
         ];
     }
@@ -72,6 +74,40 @@ final class VibeContextPolicyTest extends TestCase
         $this->assertStringContainsString('\\u0027', $protected);
         $this->assertStringContainsString('\\u003C\\/script\\u003E', $protected);
         $this->assertStringNotContainsString('</script>', $protected);
+    }
+
+    public function testItRejectsNestedObjectsBeforeEncodingScriptValues(): void
+    {
+        $value = new class implements \JsonSerializable {
+            public function jsonSerialize(): mixed
+            {
+                throw new \RuntimeException('Renderer must not invoke consumer serialization.');
+            }
+        };
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('JSON-compatible scalars or arrays');
+
+        (new VibeContextPolicy())->protect(VibeValue::script([
+            'payload' => ['nested' => $value],
+        ]));
+    }
+
+    public function testItRejectsNestedResourcesBeforeEncodingScriptValues(): void
+    {
+        $resource = fopen('php://memory', 'rb');
+        $this->assertIsResource($resource);
+
+        try {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->expectExceptionMessage('JSON-compatible scalars or arrays');
+
+            (new VibeContextPolicy())->protect(VibeValue::script([
+                'payload' => ['nested' => $resource],
+            ]));
+        } finally {
+            fclose($resource);
+        }
     }
 
     public function testItOnlyPassesExplicitStringMarkupWithoutEncoding(): void
