@@ -15,7 +15,7 @@ if ($command === 'generate') {
     $name = $argv[2] ?? '';
     $target = $argv[3] ?? '';
     $namespace = $argv[4] ?? null;
-    $result = (new AddOnScaffoldService())->generate($name, $target, $namespace);
+    $result = (new AddOnScaffoldService($runtimePaths->hostRoot()))->generate($name, $target, $namespace);
     print Str::make(Arr::make($result)->toJson())->append(PHP_EOL)->val();
     exit($result['created'] ? 0 : 1);
 }

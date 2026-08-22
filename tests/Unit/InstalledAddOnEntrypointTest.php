@@ -24,6 +24,7 @@ final class InstalledAddOnEntrypointTest extends TestCase
         mkdir($this->workspace . '/core/common/bootstrap', 0777, true);
         mkdir($this->workspace . '/core/app/Business/Services', 0777, true);
         mkdir($this->workspace . '/vendor', 0777, true);
+        mkdir($this->workspace . '/addons', 0777, true);
 
         $packageRoot = dirname(__DIR__, 2);
         copy($packageRoot . '/bin/opus-addon.php', $this->workspace . '/core/bin/opus-addon.php');
@@ -89,5 +90,40 @@ final class InstalledAddOnEntrypointTest extends TestCase
         $this->assertSame(0, $exitCode, (string) $output);
         $result = HTTP::jsonDecode((string) $output, true, []);
         $this->assertTrue(Arr::make($result)->get('valid'));
+    }
+
+    public function testInstalledGeneratorPublishesInsideTheResolvedHost(): void
+    {
+        $pipes = [];
+        $process = proc_open(
+            [
+                PHP_BINARY,
+                $this->workspace . '/core/bin/opus-addon.php',
+                'generate',
+                'runtime_probe',
+                'addons/runtime_probe',
+            ],
+            [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes,
+            $this->workspace
+        );
+        $this->assertIsResource($process);
+        fclose($pipes[0]);
+        $output = stream_get_contents($pipes[1]);
+        $errors = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $exitCode = proc_close($process);
+
+        $this->assertSame('', $errors);
+        $this->assertSame(0, $exitCode, (string) $output);
+        $result = HTTP::jsonDecode((string) $output, true, []);
+        $this->assertTrue(Arr::make($result)->get('created'));
+        $this->assertFileExists($this->workspace . '/addons/runtime_probe/definition.json');
+        $this->assertFileDoesNotExist($this->workspace . '/core/addons/runtime_probe/definition.json');
     }
 }
