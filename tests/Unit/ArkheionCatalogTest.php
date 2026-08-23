@@ -26,6 +26,11 @@ final class ArkheionCatalogTest extends TestCase
         'Synematic add-on',
     ];
 
+    private const PACKAGE_ROWS = [
+        'bluefission/opus-addon-hoom' => 'Hoom',
+        'bluefission/opus-addon-kapsle' => 'Kapsle',
+    ];
+
     public function testCatalogCoversEveryNamedCapabilityAndMaturityState(): void
     {
         $catalog = Str::make((string) FileSystem::fileContents($this->catalogPath()));
@@ -64,9 +69,24 @@ final class ArkheionCatalogTest extends TestCase
         $addOns->each(function (array $package) use ($catalog): void {
             $metadata = Arr::make($package);
             $source = Arr::make($metadata->get('source', []));
+            $packageName = (string) $metadata->get('name');
+            $reference = Str::sub((string) $source->get('reference'), 0, 7);
 
-            $this->assertTrue($catalog->contains('`' . $metadata->get('name') . '`'));
-            $this->assertTrue($catalog->contains('`' . Str::sub((string) $source->get('reference'), 0, 7) . '`'));
+            $this->assertArrayHasKey($packageName, self::PACKAGE_ROWS);
+
+            $expectedRow = Str::make('| ')
+                ->append(self::PACKAGE_ROWS[$packageName])
+                ->append(' | `')
+                ->append($packageName)
+                ->append('` at `')
+                ->append($reference)
+                ->append('` |')
+                ->val();
+
+            $this->assertTrue(
+                $catalog->contains($expectedRow),
+                $packageName . ' and ' . $reference . ' must appear in the same catalog row.'
+            );
         });
     }
 
