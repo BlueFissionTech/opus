@@ -17,6 +17,8 @@ use RecursiveIteratorIterator;
 final class AddOnContractValidator extends Service
 {
     private VibeSyntaxValidator $vibeValidator;
+    private AgentCapabilityMapValidator $agentMapValidator;
+    private DeclarativeArrayParser $declarativeParser;
 
     private const REQUIRED_FILES = [
         'composer.json',
@@ -27,6 +29,7 @@ final class AddOnContractValidator extends Service
         'mapping/app.php',
         'mapping/console.php',
         'mapping/default.php',
+        'mapping/agents.php',
         'mapping/menus.php',
         'phpunit.xml',
         'tests/bootstrap.php',
@@ -47,11 +50,18 @@ final class AddOnContractValidator extends Service
         'tests',
     ];
 
-    public function __construct(?VibeSyntaxValidator $vibeValidator = null)
+    public function __construct(
+        ?VibeSyntaxValidator $vibeValidator = null,
+        ?AgentCapabilityMapValidator $agentMapValidator = null,
+        ?DeclarativeArrayParser $declarativeParser = null
+    )
     {
         parent::__construct();
 
         $this->vibeValidator = $vibeValidator ?? new VibeSyntaxValidator();
+        $this->declarativeParser = $declarativeParser ?? new DeclarativeArrayParser();
+        $this->agentMapValidator = $agentMapValidator
+            ?? new AgentCapabilityMapValidator($this->declarativeParser);
     }
 
     public function validate(string $root): array
@@ -86,6 +96,7 @@ final class AddOnContractValidator extends Service
         $this->validateRegistration($root, $namespace, $definition, $errors);
         $this->validateThemes($root, $definition, $errors);
         $this->validatePhpFiles($root, $namespace, $errors);
+        $this->validateAgentMap($root, $definition, $errors);
         $this->validateVibeFiles($root, $errors);
 
         return $this->report($errors, $warnings);
@@ -238,6 +249,42 @@ final class AddOnContractValidator extends Service
                 $errors->push($this->problem('template_syntax', $this->relative($root, $file), 'Vibe template syntax is invalid.'));
             }
         }
+    }
+
+    private function validateAgentMap(string $root, array $definition, Arr $errors): void
+    {
+        $definition = Arr::make($definition);
+        if ($definition->get('agent_mapping') !== 'mapping/agents.php') {
+            $errors->push($this->problem(
+                'agent_mapping_manifest',
+                'definition.json',
+                'Agent mapping must reference mapping/agents.php.'
+            ));
+        }
+
+        $agentPath = $this->path($root, 'mapping/agents.php');
+        $consolePath = $this->path($root, 'mapping/console.php');
+        if (!FileSystem::fileExists($agentPath) || !FileSystem::fileExists($consolePath)) {
+            return;
+        }
+
+        $console = Arr::make($this->declarativeParser->parseFile($consolePath));
+        $knownTools = $console->get('valid')
+            ? $this->agentMapValidator->knownToolsFromConsole((array) $console->get('value'))
+            : [];
+        $validation = Arr::make($this->agentMapValidator->validateFile(
+            $agentPath,
+            $knownTools,
+            Str::is($definition->get('name')) ? (string) $definition->get('name') : null
+        ));
+        Arr::make((array) $validation->get('errors'))->each(function ($problem) use ($errors): void {
+            $problem = Arr::make((array) $problem);
+            $errors->push($this->problem(
+                (string) $problem->get('code'),
+                'mapping/agents.php',
+                (string) $problem->get('message')
+            ));
+        });
     }
 
     private function readJson(string $root, string $relative, Arr $errors): array

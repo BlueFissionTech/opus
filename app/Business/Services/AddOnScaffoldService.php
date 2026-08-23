@@ -142,6 +142,7 @@ final class AddOnScaffoldService extends Service
                 'class' => $namespace . '\\Registration\\AddOnRegistration',
                 'factory' => 'main.php',
             ],
+            'agent_mapping' => 'mapping/agents.php',
             'themes' => [
                 'default' => [
                     'directory' => 'resource/markup',
@@ -166,6 +167,7 @@ final class AddOnRegistration
             'app' => require dirname(__DIR__, 2) . '/mapping/app.php',
             'console' => require dirname(__DIR__, 2) . '/mapping/console.php',
             'default' => require dirname(__DIR__, 2) . '/mapping/default.php',
+            'agents' => require dirname(__DIR__, 2) . '/mapping/agents.php',
             'menus' => require dirname(__DIR__, 2) . '/mapping/menus.php',
         ];
     }
@@ -202,8 +204,9 @@ PHP
             'logic/Registration/AddOnRegistration.php' => $registration . "\n",
             'mapping/api.php' => $this->mapping(),
             'mapping/app.php' => $this->mapping(),
-            'mapping/console.php' => $this->mapping(),
+            'mapping/console.php' => $this->consoleMapping(),
             'mapping/default.php' => $this->mapping(),
+            'mapping/agents.php' => $this->agents($name),
             'mapping/menus.php' => $this->menus(),
             'resource/markup/default.vibe' => "<section>\n  <h1>{\$title}</h1>\n</section>\n",
             'phpunit.xml' => $this->phpunitConfiguration(),
@@ -214,6 +217,40 @@ PHP
     private function mapping(): string
     {
         return "<?php\n\ndeclare(strict_types=1);\n\nreturn [];\n";
+    }
+
+    private function consoleMapping(): string
+    {
+        return "<?php\n\ndeclare(strict_types=1);\n\nreturn [\n    'resources' => [],\n];\n";
+    }
+
+    private function agents(string $name): string
+    {
+        return Str::make(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+return [
+    'version' => 1,
+    'owner' => '{{NAME}}',
+    'agents' => [
+        'addon.{{NAME}}' => [
+            'mode' => 'generated',
+            'description' => 'Provides package-owned specialist capabilities.',
+            'profile' => '{{NAME}}.specialist',
+            'tools' => [],
+            'imports' => [],
+            'exports' => [],
+            'permissions' => [],
+            'lifecycle' => [
+                'states' => ['active'],
+            ],
+        ],
+    ],
+];
+PHP
+        )->replace('{{NAME}}', $name)->append("\n")->val();
     }
 
     private function menus(): string

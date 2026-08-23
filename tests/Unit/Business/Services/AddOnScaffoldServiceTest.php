@@ -38,6 +38,7 @@ final class AddOnScaffoldServiceTest extends TestCase
 
         $this->assertTrue($result['created'], Arr::make($result['errors'])->toJson());
         $this->assertFileExists($this->workspace . '/sample_tools/resource/markup/default.vibe');
+        $this->assertFileExists($this->workspace . '/sample_tools/mapping/agents.php');
         $this->assertFileExists($this->workspace . '/sample_tools/datasources/structure/.gitkeep');
         $composer = Arr::make($this->readJson($this->workspace . '/sample_tools/composer.json'));
         $definition = Arr::make($this->readJson($this->workspace . '/sample_tools/definition.json'));
@@ -57,13 +58,15 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertTrue($validation['valid'], Arr::make($validation['errors'])->toJson());
 
         $menus = require $this->workspace . '/sample_tools/mapping/menus.php';
+        $agents = require $this->workspace . '/sample_tools/mapping/agents.php';
         $this->assertIsArray($menus);
         $this->assertSame([], $menus['register']());
+        $this->assertSame('generated', $agents['agents']['addon.sample_tools']['mode']);
 
         require $this->workspace . '/sample_tools/logic/Registration/AddOnRegistration.php';
         $factory = require $this->workspace . '/sample_tools/main.php';
         $registration = $factory();
-        $this->assertCount(5, $registration->contributions());
+        $this->assertCount(6, $registration->contributions());
     }
 
     public function testItRejectsUnsafeNamesWithoutWritingOutput(): void

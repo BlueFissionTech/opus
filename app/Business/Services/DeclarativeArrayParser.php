@@ -1,0 +1,199 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Business\Services;
+
+use BlueFission\Arr;
+use BlueFission\Data\FileSystem;
+use BlueFission\Str;
+use ParseError;
+use UnexpectedValueException;
+
+final class DeclarativeArrayParser
+{
+    public function parseFile(string $path): array
+    {
+        $source = FileSystem::fileContents($path);
+        if (!Str::is($source)) {
+            return $this->failure('mapping_unreadable', 'Mapping file could not be read.');
+        }
+
+        try {
+            $tokens = $this->tokens(token_get_all($source, TOKEN_PARSE));
+            if (!$this->tokenIs($tokens->shift(), T_OPEN_TAG)) {
+                throw new UnexpectedValueException('Mapping must begin with a PHP opening tag.');
+            }
+            if ($this->tokenIs($tokens->get(0), T_DECLARE)) {
+                $this->consumeStrictTypes($tokens);
+            }
+            if (!$this->tokenIs($tokens->shift(), T_RETURN)) {
+                throw new UnexpectedValueException('Mapping must contain one return statement.');
+            }
+
+            $duplicates = Arr::make([]);
+            $value = $this->consumeValue($tokens, $duplicates, '$');
+            if ($tokens->shift() !== ';' || !$tokens->isEmpty()) {
+                throw new UnexpectedValueException('Mapping may not contain executable statements.');
+            }
+            if (!Arr::is($value)) {
+                throw new UnexpectedValueException('Mapping root must be an array.');
+            }
+
+            return [
+                'valid' => $duplicates->isEmpty(),
+                'value' => $value,
+                'errors' => $duplicates
+                    ->map(fn (string $key): array => [
+                        'code' => 'mapping_duplicate_key',
+                        'message' => "Duplicate mapping key {$key} is not allowed.",
+                    ])
+                    ->toArray(),
+            ];
+        } catch (ParseError|UnexpectedValueException $exception) {
+            return $this->failure('mapping_declarative', $exception->getMessage());
+        }
+    }
+
+    private function consumeValue(Arr $tokens, Arr $duplicates, string $path): mixed
+    {
+        $token = $tokens->shift();
+        if ($token === '[') {
+            return $this->consumeArray($tokens, $duplicates, $path);
+        }
+        if ($this->tokenIs($token, T_CONSTANT_ENCAPSED_STRING)) {
+            return $this->stringValue((string) Arr::make($token)->get(1));
+        }
+        if ($this->tokenIs($token, T_LNUMBER)) {
+            return (int) Arr::make($token)->get(1);
+        }
+        if ($this->tokenIs($token, T_DNUMBER)) {
+            return (float) Arr::make($token)->get(1);
+        }
+        if ($this->tokenIs($token, T_STRING)) {
+            $literal = Str::make((string) Arr::make($token)->get(1))->lower()->val();
+            if ($literal === 'true') {
+                return true;
+            }
+            if ($literal === 'false') {
+                return false;
+            }
+            if ($literal === 'null') {
+                return null;
+            }
+        }
+
+        throw new UnexpectedValueException("Unsupported value at {$path}.");
+    }
+
+    private function consumeArray(Arr $tokens, Arr $duplicates, string $path): array
+    {
+        $value = [];
+        $keys = Arr::make([]);
+        $nextIndex = 0;
+
+        while (!$tokens->isEmpty() && $tokens->get(0) !== ']') {
+            $candidate = $this->consumeValue($tokens, $duplicates, $path);
+            if ($this->tokenIs($tokens->get(0), T_DOUBLE_ARROW)) {
+                $tokens->shift();
+                if (!Str::is($candidate) && !is_int($candidate)) {
+                    throw new UnexpectedValueException("Array key at {$path} must be a string or integer.");
+                }
+                $key = $candidate;
+                $item = $this->consumeValue($tokens, $duplicates, $path . '.' . (string) $key);
+            } else {
+                $key = $nextIndex;
+                $item = $candidate;
+            }
+
+            $identity = $this->arrayKeyIdentity($key);
+            if ($keys->has($identity, true)) {
+                $duplicates->push($path . '.' . (string) $key);
+            }
+            $keys->push($identity);
+            $value[$key] = $item;
+            if (is_int($key) && $key >= $nextIndex) {
+                $nextIndex = $key + 1;
+            }
+
+            if ($tokens->get(0) === ',') {
+                $tokens->shift();
+                continue;
+            }
+            if ($tokens->get(0) !== ']') {
+                throw new UnexpectedValueException("Expected a comma or closing bracket at {$path}.");
+            }
+        }
+
+        if ($tokens->shift() !== ']') {
+            throw new UnexpectedValueException("Unclosed array at {$path}.");
+        }
+
+        return $value;
+    }
+
+    private function arrayKeyIdentity(int|string $key): string
+    {
+        $normalized = [];
+        $normalized[$key] = true;
+        $normalizedKey = Arr::make($normalized)->keys()->get(0);
+
+        return (is_int($normalizedKey) ? 'i:' : 's:') . (string) $normalizedKey;
+    }
+
+    private function consumeStrictTypes(Arr $tokens): void
+    {
+        $declare = $tokens->shift();
+        $open = $tokens->shift();
+        $name = $tokens->shift();
+        $equals = $tokens->shift();
+        $value = $tokens->shift();
+        $close = $tokens->shift();
+        $terminator = $tokens->shift();
+        $valid = $this->tokenIs($declare, T_DECLARE)
+            && $open === '('
+            && $this->tokenIs($name, T_STRING)
+            && Str::make((string) Arr::make((array) $name)->get(1))->lower()->val() === 'strict_types'
+            && $equals === '='
+            && $this->tokenIs($value, T_LNUMBER)
+            && (string) Arr::make((array) $value)->get(1) === '1'
+            && $close === ')'
+            && $terminator === ';';
+        if (!$valid) {
+            throw new UnexpectedValueException('Only declare(strict_types=1) is allowed before the map.');
+        }
+    }
+
+    private function stringValue(string $literal): string
+    {
+        $quote = Str::sub($literal, 0, 1);
+        $value = Str::sub($literal, 1, -1);
+        if ($quote === "'") {
+            return Str::make($value)->replace('\\\\', '\\')->replace("\\'", "'")->val();
+        }
+
+        return stripcslashes($value);
+    }
+
+    private function tokens(array $tokens): Arr
+    {
+        return Arr::make($tokens)
+            ->filter(fn ($token): bool => !Arr::is($token)
+                || !Arr::make([T_WHITESPACE, T_COMMENT, T_DOC_COMMENT])->has($token[0], true))
+            ->values();
+    }
+
+    private function tokenIs($token, int $type): bool
+    {
+        return Arr::is($token) && Arr::make($token)->get(0) === $type;
+    }
+
+    private function failure(string $code, string $message): array
+    {
+        return [
+            'valid' => false,
+            'value' => [],
+            'errors' => [['code' => $code, 'message' => $message]],
+        ];
+    }
+}
