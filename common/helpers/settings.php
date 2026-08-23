@@ -17,7 +17,7 @@ if (!defined("OPUS_RESOURCE_ROOT") ){
 	define('OPUS_RESOURCE_ROOT', $runtimePaths->packageResourceRoot() . DIRECTORY_SEPARATOR);
 }
 if (!defined("PROJECT_ROOT") ){
-	define('PROJECT_ROOT', APP_ROOT . 'core');
+	define('PROJECT_ROOT', OPUS_ROOT);
 }
 if (!defined("SITE_ROOT") ){
 	define('SITE_ROOT', APP_ROOT.'public');	

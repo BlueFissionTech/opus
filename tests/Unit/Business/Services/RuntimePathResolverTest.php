@@ -148,6 +148,15 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
+    public function testFilesystemRootsRemainAbsoluteDuringNormalization(): void
+    {
+        $posix = RuntimePathResolver::discover(DIRECTORY_SEPARATOR, DIRECTORY_SEPARATOR);
+        $drive = RuntimePathResolver::discover('C:\\', 'C:\\');
+
+        $this->assertSame(realpath(DIRECTORY_SEPARATOR) ?: DIRECTORY_SEPARATOR, $posix->hostRoot());
+        $this->assertSame('C:' . DIRECTORY_SEPARATOR, $drive->hostRoot());
+    }
+
     public function testStandaloneVendorInstallUsesTheHostAutoloader(): void
     {
         $host = $this->workspace . '/standalone-host';

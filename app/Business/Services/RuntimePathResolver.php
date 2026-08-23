@@ -279,6 +279,10 @@ final class RuntimePathResolver
     {
         $path = preg_replace('#[\\\\/]+#', DIRECTORY_SEPARATOR, $path) ?? $path;
 
+        if ($path === DIRECTORY_SEPARATOR || preg_match('/^[A-Za-z]:[\\/\\\\]$/', $path) === 1) {
+            return $path;
+        }
+
         return rtrim($path, '/\\');
     }
 }

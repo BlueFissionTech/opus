@@ -20,6 +20,7 @@ final class RuntimeSettingsTest extends TestCase
         $package = $host . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'bluefission'
             . DIRECTORY_SEPARATOR . 'opus';
         mkdir($package . DIRECTORY_SEPARATOR . 'resource', 0777, true);
+        file_put_contents($package . DIRECTORY_SEPARATOR . 'resource' . DIRECTORY_SEPARATOR . 'package.txt', 'package');
         mkdir($host . DIRECTORY_SEPARATOR . 'public', 0777, true);
 
         $GLOBALS['OPUS_RUNTIME_PATHS'] = RuntimePathResolver::discover($package, $host);
@@ -29,9 +30,15 @@ final class RuntimeSettingsTest extends TestCase
         $this->assertSame(realpath($host) . DIRECTORY_SEPARATOR, APP_ROOT);
         $this->assertSame(realpath($package) . DIRECTORY_SEPARATOR, OPUS_ROOT);
         $this->assertSame(realpath($package . '/resource') . DIRECTORY_SEPARATOR, OPUS_RESOURCE_ROOT);
+        $this->assertSame(OPUS_ROOT, PROJECT_ROOT);
+        $this->assertSame(
+            realpath($package . '/resource/package.txt'),
+            realpath(resolve_path('resource/package.txt'))
+        );
         $this->assertSame(realpath($host . '/public'), realpath(SITE_ROOT));
 
         rmdir($host . DIRECTORY_SEPARATOR . 'public');
+        unlink($package . DIRECTORY_SEPARATOR . 'resource' . DIRECTORY_SEPARATOR . 'package.txt');
         rmdir($package . DIRECTORY_SEPARATOR . 'resource');
         rmdir($package);
         rmdir(dirname($package));
