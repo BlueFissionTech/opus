@@ -84,6 +84,7 @@ human operators and agents share the same backend contract.
 - [Specification](SPEC.md)
 - [Roadmap](ROADMAP.md)
 - [Testing](tests.md)
+- [Asset build contract](ASSETS.md)
 
 ## Core Components
 
