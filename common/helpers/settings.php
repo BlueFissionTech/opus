@@ -2,7 +2,11 @@
 
 use App\Business\Services\RuntimePathResolver;
 
-$runtimePaths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover();
+$configuredHostRoot = getenv('OPUS_HOST_ROOT');
+$runtimePaths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover(
+	null,
+	$configuredHostRoot !== false && $configuredHostRoot !== '' ? $configuredHostRoot : null
+);
 
 // TODO: set this in a config file
 date_default_timezone_set('America/New_York');
