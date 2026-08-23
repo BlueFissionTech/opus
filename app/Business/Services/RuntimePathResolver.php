@@ -277,7 +277,11 @@ final class RuntimePathResolver
 
     private static function normalizeLexical(string $path): string
     {
+        $isUncPath = preg_match('#^[\\\\/]{2}[^\\\\/]#', $path) === 1;
         $path = preg_replace('#[\\\\/]+#', DIRECTORY_SEPARATOR, $path) ?? $path;
+        if ($isUncPath) {
+            $path = DIRECTORY_SEPARATOR . $path;
+        }
 
         if ($path === DIRECTORY_SEPARATOR || preg_match('/^[A-Za-z]:[\\/\\\\]$/', $path) === 1) {
             return $path;

@@ -152,9 +152,17 @@ final class RuntimePathResolverTest extends TestCase
     {
         $posix = RuntimePathResolver::discover(DIRECTORY_SEPARATOR, DIRECTORY_SEPARATOR);
         $drive = RuntimePathResolver::discover('C:\\', 'C:\\');
+        $unc = RuntimePathResolver::discover(
+            '\\\\server\\share\\vendor\\bluefission\\opus',
+            '\\\\server\\share'
+        );
 
         $this->assertSame(realpath(DIRECTORY_SEPARATOR) ?: DIRECTORY_SEPARATOR, $posix->hostRoot());
         $this->assertSame('C:' . DIRECTORY_SEPARATOR, $drive->hostRoot());
+        $this->assertSame(
+            DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR . 'server' . DIRECTORY_SEPARATOR . 'share',
+            $unc->hostRoot()
+        );
     }
 
     public function testStandaloneVendorInstallUsesTheHostAutoloader(): void
