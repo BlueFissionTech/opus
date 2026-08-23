@@ -38,6 +38,16 @@ class ComposerMetadataTest extends TestCase
         $this->assertArrayNotHasKey('bluefission/wise', $optional['repositories'] ?? []);
     }
 
+    public function testWiseIsClassifiedAsDevelopmentOnlyInTheLock(): void
+    {
+        $lock = $this->readJson(dirname(__DIR__, 2) . '/composer.lock');
+        $packages = array_column($lock['packages'] ?? [], 'name');
+        $developmentPackages = array_column($lock['packages-dev'] ?? [], 'name');
+
+        $this->assertNotContains('bluefission/wise', $packages);
+        $this->assertContains('bluefission/wise', $developmentPackages);
+    }
+
     /** @return array<string, mixed> */
     private function readJson(string $path): array
     {
