@@ -12,18 +12,18 @@ use PHPUnit\Framework\TestCase;
 
 final class ArkheionCatalogTest extends TestCase
 {
-    private const CAPABILITIES = [
-        'Aimos',
-        'BasicContact',
-        'Cogito',
-        'ForeUP',
-        'Hoom',
-        'Kapsle',
-        'Presentations',
-        'SageMaker',
-        'Smart Responder',
-        'Students',
-        'Synematic add-on',
+    private const CAPABILITY_MATURITY = [
+        'Aimos' => 'unknown',
+        'BasicContact' => 'unknown',
+        'Cogito' => 'unknown',
+        'ForeUP' => 'unknown',
+        'Hoom' => 'evolving',
+        'Kapsle' => 'experimental',
+        'Presentations' => 'unknown',
+        'SageMaker' => 'unknown',
+        'Smart Responder' => 'unknown',
+        'Students' => 'unknown',
+        'Synematic add-on' => 'unknown',
     ];
 
     private const PACKAGE_ROWS = [
@@ -34,13 +34,26 @@ final class ArkheionCatalogTest extends TestCase
     public function testCatalogCoversEveryNamedCapabilityAndMaturityState(): void
     {
         $catalog = Str::make((string) FileSystem::fileContents($this->catalogPath()));
+        $rows = [];
 
-        Arr::make(self::CAPABILITIES)->each(
-            fn (string $capability) => $this->assertTrue(
-                $catalog->contains('| ' . $capability . ' |'),
-                $capability . ' is missing from the Arkheion catalog.'
-            )
-        );
+        $catalog->split("\n")->each(function (string $line) use (&$rows): void {
+            $cells = Str::make($line)->split('|');
+            if ($cells->count() < 4) {
+                return;
+            }
+
+            $capability = Str::make((string) $cells->get(1))->trim()->val();
+            if (!Arr::make(self::CAPABILITY_MATURITY)->hasKey($capability)) {
+                return;
+            }
+
+            $rows[$capability] = Str::make((string) $cells->get(3))->trim()->val();
+        });
+
+        Arr::make(self::CAPABILITY_MATURITY)->each(function (string $state, string $capability) use ($rows): void {
+            $this->assertArrayHasKey($capability, $rows, $capability . ' is missing from the Arkheion catalog.');
+            $this->assertSame($state, $rows[$capability], $capability . ' has an unexpected maturity state.');
+        });
 
         Arr::make(['stable', 'evolving', 'experimental', 'planned', 'unknown'])->each(
             fn (string $state) => $this->assertTrue(
