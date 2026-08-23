@@ -43,13 +43,20 @@ final class ArkheionCatalogTest extends TestCase
             }
 
             $capability = Str::make((string) $cells->get(1))->trim()->val();
-            if (!Arr::make(self::CAPABILITY_MATURITY)->hasKey($capability)) {
+            if ($capability === 'Capability' || Str::make($capability)->startsWith('---')) {
                 return;
             }
 
+            $this->assertArrayHasKey(
+                $capability,
+                self::CAPABILITY_MATURITY,
+                $capability . ' is not declared in the catalog snapshot.'
+            );
+            $this->assertArrayNotHasKey($capability, $rows, $capability . ' appears more than once.');
             $rows[$capability] = Str::make((string) $cells->get(3))->trim()->val();
         });
 
+        $this->assertCount(count(self::CAPABILITY_MATURITY), $rows);
         Arr::make(self::CAPABILITY_MATURITY)->each(function (string $state, string $capability) use ($rows): void {
             $this->assertArrayHasKey($capability, $rows, $capability . ' is missing from the Arkheion catalog.');
             $this->assertSame($state, $rows[$capability], $capability . ' has an unexpected maturity state.');
