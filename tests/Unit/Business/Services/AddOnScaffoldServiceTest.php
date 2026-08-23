@@ -400,6 +400,54 @@ PHP
         $this->assertContains('mapping_contract', $codes);
     }
 
+    public function testLegacyAddOnWithoutAgentMapRemainsValidAndDisabled(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('legacy', 'legacy');
+        $definitionPath = $this->workspace . '/legacy/definition.json';
+        $definition = Arr::make($this->readJson($definitionPath));
+        $definition->delete('agent_mapping');
+        file_put_contents(
+            $definitionPath,
+            Str::make($definition->toJson())->append(PHP_EOL)->val()
+        );
+        unlink($this->workspace . '/legacy/mapping/agents.php');
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/legacy');
+        $warningCodes = Arr::make($result['warnings'])
+            ->map(fn (array $warning): string => (string) Arr::make($warning)->get('code'))
+            ->toArray();
+
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
+        $this->assertContains('agent_mapping_missing', $warningCodes);
+    }
+
+    public function testAgentToolsCanBeDerivedFromExecutableConsoleMappings(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('executable_agent', 'executable_agent');
+        file_put_contents(
+            $this->workspace . '/executable_agent/mapping/console.php',
+            <<<'PHP'
+<?php
+
+use BlueFission\Services\Mapping;
+
+Mapping::add('/sample/run', ['SampleController', 'run'], 'sample.run', 'post');
+Mapping::crud('/admin', 'users', 'UserController', 'id');
+PHP
+        );
+        $agentPath = $this->workspace . '/executable_agent/mapping/agents.php';
+        file_put_contents(
+            $agentPath,
+            Str::make((string) FileSystem::fileContents($agentPath))
+                ->replace("'tools' => [],", "'tools' => ['sample.run', 'admin_users.list'],")
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/executable_agent');
+
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
+    }
+
     public function testRegistrationFactoryMustBeTheCompleteReturnExpression(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('factory', 'factory');

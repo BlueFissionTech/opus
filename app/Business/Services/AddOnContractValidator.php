@@ -29,7 +29,6 @@ final class AddOnContractValidator extends Service
         'mapping/app.php',
         'mapping/console.php',
         'mapping/default.php',
-        'mapping/agents.php',
         'mapping/menus.php',
         'phpunit.xml',
         'tests/bootstrap.php',
@@ -96,7 +95,7 @@ final class AddOnContractValidator extends Service
         $this->validateRegistration($root, $namespace, $definition, $errors);
         $this->validateThemes($root, $definition, $errors);
         $this->validatePhpFiles($root, $namespace, $errors);
-        $this->validateAgentMap($root, $definition, $errors);
+        $this->validateAgentMap($root, $definition, $errors, $warnings);
         $this->validateVibeFiles($root, $errors);
 
         return $this->report($errors, $warnings);
@@ -251,27 +250,43 @@ final class AddOnContractValidator extends Service
         }
     }
 
-    private function validateAgentMap(string $root, array $definition, Arr $errors): void
+    private function validateAgentMap(string $root, array $definition, Arr $errors, Arr $warnings): void
     {
         $definition = Arr::make($definition);
-        if ($definition->get('agent_mapping') !== 'mapping/agents.php') {
+        $agentPath = $this->path($root, 'mapping/agents.php');
+        $declared = $definition->get('agent_mapping');
+
+        if (!Str::is($declared) && !FileSystem::fileExists($agentPath)) {
+            $warnings->push($this->problem(
+                'agent_mapping_missing',
+                'mapping/agents.php',
+                'No agent map is declared; agent command access remains disabled.'
+            ));
+            return;
+        }
+        if ($declared !== 'mapping/agents.php') {
             $errors->push($this->problem(
                 'agent_mapping_manifest',
                 'definition.json',
                 'Agent mapping must reference mapping/agents.php.'
             ));
-        }
-
-        $agentPath = $this->path($root, 'mapping/agents.php');
-        $consolePath = $this->path($root, 'mapping/console.php');
-        if (!FileSystem::fileExists($agentPath) || !FileSystem::fileExists($consolePath)) {
             return;
         }
 
-        $console = Arr::make($this->declarativeParser->parseFile($consolePath));
-        $knownTools = $console->get('valid')
-            ? $this->agentMapValidator->knownToolsFromConsole((array) $console->get('value'))
-            : [];
+        $consolePath = $this->path($root, 'mapping/console.php');
+        if (!FileSystem::fileExists($agentPath)) {
+            $errors->push($this->problem(
+                'agent_mapping_file',
+                'mapping/agents.php',
+                'The declared agent mapping file is missing.'
+            ));
+            return;
+        }
+        if (!FileSystem::fileExists($consolePath)) {
+            return;
+        }
+
+        $knownTools = $this->knownToolsFromConsoleFile($consolePath);
         $validation = Arr::make($this->agentMapValidator->validateFile(
             $agentPath,
             $knownTools,
@@ -285,6 +300,163 @@ final class AddOnContractValidator extends Service
                 (string) $problem->get('message')
             ));
         });
+    }
+
+    private function knownToolsFromConsoleFile(string $path): array
+    {
+        $console = Arr::make($this->declarativeParser->parseFile($path));
+        if ($console->get('valid')) {
+            return $this->agentMapValidator->knownToolsFromConsole((array) $console->get('value'));
+        }
+
+        $source = FileSystem::fileContents($path);
+        if (!Str::is($source)) {
+            return [];
+        }
+
+        try {
+            $tokens = token_get_all($source, TOKEN_PARSE);
+        } catch (ParseError) {
+            return [];
+        }
+        if (!$this->isExecutableMapping($tokens)) {
+            return [];
+        }
+
+        return $this->knownToolsFromExecutableMapping($tokens);
+    }
+
+    private function knownToolsFromExecutableMapping(array $tokens): array
+    {
+        $tokens = $this->significantTokens($tokens)->toArray();
+        $tools = Arr::make([]);
+        $count = Arr::make($tokens)->count();
+
+        for ($index = 0; $index < $count - 3; $index++) {
+            $class = Arr::make(Arr::is($tokens[$index]) ? $tokens[$index] : []);
+            if (!Arr::make([T_STRING, T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED])
+                ->has($class->get(0), true)
+                || !$this->tokenIs($tokens[$index + 1], T_DOUBLE_COLON)
+                || !$this->tokenIs($tokens[$index + 2], T_STRING)
+                || $tokens[$index + 3] !== '('
+            ) {
+                continue;
+            }
+
+            $method = (string) Arr::make($tokens[$index + 2])->get(1);
+            if (!Arr::make(['add', 'crud'])->has($method, true)) {
+                continue;
+            }
+
+            [$arguments, $closing] = $this->mappingArguments($tokens, $index + 3);
+            if ($closing === null) {
+                return [];
+            }
+
+            if ($method === 'add') {
+                $name = $this->literalString((array) Arr::make($arguments)->get(2));
+                $path = $this->literalString((array) Arr::make($arguments)->get(0));
+                $tool = $this->normalizeTool(Str::is($name) ? (string) $name : (string) $path);
+                if ($tool !== null) {
+                    $tools->push($tool);
+                }
+            } else {
+                $root = $this->literalString((array) Arr::make($arguments)->get(0));
+                $package = $this->literalString((array) Arr::make($arguments)->get(1));
+                if (Str::is($root) && Str::is($package)) {
+                    $resource = Str::make((string) $root)
+                        ->append('/')
+                        ->append((string) $package)
+                        ->trim('/\\')
+                        ->replace('/', '_')
+                        ->replace('\\', '_')
+                        ->replace('-', '_')
+                        ->replace('.', '_')
+                        ->lower()
+                        ->val();
+                    Arr::make(['list', 'get', 'save', 'update', 'delete'])
+                        ->each(function (string $action) use ($resource, $tools): void {
+                            $tool = $this->normalizeTool($resource . '.' . $action);
+                            if ($tool !== null) {
+                                $tools->push($tool);
+                            }
+                        });
+                }
+            }
+
+            $index = $closing;
+        }
+
+        return $tools->unique()->sort()->toArray();
+    }
+
+    private function mappingArguments(array $tokens, int $opening): array
+    {
+        $arguments = Arr::make([]);
+        $current = Arr::make([]);
+        $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
+        $closing = Arr::make([')' => true, ']' => true, '}' => true]);
+        $delimiters = Arr::make([')']);
+        $count = Arr::make($tokens)->count();
+
+        for ($index = $opening + 1; $index < $count; $index++) {
+            $token = $tokens[$index];
+            if ($token === ',' && $delimiters->count() === 1) {
+                $arguments->push($current->toArray());
+                $current = Arr::make([]);
+                continue;
+            }
+            if (Str::is($token) && $pairs->hasKey($token)) {
+                $delimiters->push($pairs->get($token));
+                $current->push($token);
+                continue;
+            }
+            if (Str::is($token) && $closing->hasKey($token)) {
+                if ($token !== $delimiters->pop()) {
+                    return [[], null];
+                }
+                if ($delimiters->isEmpty()) {
+                    $arguments->push($current->toArray());
+                    return [$arguments->toArray(), $index];
+                }
+                $current->push($token);
+                continue;
+            }
+            $current->push($token);
+        }
+
+        return [[], null];
+    }
+
+    private function literalString(array $tokens): ?string
+    {
+        $tokens = Arr::make($tokens);
+        if ($tokens->count() !== 1 || !$this->tokenIs($tokens->get(0), T_CONSTANT_ENCAPSED_STRING)) {
+            return null;
+        }
+
+        $literal = (string) Arr::make($tokens->get(0))->get(1);
+        $quote = Str::sub($literal, 0, 1);
+        $value = Str::sub($literal, 1, -1);
+
+        return $quote === "'"
+            ? Str::make($value)->replace('\\\\', '\\')->replace("\\'", "'")->val()
+            : stripcslashes($value);
+    }
+
+    private function normalizeTool(string $candidate): ?string
+    {
+        $tool = Str::make($candidate)
+            ->trim()
+            ->trim('/\\')
+            ->replace('/', '.')
+            ->replace('\\', '.')
+            ->lower()
+            ->val();
+
+        return Str::make($tool)->matches('/^[a-z][a-z0-9_-]*\.[a-z][a-z0-9_-]*$/')
+            ? $tool
+            : null;
     }
 
     private function readJson(string $root, string $relative, Arr $errors): array

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Business\Services;
 
 use App\Business\Services\AgentCapabilityMapResolver;
+use App\Business\Services\AgentCapabilityMapLoader;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentScopedCommandProcessor;
 use App\Business\Services\DeclarativeArrayParser;
@@ -90,6 +91,38 @@ PHP
 
         $this->assertFalse($result['valid']);
         $this->assertSame('mapping_duplicate_key', $result['errors'][0]['code']);
+    }
+
+    public function testRuntimeLoaderFailsClosedForMalformedMaps(): void
+    {
+        $valid = $this->workspace . '/valid.php';
+        $invalid = $this->workspace . '/invalid.php';
+        file_put_contents($valid, <<<'PHP'
+<?php
+return [
+    'version' => 1,
+    'owner' => 'application',
+    'agents' => [
+        'opus.central' => [
+            'mode' => 'central',
+            'description' => 'Central test agent.',
+            'profile' => 'test.profile',
+            'tools' => ['command.list'],
+            'imports' => [],
+            'exports' => [],
+            'permissions' => [],
+            'lifecycle' => ['states' => ['active']],
+        ],
+    ],
+];
+PHP
+        );
+        file_put_contents($invalid, "<?php\nreturn build_map();\n");
+
+        $loader = new AgentCapabilityMapLoader();
+
+        $this->assertSame(['command.list'], $loader->load($valid, 'application')->agent('opus.central')?->tools());
+        $this->assertSame([], $loader->load($invalid, 'application')->agents());
     }
 
     public function testValidatorRejectsUnknownToolsInvalidModesAndCentralLeakage(): void
@@ -357,6 +390,7 @@ PHP
 
         $processor = new class implements ICommandProcessor {
             public int $executions = 0;
+            public bool $executedParsedCommand = false;
 
             public function process(CommandRequest|Command|array|string $request): CommandResult
             {
@@ -370,6 +404,7 @@ PHP
                 }
 
                 $this->executions++;
+                $this->executedParsedCommand = $request->input() instanceof Command;
 
                 return CommandResult::completed(['ok' => true], $command);
             }
@@ -392,6 +427,7 @@ PHP
         $this->assertSame(['command.list'], $discovery['commands']);
         $this->assertTrue($result->successful());
         $this->assertSame(1, $processor->executions);
+        $this->assertTrue($processor->executedParsedCommand);
         $this->assertSame('command.list', $result->metadata()['agent_tool']);
         $this->assertSame('correlation-a', $result->metadata()['correlation_id']);
         $this->assertSame(CommandResult::COMPLETED, $result->metadata()['agent_result_status']);
@@ -434,6 +470,67 @@ PHP
         $this->assertSame(0, $processor->executions);
         $this->assertSame('tool_not_granted', $result->metadata()['agent_reason']);
         $this->assertSame(CommandResult::INVALID, $result->metadata()['agent_result_status']);
+    }
+
+    public function testScopedProcessorDefaultsToCentralAndBindsContinuationsToActorAndTenant(): void
+    {
+        if (!interface_exists(ICommandProcessor::class)
+            || !class_exists(CommandRequest::class)
+            || !class_exists(CommandResult::class)
+        ) {
+            $this->markTestSkipped('The installed Wise checkout predates the typed command processor contract.');
+        }
+
+        $processor = new class implements ICommandProcessor {
+            public int $resumes = 0;
+
+            public function process(CommandRequest|Command|array|string $request): CommandResult
+            {
+                $request = $request instanceof CommandRequest ? $request : new CommandRequest($request);
+                $command = new Command();
+                $command->resources = ['command'];
+                $command->verb = 'list';
+
+                if ($request->isContinuation()) {
+                    $this->resumes++;
+                    return CommandResult::completed(['confirmed' => true], $command);
+                }
+                if (!$request->shouldExecute()) {
+                    return CommandResult::parsed($command);
+                }
+
+                return CommandResult::pending('Confirm command.', $command, 'continuation-a');
+            }
+        };
+        $root = $this->map(
+            $this->mapping('application', 'opus.central', 'central', ['command.list']),
+            ['command.list']
+        );
+        $scoped = new AgentScopedCommandProcessor($processor, new AgentCapabilityMapResolver($root));
+        $scope = [
+            'actor' => ['id' => 'operator-a'],
+            'tenant_id' => 'tenant-a',
+        ];
+
+        $pending = $scoped->process(new CommandRequest('list commands', context: $scope));
+        $wrongTenant = $scoped->process(CommandRequest::resume(
+            'continuation-a',
+            true,
+            ['actor' => ['id' => 'operator-a'], 'tenant_id' => 'tenant-b']
+        ));
+        $wrongActor = $scoped->process(CommandRequest::resume(
+            'continuation-a',
+            true,
+            ['actor' => ['id' => 'operator-b'], 'tenant_id' => 'tenant-a']
+        ));
+        $completed = $scoped->process(CommandRequest::resume('continuation-a', true, $scope));
+
+        $this->assertTrue($pending->confirmationRequired());
+        $this->assertSame(CommandResult::INVALID, $wrongTenant->status());
+        $this->assertSame(CommandResult::INVALID, $wrongActor->status());
+        $this->assertSame(CommandResult::COMPLETED, $completed->status());
+        $this->assertSame(1, $processor->resumes);
+        $this->assertSame('opus.central', $completed->metadata()['agent_id']);
     }
 
     private function map(array $mapping, array $knownTools): AgentCapabilityMap

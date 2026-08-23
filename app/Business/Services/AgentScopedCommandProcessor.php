@@ -14,6 +14,8 @@ use BlueFission\Wise\Cmd\ICommandProcessor;
 
 final class AgentScopedCommandProcessor implements ICommandProcessor
 {
+    public const CENTRAL_AGENT = 'opus.central';
+
     private Arr $continuations;
 
     public function __construct(
@@ -31,7 +33,7 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
         $metadata = $this->metadata($context, $resolved);
 
         if ($request->isContinuation()) {
-            return $this->continue($request, $resolved, $metadata);
+            return $this->continue($request, $resolved, $metadata, $context);
         }
 
         $parsed = $this->processor->process(CommandRequest::parse($request->input(), $request->context()));
@@ -67,7 +69,11 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             ]));
         }
 
-        $result = $this->processor->process($request);
+        $result = $this->processor->process(new CommandRequest(
+            $parsed->command(),
+            CommandRequest::EXECUTE,
+            $request->context()
+        ));
         $result = $result->withMetadata(Arr::merge($metadata, [
             'agent_tool' => $tool,
             'agent_decision' => 'allow',
@@ -77,6 +83,8 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
         if ($result->confirmationRequired() && Str::isNotEmpty((string) $result->continuationToken())) {
             $this->continuations->set((string) $result->continuationToken(), [
                 'agent_id' => $resolved->agentId(),
+                'tenant_id' => $resolved->tenantId(),
+                'actor' => $context->get('actor'),
                 'tool' => $tool,
             ]);
         }
@@ -100,13 +108,20 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
         return $this->discover($context)['commands'];
     }
 
-    private function continue(CommandRequest $request, ResolvedAgentToolMap $resolved, array $metadata): CommandResult
+    private function continue(
+        CommandRequest $request,
+        ResolvedAgentToolMap $resolved,
+        array $metadata,
+        Arr $context
+    ): CommandResult
     {
         $token = (string) $request->continuationToken();
         $continuation = Arr::make((array) $this->continuations->get($token));
         $tool = $continuation->get('tool');
         if ($continuation->isEmpty()
             || $continuation->get('agent_id') !== $resolved->agentId()
+            || $continuation->get('tenant_id') !== $resolved->tenantId()
+            || $continuation->get('actor') !== $context->get('actor')
             || !Str::is($tool)
             || !$resolved->allows((string) $tool)
         ) {
@@ -136,8 +151,10 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
 
     private function resolve(Arr $context): ResolvedAgentToolMap
     {
+        $agentId = Str::make((string) $context->get('agent_id'))->trim()->val();
+
         return $this->resolver->resolve(
-            (string) $context->get('agent_id'),
+            $agentId === '' ? self::CENTRAL_AGENT : $agentId,
             (array) $context->get('active_addons'),
             (array) $context->get('addon_states'),
             (array) $context->get('capabilities'),

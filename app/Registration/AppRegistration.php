@@ -6,10 +6,15 @@ use BlueFission\BlueCore\Business\Managers\DatasourceManager;
 use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use App\Business\MysqlConnector;
 use App\Business\Services\VibeThemeRenderer;
+use App\Business\Services\AgentCapabilityMapLoader;
+use App\Business\Services\AgentCapabilityMapResolver;
+use App\Business\Services\AgentScopedCommandProcessor;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\Theme;
 use BlueFission\BlueCore\IExtension;
+use BlueFission\Wise\Cmd\CommandProcessor;
+use BlueFission\Wise\Cmd\ICommandProcessor;
 
 /**
  * Class AppRegistration
@@ -93,6 +98,7 @@ class AppRegistration implements IExtension {
 		$this->bind('BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository', 'BlueFission\BlueCore\Domain\AddOn\Repositories\AddOnRepositorySql');
 
 		$this->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
+		$this->bind(ICommandProcessor::class, AgentScopedCommandProcessor::class);
 	}
 
 	/**
@@ -109,7 +115,13 @@ class AppRegistration implements IExtension {
 
 		$this->bindArgs( ['link'=>\App::makeInstance('BlueFission\Connections\Database\MySQLLink'), 'storage'=>\App::makeInstance('BlueFission\Data\Storage\MySQLBulk')], 'BlueFission\BlueCore\Business\Managers\DatasourceManager');
 		
-		$this->bindArgs( ['storage'=>new Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');
+		$this->bindArgs(['storage' => new Session(['location' => 'cache', 'name' => 'system'])], CommandProcessor::class);
+		$this->bindArgs([
+			'processor' => \App::makeInstance(CommandProcessor::class),
+			'resolver' => new AgentCapabilityMapResolver(
+				(new AgentCapabilityMapLoader())->load(APP_ROOT . 'mapping/agents.php', 'application')
+			),
+		], AgentScopedCommandProcessor::class);
 	}
 
 	public function addons()

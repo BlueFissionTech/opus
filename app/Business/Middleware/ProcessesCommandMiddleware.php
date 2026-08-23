@@ -5,7 +5,7 @@ namespace App\Business\Middleware;
 use BotMan\BotMan\BotMan;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Business\Managers\CommandManager;
-use BlueFission\Wise\Cmd\CommandProcessor;
+use BlueFission\Wise\Cmd\ICommandProcessor;
 use BotMan\BotMan\Interfaces\Middleware\Received;
 use BotMan\BotMan\Interfaces\Middleware\Sending;
 use BotMan\BotMan\Messages\Incoming\IncomingMessage;
@@ -18,7 +18,7 @@ class ProcessesCommandMiddleware implements Received, Sending
     protected $commandProcessor;
     // protected $_core;
 
-    public function __construct(CommandManager $commandManager, CommandProcessor $commandProcessor)
+    public function __construct(CommandManager $commandManager, ICommandProcessor $commandProcessor)
     // public function __construct()
     {
         $this->commandManager = $commandManager;

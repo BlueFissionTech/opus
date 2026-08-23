@@ -112,6 +112,13 @@ package's `mapping/console.php` resource catalog. The supported modes are:
   the root agent; and
 - `disabled`: expose no package commands to agents.
 
+Existing add-ons may omit both the manifest entry and agent map while they are
+migrated. They remain valid but expose no agent commands. Declaring an agent map
+makes the file and its closed schema mandatory. For supported executable
+console mappings, stable dotted `Mapping::add()` names (or two-segment paths)
+and deterministic `Mapping::crud()` resources are extracted statically; the
+mapping file is never executed during validation.
+
 Local tools, imports, exports, permissions, and active lifecycle states must be
 explicit. Missing maps, inactive packages, missing permissions, malformed
 identifiers, and one-sided cross-agent grants resolve to no tools. Grants are
@@ -120,10 +127,14 @@ central agent reaches those capabilities through explicit delegation. Add-on
 agents receive no root or peer tools unless both maps name the exact reciprocal
 grant.
 
-The scoped Wise processor parses a command before execution, derives its exact
-tool identifier, and checks the same resolved map used for discovery. Denied
+The application binds Wise's `ICommandProcessor` to the scoped processor, which
+parses a command before execution, derives its exact tool identifier, and checks
+the same resolved map used for discovery. The already-authorized `Command`
+object is passed to Wise for execution so free-form input is not parsed twice. Denied
 commands and continuations return structured diagnostics before handler
-execution. Request context should include actor, agent, tenant, correlation,
+execution. Continuations are bound to their originating agent, tenant, and
+actor, then reauthorized against current lifecycle and permission state.
+Request context should include actor, agent, tenant, correlation,
 active add-ons, lifecycle states, and granted capabilities. Returned command
 results include the resolved map versions and decision metadata and must be
 consumed once rather than treated as another command.
