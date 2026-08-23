@@ -59,6 +59,18 @@ metadata in the lock.
 Opus maintainers can verify that the template still covers the complete locked
 Blue Fission dependency graph with `composer audit:composer-vcs`.
 
+### Environment Precedence
+
+Process-injected, non-empty environment values take precedence over `.env`
+entries. The shared application settings loader uses `.env` only as a fallback
+for absent or empty values and applies the same result to `getenv()`, `$_ENV`,
+and `$_SERVER`. Web, CLI, and worker entrypoints must load Composer before the
+shared settings file so the same policy is used in every runtime.
+
+`EnvironmentLoader::lastReport()` and `EnvironmentLoader::sourceOf()` expose
+key names and their `process` or `dotenv` source for startup diagnostics. They
+never expose configuration values.
+
 ## Usage
 
 ### Event Management
