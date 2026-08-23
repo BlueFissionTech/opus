@@ -36,6 +36,28 @@ final class RuntimePathResolver
         return new self($packageRoot, $hostRoot, $activeAutoloader);
     }
 
+    public static function packageInstallRootFromEntrypoint(string $entrypoint): ?string
+    {
+        if (!self::isAbsolute($entrypoint)) {
+            $entrypoint = getcwd() . DIRECTORY_SEPARATOR . $entrypoint;
+        }
+        $entrypoint = self::normalizeLexical($entrypoint);
+        $entrypoints = [
+            'public' . DIRECTORY_SEPARATOR . 'index.php' => 2,
+            'bin' . DIRECTORY_SEPARATOR . 'opus-addon.php' => 2,
+            'terminal' => 1,
+            'websocket-server.php' => 1,
+        ];
+
+        foreach ($entrypoints as $suffix => $levels) {
+            if (self::pathEndsWith($entrypoint, DIRECTORY_SEPARATOR . $suffix)) {
+                return self::normalizeLexical(dirname($entrypoint, $levels));
+            }
+        }
+
+        return null;
+    }
+
     public function packageRoot(): string
     {
         return $this->packageRoot;
@@ -56,8 +78,16 @@ final class RuntimePathResolver
         if ($this->activeAutoloader !== null) {
             $candidates[] = $this->activeAutoloader;
         }
-        if ($this->hostRoot !== null) {
-            $candidates[] = self::join($this->hostRoot, 'vendor/autoload.php');
+        $candidateHostRoot = $this->hostRoot;
+        if ($candidateHostRoot === null && basename($this->packageInstallRoot) === 'core') {
+            $candidateHostRoot = dirname($this->packageInstallRoot);
+        }
+        if ($candidateHostRoot !== null) {
+            $configuredAutoloader = self::configuredVendorAutoloader($candidateHostRoot);
+            if ($configuredAutoloader !== null) {
+                $candidates[] = $configuredAutoloader;
+            }
+            $candidates[] = self::join($candidateHostRoot, 'vendor/autoload.php');
         }
         if (basename($this->packageInstallRoot) === 'core') {
             $candidates[] = self::join(dirname($this->packageInstallRoot), 'vendor/autoload.php');
@@ -183,6 +213,49 @@ final class RuntimePathResolver
         $second = self::normalizeLexical($second);
 
         return PHP_OS_FAMILY === 'Windows' ? strcasecmp($first, $second) === 0 : $first === $second;
+    }
+
+    private static function pathEndsWith(string $path, string $suffix): bool
+    {
+        $path = self::normalizeLexical($path);
+        $suffix = self::normalizeLexical($suffix);
+
+        // This resolver must remain usable before Composer can load DevElation helpers.
+        return PHP_OS_FAMILY === 'Windows'
+            ? \str_ends_with(\strtolower($path), \strtolower($suffix))
+            : \str_ends_with($path, $suffix);
+    }
+
+    private static function configuredVendorAutoloader(string $hostRoot): ?string
+    {
+        $composerPath = self::join($hostRoot, 'composer.json');
+        if (!is_file($composerPath)) {
+            return null;
+        }
+
+        $contents = file_get_contents($composerPath);
+        if (!is_string($contents)) {
+            return null;
+        }
+
+        $composer = \json_decode($contents, true);
+        $vendorDirectory = \is_array($composer) ? ($composer['config']['vendor-dir'] ?? null) : null;
+        if (!is_string($vendorDirectory) || $vendorDirectory === '') {
+            return null;
+        }
+
+        $vendorRoot = self::isAbsolute($vendorDirectory)
+            ? $vendorDirectory
+            : self::join($hostRoot, $vendorDirectory);
+
+        return self::join($vendorRoot, 'autoload.php');
+    }
+
+    private static function isAbsolute(string $path): bool
+    {
+        return \str_starts_with($path, '/')
+            || \str_starts_with($path, '\\\\')
+            || preg_match('/^[A-Za-z]:[\\/\\\\]/', $path) === 1;
     }
 
     private static function pathStartsWith(string $path, string $root): bool

@@ -43,6 +43,15 @@ class TerminalBootstrapOrderTest extends TestCase
         $this->assertTrue(Str::make($source)->contains('autoloadPath()'));
     }
 
+    public function testRuntimeBootstrapPreservesDirectEntrypointInstallPaths(): void
+    {
+        $source = FileSystem::fileContents(dirname(__DIR__, 2) . '/common/bootstrap/runtime.php');
+
+        $this->assertIsString($source);
+        $this->assertTrue(Str::make($source)->contains("\$_SERVER['SCRIPT_FILENAME']"));
+        $this->assertTrue(Str::make($source)->contains('packageInstallRootFromEntrypoint'));
+    }
+
     /**
      * @dataProvider loaderEntrypoints
      */

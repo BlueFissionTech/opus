@@ -109,6 +109,45 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
+    public function testEntrypointPathPreservesTheLexicalPackageInstallRoot(): void
+    {
+        $host = $this->workspace . '/linked-host';
+        mkdir($host, 0777, true);
+        $expected = realpath($host) . DIRECTORY_SEPARATOR . 'core';
+
+        $this->assertSame(
+            $expected,
+            RuntimePathResolver::packageInstallRootFromEntrypoint(
+                $host . '/core/public/index.php'
+            )
+        );
+        $this->assertSame(
+            $expected,
+            RuntimePathResolver::packageInstallRootFromEntrypoint(
+                $host . '/core/bin/opus-addon.php'
+            )
+        );
+        $this->assertNull(
+            RuntimePathResolver::packageInstallRootFromEntrypoint($host . '/vendor/bin/other-command')
+        );
+
+        $relative = RuntimePathResolver::packageInstallRootFromEntrypoint('core/bin/opus-addon.php');
+        $this->assertSame(realpath(getcwd()) . DIRECTORY_SEPARATOR . 'core', $relative);
+    }
+
+    public function testConfiguredComposerVendorDirectoryProvidesTheHostAutoloader(): void
+    {
+        $host = $this->workspace . '/custom-vendor-host';
+        $package = $this->package($host . '/core');
+        file_put_contents($host . '/composer.json', '{"config":{"vendor-dir":"deps"}}');
+        $this->autoload($host . '/deps/autoload.php');
+
+        $resolver = RuntimePathResolver::discover($package, $host);
+
+        $this->assertSame(realpath($host . '/deps/autoload.php'), $resolver->autoloadPath());
+        $this->assertSame(realpath($host), $resolver->hostRoot());
+    }
+
     public function testStandaloneVendorInstallUsesTheHostAutoloader(): void
     {
         $host = $this->workspace . '/standalone-host';
