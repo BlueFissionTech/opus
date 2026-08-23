@@ -135,6 +135,22 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath(getcwd()) . DIRECTORY_SEPARATOR . 'core', $relative);
     }
 
+    public function testEntrypointPackageRootMustContainTheSharedRuntimeBootstrap(): void
+    {
+        $host = $this->workspace . '/file-link-host';
+        $package = $this->package($host . '/core');
+        mkdir($package . '/common/bootstrap', 0777, true);
+        file_put_contents($package . '/common/bootstrap/runtime.php', '<?php return true;');
+
+        $inferredFromFileLink = RuntimePathResolver::packageInstallRootFromEntrypoint(
+            $host . '/public/index.php'
+        );
+
+        $this->assertSame(realpath($host), $inferredFromFileLink);
+        $this->assertFalse(RuntimePathResolver::isPackageInstallRoot($inferredFromFileLink));
+        $this->assertTrue(RuntimePathResolver::isPackageInstallRoot($package));
+    }
+
     public function testConfiguredComposerVendorDirectoryProvidesTheHostAutoloader(): void
     {
         $host = $this->workspace . '/custom-vendor-host';

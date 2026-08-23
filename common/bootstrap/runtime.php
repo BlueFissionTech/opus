@@ -11,7 +11,10 @@ $configuredHostRoot = getenv('OPUS_HOST_ROOT');
 $activeAutoloader = $GLOBALS['_composer_autoload_path'] ?? null;
 $entrypoint = $_SERVER['SCRIPT_FILENAME'] ?? null;
 if ((!is_string($activeAutoloader) || $activeAutoloader === '') && is_string($entrypoint)) {
-    $packageRoot = RuntimePathResolver::packageInstallRootFromEntrypoint($entrypoint) ?? $packageRoot;
+    $entrypointPackageRoot = RuntimePathResolver::packageInstallRootFromEntrypoint($entrypoint);
+    if ($entrypointPackageRoot !== null && RuntimePathResolver::isPackageInstallRoot($entrypointPackageRoot)) {
+        $packageRoot = $entrypointPackageRoot;
+    }
 }
 $runtimePaths = RuntimePathResolver::discover(
     $packageRoot,

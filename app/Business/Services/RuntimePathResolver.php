@@ -58,6 +58,11 @@ final class RuntimePathResolver
         return null;
     }
 
+    public static function isPackageInstallRoot(string $root): bool
+    {
+        return is_file(self::join($root, 'common/bootstrap/runtime.php'));
+    }
+
     public function packageRoot(): string
     {
         return $this->packageRoot;

@@ -50,6 +50,7 @@ class TerminalBootstrapOrderTest extends TestCase
         $this->assertIsString($source);
         $this->assertTrue(Str::make($source)->contains("\$_SERVER['SCRIPT_FILENAME']"));
         $this->assertTrue(Str::make($source)->contains('packageInstallRootFromEntrypoint'));
+        $this->assertTrue(Str::make($source)->contains('isPackageInstallRoot'));
     }
 
     /**
