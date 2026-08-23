@@ -37,13 +37,13 @@ test('builds a deterministic manifest for core, theme, and add-on entries', (con
   const root = createWorkspace();
   context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   createFile(root, 'addons/zeta/resource/src/zeta.js');
-  createFile(root, 'addons/alpha/resource/src/module-alpha.js');
+  createFile(root, 'addons/alpha_tools/resource/src/module-alpha_tools.js');
 
   const manifest = createAssetManifest(root, {});
 
   assert.equal(manifest.theme, 'default');
   assert.equal(manifest.entries['theme-default'], path.join(root, 'resource/markup/default/src/index.js'));
-  assert.deepEqual(Object.keys(manifest.entries).slice(-2), ['module-alpha', 'zeta']);
+  assert.deepEqual(Object.keys(manifest.entries).slice(-2), ['module-alpha-tools', 'zeta']);
   assert.equal(manifest.outputRoot, path.join(root, 'public/assets'));
 });
 
@@ -69,6 +69,9 @@ test('rejects add-on entry collisions and unsafe directory names', (context) => 
   );
 
   fs.rmSync(path.join(root, 'addons/app'), { recursive: true, force: true });
+  createFile(root, 'addons/Bad_Name/README.md');
+  assert.deepEqual(discoverAddOnEntries(root), {});
+
   createFile(root, 'addons/Bad_Name/resource/src/Bad_Name.js');
   assert.throws(() => discoverAddOnEntries(root), /Add-on directory name must match/);
 });

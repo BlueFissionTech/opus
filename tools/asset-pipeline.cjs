@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const ENTRY_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
+const THEME_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
+const ADDON_NAME_PATTERN = /^[a-z][a-z0-9_]*$/;
 
 const CORE_ENTRIES = Object.freeze({
   app: 'resource/src/js/app.js',
@@ -26,17 +27,17 @@ const LEGACY_EXCLUDED_ROOTS = Object.freeze([
   'resource/markup/default/js'
 ]);
 
-function normalizeName(value, label) {
+function normalizeName(value, label, pattern) {
   const name = String(value ?? '').trim();
-  if (!ENTRY_NAME_PATTERN.test(name)) {
-    throw new Error(`${label} must match ${ENTRY_NAME_PATTERN}. Received: ${name || '<empty>'}`);
+  if (!pattern.test(name)) {
+    throw new Error(`${label} must match ${pattern}. Received: ${name || '<empty>'}`);
   }
 
   return name;
 }
 
 function selectedTheme(environment = process.env) {
-  return normalizeName(environment.OPUS_ASSET_THEME || 'default', 'OPUS_ASSET_THEME');
+  return normalizeName(environment.OPUS_ASSET_THEME || 'default', 'OPUS_ASSET_THEME', THEME_NAME_PATTERN);
 }
 
 function discoverAddOnEntries(projectRoot, reservedEntries = []) {
@@ -53,16 +54,20 @@ function discoverAddOnEntries(projectRoot, reservedEntries = []) {
     .sort((left, right) => left.localeCompare(right));
 
   for (const rawName of addonNames) {
-    const addonName = normalizeName(rawName, 'Add-on directory name');
-    const candidates = [
-      [`module-${addonName}`, path.join(addonsRoot, addonName, 'resource', 'src', `module-${addonName}.js`)],
-      [addonName, path.join(addonsRoot, addonName, 'resource', 'src', `${addonName}.js`)]
+    const sourceCandidates = [
+      ['module', path.join(addonsRoot, rawName, 'resource', 'src', `module-${rawName}.js`)],
+      ['main', path.join(addonsRoot, rawName, 'resource', 'src', `${rawName}.js`)]
     ];
+    const availableCandidates = sourceCandidates.filter(([, entryPath]) => fs.existsSync(entryPath));
+    if (availableCandidates.length === 0) {
+      continue;
+    }
 
-    for (const [entryName, entryPath] of candidates) {
-      if (!fs.existsSync(entryPath)) {
-        continue;
-      }
+    const addonName = normalizeName(rawName, 'Add-on directory name', ADDON_NAME_PATTERN);
+    const outputName = addonName.replaceAll('_', '-');
+
+    for (const [entryType, entryPath] of availableCandidates) {
+      const entryName = entryType === 'module' ? `module-${outputName}` : outputName;
       if (reserved.has(entryName) || Object.hasOwn(entries, entryName)) {
         throw new Error(`Add-on asset entry '${entryName}' conflicts with an existing entry.`);
       }
@@ -138,9 +143,11 @@ if (require.main === module) {
 }
 
 module.exports = {
+  ADDON_NAME_PATTERN,
   CORE_COPY_PATTERNS,
   CORE_ENTRIES,
   LEGACY_EXCLUDED_ROOTS,
+  THEME_NAME_PATTERN,
   createAssetManifest,
   discoverAddOnEntries,
   selectedTheme,

@@ -38,9 +38,12 @@ add-on may expose either or both of these entrypoints:
 - `addons/<name>/resource/src/module-<name>.js`
 - `addons/<name>/resource/src/<name>.js`
 
-Add-on names follow the same lower-case naming rule as themes. Entry names must
-not collide with core, theme, or other add-on entries. Missing optional add-on
-entrypoints are ignored; malformed names and collisions fail validation.
+Add-on names follow the platform's lower snake-case lifecycle convention. Build
+entry names replace underscores with hyphens, so `sample_tools` publishes
+`module-sample-tools` or `sample-tools`. Entry names must not collide with core,
+theme, or other add-on entries. Directories without asset entrypoints are
+ignored; malformed names are rejected only when they expose an asset entry, and
+collisions always fail validation.
 
 ## Source Ownership
 
