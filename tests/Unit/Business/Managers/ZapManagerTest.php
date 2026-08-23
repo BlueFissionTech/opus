@@ -109,6 +109,29 @@ final class ZapManagerTest extends TestCase
         $this->assertSame('HTTP request failed: (503)', $response->meta()['connection_status']);
     }
 
+    public function testCustomMethodIsClearedBeforeTheConnectionIsReused(): void
+    {
+        $connection = $this->connection();
+        $connection->method('config')->willReturnSelf();
+        $connection->method('open')->willReturnSelf();
+        $connection->method('query')->willReturnSelf();
+        $connection->method('status')->willReturn(Curl::STATUS_SUCCESS);
+        $connection->method('result')->willReturn('{"ok":true}');
+        $connection->expects($this->exactly(2))->method('close')->willReturnSelf();
+        $connection->expects($this->exactly(2))
+            ->method('option')
+            ->withConsecutive(
+                [CURLOPT_CUSTOMREQUEST, 'PUT'],
+                [CURLOPT_CUSTOMREQUEST, null]
+            )
+            ->willReturnSelf();
+
+        $manager = new ZapManager('secret', $connection);
+
+        $this->assertTrue($manager->configureZap('zap-1', 'trigger', [])->ok());
+        $this->assertTrue($manager->searchZaps('example')->ok());
+    }
+
     public function testConnectionExceptionReturnsAStableFailure(): void
     {
         $connection = $this->connection();

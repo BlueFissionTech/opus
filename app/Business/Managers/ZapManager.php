@@ -79,9 +79,8 @@ final class ZapManager
                 ],
             ]);
 
-            if ($method !== 'GET' && $method !== 'POST') {
-                $this->connection->option(CURLOPT_CUSTOMREQUEST, $method);
-            }
+            $customMethod = $method === 'GET' || $method === 'POST' ? null : $method;
+            $this->connection->option(CURLOPT_CUSTOMREQUEST, $customMethod);
 
             $this->connection->open();
             $this->connection->query($method === 'GET' ? null : $data);
