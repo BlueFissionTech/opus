@@ -25,8 +25,10 @@ $app->register('database', 'populate', 'populate');
 
 $app->delegate('addon', AddOnManager::class);
 $app->register('addon', 'install', 'install');
+$app->register('addon', 'install-all', 'install_all');
 $app->register('addon', 'uninstall', 'uninstall');
 $app->register('addon', 'activate', 'activate');
+$app->register('addon', 'activate-all', 'activate_all');
 $app->register('addon', 'deactivate', 'deactivate');
 $app->register('addon', 'show', 'showAll');
 

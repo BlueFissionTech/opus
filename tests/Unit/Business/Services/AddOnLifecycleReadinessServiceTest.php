@@ -1,0 +1,119 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit\Business\Services;
+
+use App\Business\Services\AddOnLifecycleReadinessService;
+use PHPUnit\Framework\TestCase;
+
+final class AddOnLifecycleReadinessServiceTest extends TestCase
+{
+    public function testRequiredDatasourceFailureOverridesOptimisticLifecycleStatus(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => true,
+            'action' => 'install',
+            'addon' => 'sample',
+            'changed' => true,
+            'stage' => 'complete',
+            'hooks' => [],
+            'migrations' => [
+                'ok' => false,
+                'error' => 'Required schema could not be applied.',
+            ],
+            'population' => ['ok' => true],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('migrations', $result['stage']);
+        $this->assertSame('blocked', $result['readiness']['state']);
+        $this->assertSame('addon_migration_failed', $result['readiness']['reasons'][0]['code']);
+    }
+
+    public function testAbsentOptionalHookIsReportedAsSkippedWithoutContradictingSuccess(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => true,
+            'action' => 'install',
+            'addon' => 'sample',
+            'changed' => true,
+            'stage' => 'complete',
+            'hooks' => [[
+                'ok' => false,
+                'hook' => 'install',
+                'status' => 'missing_callable',
+                'error' => 'No compatible lifecycle hook callable was found.',
+            ]],
+            'migrations' => ['ok' => true],
+            'population' => ['ok' => true],
+        ]);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame('ready', $result['readiness']['state']);
+        $this->assertTrue($result['hooks'][0]['optional']);
+        $this->assertSame('skipped', $result['hooks'][0]['status']);
+        $this->assertSame('lifecycle_hook_not_declared', $result['hooks'][0]['reason']);
+        $this->assertNull($result['hooks'][0]['error']);
+    }
+
+    public function testRequiredHookResolutionFailureBlocksLifecycleReadiness(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => true,
+            'action' => 'install',
+            'addon' => 'sample',
+            'changed' => false,
+            'stage' => 'complete',
+            'hooks' => [[
+                'ok' => false,
+                'hook' => 'install',
+                'status' => 'missing_primary_file',
+                'error' => 'Primary file could not be resolved.',
+            ]],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('hook', $result['stage']);
+        $this->assertSame('addon_hook_failed', $result['readiness']['reasons'][0]['code']);
+    }
+
+    public function testBatchCountsAreRecomputedFromNormalizedChildren(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => true,
+            'action' => 'install_all',
+            'total' => 2,
+            'succeeded' => 2,
+            'failed' => 0,
+            'results' => [
+                [
+                    'ok' => true,
+                    'action' => 'install',
+                    'addon' => 'first',
+                    'changed' => true,
+                    'hooks' => [],
+                    'migrations' => ['ok' => true],
+                    'population' => ['ok' => true],
+                ],
+                [
+                    'ok' => true,
+                    'action' => 'install',
+                    'addon' => 'second',
+                    'changed' => false,
+                    'hooks' => [],
+                    'migrations' => ['ok' => false, 'error' => 'Migration failed.'],
+                    'population' => [],
+                ],
+            ],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame(2, $result['total']);
+        $this->assertSame(1, $result['succeeded']);
+        $this->assertSame(1, $result['failed']);
+        $this->assertTrue($result['changed']);
+        $this->assertSame('blocked', $result['readiness']['state']);
+        $this->assertFalse($result['results'][1]['ok']);
+    }
+}
