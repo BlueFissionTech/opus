@@ -181,6 +181,17 @@ PHP
         }
     }
 
+    public function testCatalogPreservesAnAbsoluteUnixRoot(): void
+    {
+        $catalog = new AgentCapabilityMapCatalog('/srv/opus/addons/');
+        $method = (new \ReflectionClass($catalog))->getMethod('path');
+
+        $this->assertSame(
+            '/srv/opus/addons/sample_tools/mapping/agents.php',
+            $method->invoke($catalog, 'sample_tools')
+        );
+    }
+
     public function testValidatorRejectsUnknownToolsInvalidModesAndCentralLeakage(): void
     {
         $mapping = $this->mapping('sample', 'addon.sample', 'specialist', ['sample.run']);
