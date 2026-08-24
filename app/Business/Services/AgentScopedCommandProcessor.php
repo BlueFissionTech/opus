@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Business\Services;
 
+use App\Domain\Agents\IAgentContinuationScopeStore;
 use App\Domain\Agents\ResolvedAgentToolMap;
 use BlueFission\Arr;
 use BlueFission\Str;
@@ -16,13 +17,11 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
 {
     public const CENTRAL_AGENT = 'opus.central';
 
-    private Arr $continuations;
-
     public function __construct(
         private ICommandProcessor $processor,
-        private AgentCapabilityMapResolver $resolver
+        private AgentCapabilityMapResolver $resolver,
+        private IAgentContinuationScopeStore $continuations
     ) {
-        $this->continuations = Arr::make([]);
     }
 
     public function process(CommandRequest|Command|array|string $request): CommandResult
@@ -81,7 +80,7 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             'agent_result_status' => $result->status(),
         ]));
         if ($result->confirmationRequired() && Str::isNotEmpty((string) $result->continuationToken())) {
-            $this->continuations->set((string) $result->continuationToken(), [
+            $this->continuations->put((string) $result->continuationToken(), [
                 'agent_id' => $resolved->agentId(),
                 'tenant_id' => $resolved->tenantId(),
                 'actor' => $context->get('actor'),

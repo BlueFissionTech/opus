@@ -10,6 +10,7 @@ use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentScopedCommandProcessor;
 use App\Business\Services\DeclarativeArrayParser;
 use App\Domain\Agents\AgentCapabilityMap;
+use App\Domain\Agents\IAgentContinuationScopeStore;
 use BlueFission\Arr;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
@@ -410,7 +411,11 @@ PHP
             }
         };
         $root = $this->map($this->mapping('application', 'opus.central', 'central', ['command.list']), ['command.list']);
-        $scoped = new AgentScopedCommandProcessor($processor, new AgentCapabilityMapResolver($root));
+        $scoped = new AgentScopedCommandProcessor(
+            $processor,
+            new AgentCapabilityMapResolver($root),
+            $this->continuationStore()
+        );
         $context = [
             'actor' => ['id' => 'operator'],
             'agent_id' => 'opus.central',
@@ -462,7 +467,11 @@ PHP
             }
         };
         $root = $this->map($this->mapping('application', 'opus.central', 'central', ['command.list']), ['command.list']);
-        $scoped = new AgentScopedCommandProcessor($processor, new AgentCapabilityMapResolver($root));
+        $scoped = new AgentScopedCommandProcessor(
+            $processor,
+            new AgentCapabilityMapResolver($root),
+            $this->continuationStore()
+        );
 
         $result = $scoped->process(new CommandRequest('delete file', context: ['agent_id' => 'opus.central']));
 
@@ -506,7 +515,12 @@ PHP
             $this->mapping('application', 'opus.central', 'central', ['command.list']),
             ['command.list']
         );
-        $scoped = new AgentScopedCommandProcessor($processor, new AgentCapabilityMapResolver($root));
+        $continuations = $this->continuationStore();
+        $scoped = new AgentScopedCommandProcessor(
+            $processor,
+            new AgentCapabilityMapResolver($root),
+            $continuations
+        );
         $scope = [
             'actor' => ['id' => 'operator-a'],
             'tenant_id' => 'tenant-a',
@@ -523,7 +537,12 @@ PHP
             true,
             ['actor' => ['id' => 'operator-b'], 'tenant_id' => 'tenant-a']
         ));
-        $completed = $scoped->process(CommandRequest::resume('continuation-a', true, $scope));
+        $nextRequest = new AgentScopedCommandProcessor(
+            $processor,
+            new AgentCapabilityMapResolver($root),
+            $continuations
+        );
+        $completed = $nextRequest->process(CommandRequest::resume('continuation-a', true, $scope));
 
         $this->assertTrue($pending->confirmationRequired());
         $this->assertSame(CommandResult::INVALID, $wrongTenant->status());
@@ -531,6 +550,28 @@ PHP
         $this->assertSame(CommandResult::COMPLETED, $completed->status());
         $this->assertSame(1, $processor->resumes);
         $this->assertSame('opus.central', $completed->metadata()['agent_id']);
+    }
+
+    private function continuationStore(): IAgentContinuationScopeStore
+    {
+        return new class implements IAgentContinuationScopeStore {
+            private array $scopes = [];
+
+            public function get(string $token): ?array
+            {
+                return $this->scopes[$token] ?? null;
+            }
+
+            public function put(string $token, array $scope): void
+            {
+                $this->scopes[$token] = $scope;
+            }
+
+            public function delete(string $token): void
+            {
+                unset($this->scopes[$token]);
+            }
+        };
     }
 
     private function map(array $mapping, array $knownTools): AgentCapabilityMap

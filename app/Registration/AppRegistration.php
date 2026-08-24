@@ -8,6 +8,7 @@ use App\Business\MysqlConnector;
 use App\Business\Services\VibeThemeRenderer;
 use App\Business\Services\AgentCapabilityMapLoader;
 use App\Business\Services\AgentCapabilityMapResolver;
+use App\Business\Services\AgentContinuationScopeStore;
 use App\Business\Services\AgentScopedCommandProcessor;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
@@ -105,6 +106,8 @@ class AppRegistration implements IExtension {
 	 * Pass arguments to different components
 	 */
 	public function arguments() {
+		$commandStorage = new Session(['location' => 'cache', 'name' => 'system']);
+
 		$this->bindArgs( ['session'=>new Session()], 'App\Business\Http\AdminController');
 		$this->bindArgs( ['session'=>new Session()], 'BlueFission\BlueCore\Auth');
 
@@ -115,12 +118,13 @@ class AppRegistration implements IExtension {
 
 		$this->bindArgs( ['link'=>\App::makeInstance('BlueFission\Connections\Database\MySQLLink'), 'storage'=>\App::makeInstance('BlueFission\Data\Storage\MySQLBulk')], 'BlueFission\BlueCore\Business\Managers\DatasourceManager');
 		
-		$this->bindArgs(['storage' => new Session(['location' => 'cache', 'name' => 'system'])], CommandProcessor::class);
+		$this->bindArgs(['storage' => $commandStorage], CommandProcessor::class);
 		$this->bindArgs([
 			'processor' => \App::makeInstance(CommandProcessor::class),
 			'resolver' => new AgentCapabilityMapResolver(
 				(new AgentCapabilityMapLoader())->load(APP_ROOT . 'mapping/agents.php', 'application')
 			),
+			'continuations' => new AgentContinuationScopeStore($commandStorage),
 		], AgentScopedCommandProcessor::class);
 	}
 
