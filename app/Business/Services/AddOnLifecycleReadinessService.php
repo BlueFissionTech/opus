@@ -63,6 +63,7 @@ final class AddOnLifecycleReadinessService extends Service
     private function normalizeLifecycle(Arr $outcome): array
     {
         $reasons = Arr::make([]);
+        $optionalHookFailureOnly = $this->hasOnlyMissingOptionalHookFailures($outcome);
         $hooks = Arr::make(Arr::is($outcome->get('hooks')) ? $outcome->get('hooks') : [])
             ->map(fn ($hook): array => $this->normalizeHook(Arr::make((array) $hook), $reasons))
             ->values();
@@ -78,7 +79,10 @@ final class AddOnLifecycleReadinessService extends Service
             $reasons->push($this->reason($code, $stage, $message));
         });
 
-        if (Flag::isFalse($outcome->get('ok')) && $reasons->count() === 0) {
+        if (Flag::isFalse($outcome->get('ok'))
+            && $reasons->count() === 0
+            && !$optionalHookFailureOnly
+        ) {
             $reasons->push($this->reason(
                 'addon_lifecycle_failed',
                 (string) ($outcome->get('stage') ?: 'lifecycle'),
@@ -90,8 +94,11 @@ final class AddOnLifecycleReadinessService extends Service
             $first = Arr::make((array) $reasons->get(0));
             $outcome->set('ok', false);
             $outcome->set('stage', $first->get('stage'));
-            $outcome->set('nextAction', $outcome->get('nextAction') ?: 'retry_lifecycle');
+            $outcome->set('nextAction', 'retry_lifecycle');
             $outcome->set('error', $outcome->get('error') ?: $first->get('message'));
+        } elseif ($optionalHookFailureOnly) {
+            $outcome->set('ok', true);
+            $outcome->set('error', null);
         }
 
         $outcome->set('readiness', [
@@ -126,6 +133,18 @@ final class AddOnLifecycleReadinessService extends Service
         return $hook->toArray();
     }
 
+    private function hasOnlyMissingOptionalHookFailures(Arr $outcome): bool
+    {
+        $failed = Arr::make(Arr::is($outcome->get('hooks')) ? $outcome->get('hooks') : [])
+            ->filter(fn ($hook): bool => Flag::isFalse(Arr::getPath((array) $hook, 'ok')))
+            ->values();
+
+        return $failed->isNotEmpty()
+            && $failed->filter(fn ($hook): bool => Str::make(
+                (string) Arr::getPath((array) $hook, 'status')
+            )->trim()->lower()->val() !== 'missing_callable')->isEmpty();
+    }
+
     private function normalizeBatch(Arr $outcome, array $results): array
     {
         $normalized = Arr::make($results)
@@ -150,6 +169,9 @@ final class AddOnLifecycleReadinessService extends Service
         $outcome->set('succeeded', $total - $failed);
         $outcome->set('failed', $failed);
         $outcome->set('results', $normalized->toArray());
+        if ($failed > 0) {
+            $outcome->set('nextAction', 'retry_lifecycle');
+        }
         $outcome->set('readiness', [
             'state' => $failed === 0 ? 'ready' : 'blocked',
             'reasons' => $reasons->toArray(),

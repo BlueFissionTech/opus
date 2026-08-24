@@ -17,6 +17,7 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
             'addon' => 'sample',
             'changed' => true,
             'stage' => 'complete',
+            'nextAction' => 'activate',
             'hooks' => [],
             'migrations' => [
                 'ok' => false,
@@ -29,16 +30,18 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('migrations', $result['stage']);
         $this->assertSame('blocked', $result['readiness']['state']);
         $this->assertSame('addon_migration_failed', $result['readiness']['reasons'][0]['code']);
+        $this->assertSame('retry_lifecycle', $result['nextAction']);
     }
 
     public function testAbsentOptionalHookIsReportedAsSkippedWithoutContradictingSuccess(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([
-            'ok' => true,
+            'ok' => false,
             'action' => 'install',
             'addon' => 'sample',
             'changed' => true,
             'stage' => 'complete',
+            'nextAction' => 'activate',
             'hooks' => [[
                 'ok' => false,
                 'hook' => 'install',
@@ -55,6 +58,7 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('skipped', $result['hooks'][0]['status']);
         $this->assertSame('lifecycle_hook_not_declared', $result['hooks'][0]['reason']);
         $this->assertNull($result['hooks'][0]['error']);
+        $this->assertSame('activate', $result['nextAction']);
     }
 
     public function testRequiredHookResolutionFailureBlocksLifecycleReadiness(): void
@@ -86,6 +90,7 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
             'total' => 2,
             'succeeded' => 2,
             'failed' => 0,
+            'nextAction' => 'activate_all',
             'results' => [
                 [
                     'ok' => true,
@@ -115,5 +120,6 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertTrue($result['changed']);
         $this->assertSame('blocked', $result['readiness']['state']);
         $this->assertFalse($result['results'][1]['ok']);
+        $this->assertSame('retry_lifecycle', $result['nextAction']);
     }
 }
