@@ -137,6 +137,69 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(1, $factory->created);
     }
 
+    public function testCachedRuntimeReceivesTheCurrentOperationContext(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+
+        $service->start('opus.central', new AgentRuntimeContext(
+            actor: ['id' => 'actor-a'],
+            correlationId: 'correlation-a'
+        ));
+        $service->execute('opus.central', ['intent' => 'status'], new AgentRuntimeContext(
+            actor: ['id' => 'actor-b'],
+            correlationId: 'correlation-b'
+        ));
+
+        $contexts = $factory->runtimes[0]->contexts;
+        $this->assertSame('actor-a', $contexts[0]->actor()['id']);
+        $this->assertSame('correlation-a', $contexts[0]->correlationId());
+        $this->assertSame('actor-b', $contexts[1]->actor()['id']);
+        $this->assertSame('correlation-b', $contexts[1]->correlationId());
+    }
+
+    public function testSuccessfulCancellationIsPersistedAndDeduplicatedUntilExecutionResumes(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext(correlationId: 'cancel-a');
+
+        $service->start('opus.central', $context);
+        $cancelled = $service->cancel('opus.central', $context);
+        $cancelledAgain = $service->cancel('opus.central', $context);
+        $service->execute('opus.central', ['intent' => 'next'], new AgentRuntimeContext(correlationId: 'execute-b'));
+        $cancelledAfterExecution = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-c')
+        );
+
+        $this->assertTrue($cancelled->ok());
+        $this->assertTrue($cancelledAgain->toArray()['metadata']['idempotent']);
+        $this->assertTrue($cancelledAfterExecution->ok());
+        $this->assertSame(2, $factory->runtimes[0]->calls['cancel']);
+    }
+
+    public function testApplicationScopeDoesNotCollideWithTenantNamedApplication(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+
+        $application = $service->start('opus.central', new AgentRuntimeContext());
+        $tenant = $service->start('opus.central', new AgentRuntimeContext(tenantId: 'application'));
+
+        $this->assertTrue($application->ok());
+        $this->assertTrue($tenant->ok());
+        $this->assertNull($application->toArray()['tenant_id']);
+        $this->assertSame('application', $tenant->toArray()['tenant_id']);
+        $this->assertSame(2, $factory->created);
+    }
+
     private function service(AgentCapabilityMap $root, IAgentRuntimeFactory $factory): AgentCompositionService
     {
         $states = new class implements IAgentRuntimeStateStore {
@@ -159,7 +222,7 @@ final class AgentCompositionServiceTest extends TestCase
 
             private function key(string $agentId, ?string $tenantId): string
             {
-                return ($tenantId ?? 'application') . '::' . $agentId;
+                return ($tenantId === null ? 'scope:application' : 'tenant:' . $tenantId) . '::' . $agentId;
             }
         };
 
@@ -190,14 +253,16 @@ final class AgentCompositionServiceTest extends TestCase
                         'cancel' => 0,
                         'execute' => 0,
                     ];
+                    public array $contexts = [];
 
                     public function __construct(private object $factory)
                     {
                     }
 
-                    public function start(): AgentRuntimeResult
+                    public function start(AgentRuntimeContext $context): AgentRuntimeResult
                     {
                         $this->calls['start']++;
+                        $this->contexts[] = $context;
                         if ($this->factory->failNextStart) {
                             $this->factory->failNextStart = false;
                             return AgentRuntimeResult::failed('start', '', null, 'failed', 'start_failed');
@@ -206,33 +271,38 @@ final class AgentCompositionServiceTest extends TestCase
                         return AgentRuntimeResult::completed('start', '', null, 'running');
                     }
 
-                    public function suspend(): AgentRuntimeResult
+                    public function suspend(AgentRuntimeContext $context): AgentRuntimeResult
                     {
                         $this->calls['suspend']++;
+                        $this->contexts[] = $context;
                         return AgentRuntimeResult::completed('suspend', '', null, 'suspended');
                     }
 
-                    public function resume(): AgentRuntimeResult
+                    public function resume(AgentRuntimeContext $context): AgentRuntimeResult
                     {
                         $this->calls['resume']++;
+                        $this->contexts[] = $context;
                         return AgentRuntimeResult::completed('resume', '', null, 'running');
                     }
 
-                    public function stop(): AgentRuntimeResult
+                    public function stop(AgentRuntimeContext $context): AgentRuntimeResult
                     {
                         $this->calls['stop']++;
+                        $this->contexts[] = $context;
                         return AgentRuntimeResult::completed('stop', '', null, 'stopped');
                     }
 
-                    public function cancel(): AgentRuntimeResult
+                    public function cancel(AgentRuntimeContext $context): AgentRuntimeResult
                     {
                         $this->calls['cancel']++;
+                        $this->contexts[] = $context;
                         return AgentRuntimeResult::completed('cancel', '', null, 'running');
                     }
 
-                    public function execute(array $task): AgentRuntimeResult
+                    public function execute(array $task, AgentRuntimeContext $context): AgentRuntimeResult
                     {
                         $this->calls['execute']++;
+                        $this->contexts[] = $context;
                         return AgentRuntimeResult::completed('execute', '', null, 'running', $task);
                     }
                 };

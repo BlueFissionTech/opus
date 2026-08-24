@@ -53,7 +53,7 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
 
     private function key(string $agentId, ?string $tenantId): string
     {
-        return Str::make(Str::isNotEmpty((string) $tenantId) ? (string) $tenantId : 'application')
+        return Str::make(Str::isNotEmpty((string) $tenantId) ? 'tenant:' . $tenantId : 'scope:application')
             ->append('::')
             ->append($agentId)
             ->val();

@@ -104,16 +104,32 @@ final class AgentCompositionService extends Service
         }
 
         $current = $this->state($agentId, $context);
+        $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
+        if (Arr::getPath($persisted, 'cancelled') === true) {
+            return $this->idempotent('cancel', $agentId, $context, $current);
+        }
         if (!Arr::make([self::RUNNING, self::SUSPENDED])->contains($current)) {
             return AgentRuntimeResult::denied('cancel', $agentId, $context->tenantId(), $current, 'agent_not_active');
         }
 
-        return $this->invoke('cancel', $agentId, $context)->forScope(
+        $result = $this->invoke('cancel', $agentId, $context)->forScope(
             'cancel',
             $agentId,
             $context->tenantId(),
             $current
         );
+        if ($result->ok()) {
+            $this->states->put($agentId, $context->tenantId(), [
+                ...$persisted,
+                'state' => $current,
+                'status' => $result->status(),
+                'cancelled' => true,
+                'cancellation_correlation_id' => $context->correlationId(),
+                'diagnostics' => $result->diagnostics(),
+            ]);
+        }
+
+        return $result;
     }
 
     public function execute(string $agentId, array $task, AgentRuntimeContext $context): AgentRuntimeResult
@@ -139,9 +155,20 @@ final class AgentCompositionService extends Service
                 );
             }
 
-            return $this->runtime($agentId, $context)
-                ->execute($task)
+            $result = $this->runtime($agentId, $context)
+                ->execute($task, $context)
                 ->forScope('execute', $agentId, $context->tenantId(), self::RUNNING);
+            if ($result->ok()) {
+                $this->states->put($agentId, $context->tenantId(), [
+                    'state' => self::RUNNING,
+                    'status' => $result->status(),
+                    'cancelled' => false,
+                    'diagnostics' => $result->diagnostics(),
+                    'correlation_id' => $context->correlationId(),
+                ]);
+            }
+
+            return $result;
         } catch (Throwable $exception) {
             return AgentRuntimeResult::failed(
                 'execute',
@@ -217,7 +244,7 @@ final class AgentCompositionService extends Service
         try {
             $runtime = $this->runtime($agentId, $context);
 
-            return $runtime->{$action}();
+            return $runtime->{$action}($context);
         } catch (Throwable $exception) {
             return AgentRuntimeResult::failed(
                 $action,
@@ -333,7 +360,7 @@ final class AgentCompositionService extends Service
 
     private function key(string $agentId, ?string $tenantId): string
     {
-        return Str::make(Str::isNotEmpty((string) $tenantId) ? (string) $tenantId : 'application')
+        return Str::make(Str::isNotEmpty((string) $tenantId) ? 'tenant:' . $tenantId : 'scope:application')
             ->append('::')
             ->append($agentId)
             ->val();

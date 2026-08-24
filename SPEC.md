@@ -101,6 +101,10 @@ Acceptance criteria:
   current capability grant.
 - Start, suspend, resume, stop, and cancel transitions are idempotent and
   persist structured state independently from process-local runtime objects.
+- Each runtime operation receives the current tenant, actor, capability, and
+  correlation context even when a provider adapter is reused across requests.
+- Successful cancellation is persisted and deduplicated until a subsequent
+  task execution begins for that agent scope.
 - Task execution revalidates lifecycle and permission policy and returns
   provider-neutral output, diagnostics, trace, and correlation metadata.
 - Opus selects permitted participants and context. Automata owns hierarchical
