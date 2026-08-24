@@ -73,6 +73,9 @@ final class RuntimePathResolver
         if ($this->hostRoot !== null) {
             return $this->hostRoot;
         }
+        if (basename($this->packageInstallRoot) === 'core') {
+            return self::normalize(dirname($this->packageInstallRoot));
+        }
 
         return self::normalize(dirname(dirname($this->autoloadPath())));
     }
