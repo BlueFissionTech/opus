@@ -135,22 +135,34 @@ final class AgentCompositionService extends Service
     {
         $authorized = $this->authorize('execute', $agentId, $context);
         if ($authorized !== null) {
-            return $authorized;
+            return $this->correlate($authorized, $context);
         }
 
         $current = $this->state($agentId, $context);
         if ($current !== self::RUNNING) {
-            return AgentRuntimeResult::denied('execute', $agentId, $context->tenantId(), $current, 'agent_not_running');
-        }
-
-        try {
-            if (!$this->runtimeAvailable($agentId, $context)) {
-                return AgentRuntimeResult::unavailable(
+            return $this->correlate(
+                AgentRuntimeResult::denied(
                     'execute',
                     $agentId,
                     $context->tenantId(),
                     $current,
-                    'agent_runtime_unavailable'
+                    'agent_not_running'
+                ),
+                $context
+            );
+        }
+
+        try {
+            if (!$this->runtimeAvailable($agentId, $context)) {
+                return $this->correlate(
+                    AgentRuntimeResult::unavailable(
+                        'execute',
+                        $agentId,
+                        $context->tenantId(),
+                        $current,
+                        'agent_runtime_unavailable'
+                    ),
+                    $context
                 );
             }
 
@@ -163,26 +175,28 @@ final class AgentCompositionService extends Service
             ]));
             $result = $this->runtime($agentId, $context)
                 ->execute($task, $context)
-                ->withMetadata(['correlation_id' => $context->correlationId()])
-                ->forScope('execute', $agentId, $context->tenantId(), self::RUNNING);
+                ->withMetadata(['correlation_id' => $context->correlationId()]);
+            $latestState = $this->state($agentId, $context);
             if ($result->ok()) {
                 $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
                 $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
-                    'state' => self::RUNNING,
                     'status' => $result->status(),
                     'diagnostics' => $result->diagnostics(),
                     'correlation_id' => $context->correlationId(),
                 ]));
             }
 
-            return $result;
+            return $result->forScope('execute', $agentId, $context->tenantId(), $latestState);
         } catch (Throwable $exception) {
-            return AgentRuntimeResult::failed(
-                'execute',
-                $agentId,
-                $context->tenantId(),
-                self::RUNNING,
-                $exception->getMessage()
+            return $this->correlate(
+                AgentRuntimeResult::failed(
+                    'execute',
+                    $agentId,
+                    $context->tenantId(),
+                    $this->state($agentId, $context),
+                    $exception->getMessage()
+                ),
+                $context
             );
         }
     }
@@ -372,5 +386,10 @@ final class AgentCompositionService extends Service
             ->append('::')
             ->append($agentId)
             ->val();
+    }
+
+    private function correlate(AgentRuntimeResult $result, AgentRuntimeContext $context): AgentRuntimeResult
+    {
+        return $result->withMetadata(['correlation_id' => $context->correlationId()]);
     }
 }

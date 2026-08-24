@@ -223,6 +223,52 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(1, $factory->runtimes[0]->calls['cancel']);
     }
 
+    public function testExecutionCompletionPreservesAConcurrentLifecycleTransition(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $factory->onExecute = function () use ($service): void {
+            $service->suspend('opus.central', new AgentRuntimeContext(correlationId: 'suspend-b'));
+        };
+
+        $executed = $service->execute(
+            'opus.central',
+            ['intent' => 'next'],
+            new AgentRuntimeContext(correlationId: 'execute-a')
+        );
+        $rejected = $service->execute(
+            'opus.central',
+            ['intent' => 'later'],
+            new AgentRuntimeContext(correlationId: 'execute-c')
+        );
+
+        $this->assertSame(AgentCompositionService::SUSPENDED, $executed->state());
+        $this->assertSame(AgentRuntimeResult::DENIED, $rejected->status());
+        $this->assertSame('execute-c', $rejected->toArray()['metadata']['correlation_id']);
+    }
+
+    public function testExecutionFailureRetainsTheRequestCorrelationIdentifier(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $factory->throwOnExecute = true;
+
+        $result = $service->execute(
+            'opus.central',
+            ['intent' => 'fail'],
+            new AgentRuntimeContext(correlationId: 'failure-a')
+        );
+
+        $this->assertSame(AgentRuntimeResult::FAILED, $result->status());
+        $this->assertSame('failure-a', $result->toArray()['metadata']['correlation_id']);
+    }
+
     public function testApplicationScopeDoesNotCollideWithTenantNamedApplication(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -274,6 +320,7 @@ final class AgentCompositionServiceTest extends TestCase
         return new class implements IAgentRuntimeFactory {
             public bool $available = true;
             public bool $failNextStart = false;
+            public bool $throwOnExecute = false;
             public mixed $onExecute = null;
             public int $created = 0;
             public array $runtimes = [];
@@ -346,6 +393,9 @@ final class AgentCompositionServiceTest extends TestCase
                         $this->contexts[] = $context;
                         if (is_callable($this->factory->onExecute)) {
                             ($this->factory->onExecute)();
+                        }
+                        if ($this->factory->throwOnExecute) {
+                            throw new \RuntimeException('execution_failed');
                         }
                         return AgentRuntimeResult::completed('execute', '', null, 'running', $task);
                     }
