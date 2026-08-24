@@ -107,7 +107,7 @@ PHP
 <?php
 return array(
     'resources' => array(
-        'sample' => array('list', 'show'),
+        'sample' => array('0' => 'list', 'show'),
     ),
 );
 PHP
@@ -768,7 +768,19 @@ PHP
                 return CommandResult::completed(['resumed' => true]);
             }
         };
-        $middleware = new class($this->createMock(CommandManager::class), $processor)
+        $query = new class implements IActivatedAddOnsQuery {
+            public array $records = [['name' => 'sample', 'is_active' => 1]];
+
+            public function fetch(): array
+            {
+                return $this->records;
+            }
+        };
+        $middleware = new class(
+            $this->createMock(CommandManager::class),
+            $processor,
+            new AgentCommandContextProvider($query)
+        )
             extends ProcessesCommandMiddleware {
                 public function resume(string $token, bool $approved, array $context): CommandResult
                 {
@@ -780,7 +792,14 @@ PHP
                     return $this->confirmationDescription($result);
                 }
             };
-        $context = ['actor' => ['id' => 'operator-a']];
+        $context = [
+            'actor' => ['id' => 'operator-a'],
+            'tenant_id' => 'tenant-a',
+            'active_addons' => ['sample'],
+            'addon_states' => ['sample' => 'active'],
+            'capabilities' => ['stale.capability'],
+        ];
+        $query->records = [];
 
         $pendingCommand = new Command();
         $pendingCommand->verb = 'list';
@@ -793,7 +812,11 @@ PHP
         $this->assertTrue($processor->request?->isContinuation());
         $this->assertSame('continuation-a', $processor->request?->continuationToken());
         $this->assertTrue($processor->request?->approved());
-        $this->assertSame($context, $processor->request?->context());
+        $this->assertSame('operator-a', $processor->request?->context()['actor']['id']);
+        $this->assertSame('tenant-a', $processor->request?->context()['tenant_id']);
+        $this->assertSame([], $processor->request?->context()['active_addons']);
+        $this->assertSame([], $processor->request?->context()['addon_states']);
+        $this->assertSame([], $processor->request?->context()['capabilities']);
         $this->assertSame('list command', $middleware->description($pending));
     }
 
