@@ -424,6 +424,61 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(0, $nextFactory->runtimes[0]->calls['execute']);
     }
 
+    public function testLifecycleClaimsOnlyTheStateValidatedByTheCaller(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $reads = 0;
+        $states->onGet = function ($store, string $key) use (&$reads): void {
+            $reads++;
+            if ($reads !== 3) {
+                return;
+            }
+
+            $store->onGet = null;
+            $store->states[$key] = Arr::merge($store->states[$key], [
+                'state' => AgentCompositionService::STOPPED,
+                'transition_id' => null,
+            ]);
+        };
+
+        $result = $service->suspend(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'suspend-a')
+        );
+
+        $this->assertSame(AgentRuntimeResult::DENIED, $result->status());
+        $this->assertSame(AgentCompositionService::STOPPED, $result->state());
+        $this->assertSame(0, $factory->runtimes[0]->calls['suspend']);
+    }
+
+    public function testExecutionCompletionUsesAnAtomicMetadataMerge(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $states->rejectPut = true;
+
+        $result = $service->execute(
+            'opus.central',
+            ['intent' => 'next'],
+            new AgentRuntimeContext(correlationId: 'execute-a')
+        );
+
+        $this->assertTrue($result->ok());
+        $this->assertSame(
+            AgentRuntimeResult::COMPLETED,
+            $states->get('opus.central', null)['status']
+        );
+    }
+
     public function testExecutionFailureRetainsTheRequestCorrelationIdentifier(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -591,14 +646,24 @@ final class AgentCompositionServiceTest extends TestCase
     {
         $states = new class implements IAgentRuntimeStateStore {
             public array $states = [];
+            public mixed $onGet = null;
+            public bool $rejectPut = false;
 
             public function get(string $agentId, ?string $tenantId): ?array
             {
-                return $this->states[$this->key($agentId, $tenantId)] ?? null;
+                $key = $this->key($agentId, $tenantId);
+                if (is_callable($this->onGet)) {
+                    ($this->onGet)($this, $key);
+                }
+
+                return $this->states[$key] ?? null;
             }
 
             public function put(string $agentId, ?string $tenantId, array $state): void
             {
+                if ($this->rejectPut) {
+                    throw new \RuntimeException('non_atomic_put_rejected');
+                }
                 $this->states[$this->key($agentId, $tenantId)] = $state;
             }
 

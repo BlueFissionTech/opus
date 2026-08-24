@@ -72,7 +72,7 @@ final class AgentCompositionService extends Service
             return AgentRuntimeResult::denied('start', $agentId, $context->tenantId(), $current, 'agent_resume_required');
         }
 
-        return $this->invokeLifecycle('start', $agentId, $context, self::RUNNING);
+        return $this->invokeLifecycle('start', $agentId, $context, $current, self::RUNNING);
     }
 
     public function suspend(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
@@ -305,15 +305,16 @@ final class AgentCompositionService extends Service
             $result = $runtime
                 ->execute($task, $context)
                 ->withMetadata(['correlation_id' => $context->correlationId()]);
-            $latestState = $this->state($agentId, $context);
             if ($result->ok()) {
-                $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
-                $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
+                $this->states->compareAndPut($agentId, $context->tenantId(), [
+                    'execution_id' => $executionId,
+                ], [
                     'status' => $result->status(),
                     'diagnostics' => $result->diagnostics(),
                     'correlation_id' => $context->correlationId(),
-                ]));
+                ]);
             }
+            $latestState = $this->state($agentId, $context);
 
             return $result->forScope('execute', $agentId, $context->tenantId(), $latestState);
         } catch (Throwable $exception) {
@@ -350,16 +351,16 @@ final class AgentCompositionService extends Service
             return AgentRuntimeResult::denied($action, $agentId, $context->tenantId(), $current, 'agent_transition_denied');
         }
 
-        return $this->invokeLifecycle($action, $agentId, $context, $target);
+        return $this->invokeLifecycle($action, $agentId, $context, $current, $target);
     }
 
     private function invokeLifecycle(
         string $action,
         string $agentId,
         AgentRuntimeContext $context,
+        string $source,
         string $target
     ): AgentRuntimeResult {
-        $current = $this->state($agentId, $context);
         $transitionId = $this->operationId();
         $persisted = $this->states->get($agentId, $context->tenantId());
         $existingTransition = Arr::getPath((array) $persisted, 'transition_id');
@@ -368,7 +369,7 @@ final class AgentCompositionService extends Service
                 $action,
                 $agentId,
                 $context->tenantId(),
-                $current,
+                $source,
                 'agent_transition_in_progress'
             );
         }
@@ -379,7 +380,7 @@ final class AgentCompositionService extends Service
                 $action,
                 $agentId,
                 $context->tenantId(),
-                $current,
+                $source,
                 $exception->getMessage()
             );
         }
@@ -388,11 +389,11 @@ final class AgentCompositionService extends Service
                 $agentId,
                 $context->tenantId(),
                 [
-                    'state' => $persisted === null ? null : $current,
+                    'state' => $persisted === null ? null : $source,
                     'transition_id' => $existingTransition,
                 ],
                 [
-                    'state' => $current,
+                    'state' => $source,
                     'transition_id' => $transitionId,
                     'transition_action' => $action,
                     'transition_correlation_id' => $context->correlationId(),
@@ -416,7 +417,7 @@ final class AgentCompositionService extends Service
             );
             $state = $result->ok()
                 ? $target
-                : ($result->status() === AgentRuntimeResult::UNAVAILABLE ? $current : self::FAILED);
+                : ($result->status() === AgentRuntimeResult::UNAVAILABLE ? $source : self::FAILED);
             $updated = $this->states->compareAndPut($agentId, $context->tenantId(), [
                 'transition_id' => $transitionId,
             ], [
