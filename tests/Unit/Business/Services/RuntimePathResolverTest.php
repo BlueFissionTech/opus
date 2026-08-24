@@ -191,6 +191,20 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
+    public function testDirectEntrypointInsideCustomVendorDirectoryResolvesTheComposerHost(): void
+    {
+        $host = $this->workspace . '/direct-custom-vendor-host';
+        $package = $this->package($host . '/deps/bluefission/opus');
+        file_put_contents($host . '/composer.json', '{"config":{"vendor-dir":"deps"}}');
+        $autoload = $host . '/deps/autoload.php';
+        $this->autoload($autoload);
+
+        $resolver = RuntimePathResolver::discover($package);
+
+        $this->assertSame(realpath($autoload), $resolver->autoloadPath());
+        $this->assertSame(realpath($host), $resolver->hostRoot());
+    }
+
     public function testActiveNestedAutoloaderResolvesAHostOutsideTheCanonicalPackageAncestors(): void
     {
         $package = $this->package($this->workspace . '/source/opus');

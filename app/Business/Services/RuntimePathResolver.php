@@ -109,6 +109,10 @@ final class RuntimePathResolver
 
         $ancestor = dirname($this->packageInstallRoot);
         while ($ancestor !== dirname($ancestor)) {
+            $configuredAutoloader = self::configuredVendorAutoloader($ancestor);
+            if ($configuredAutoloader !== null) {
+                $candidates[] = $configuredAutoloader;
+            }
             if (basename($ancestor) === 'vendor') {
                 $candidates[] = self::join($ancestor, 'autoload.php');
                 break;
