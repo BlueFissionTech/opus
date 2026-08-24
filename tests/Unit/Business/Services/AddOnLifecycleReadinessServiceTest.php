@@ -82,6 +82,31 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('addon_hook_failed', $result['readiness']['reasons'][0]['code']);
     }
 
+    public function testOptionalHookDoesNotHideAnIndependentLifecycleFailure(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'addon' => 'sample',
+            'changed' => false,
+            'stage' => 'registration',
+            'error' => 'Registration factory failed.',
+            'hooks' => [[
+                'ok' => false,
+                'hook' => 'install',
+                'status' => 'missing_callable',
+                'error' => 'No compatible lifecycle hook callable was found.',
+            ]],
+            'migrations' => ['ok' => true],
+            'population' => ['ok' => true],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('registration', $result['stage']);
+        $this->assertSame('Registration factory failed.', $result['error']);
+        $this->assertSame('addon_lifecycle_failed', $result['readiness']['reasons'][0]['code']);
+    }
+
     public function testBatchCountsAreRecomputedFromNormalizedChildren(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([
@@ -121,5 +146,37 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('blocked', $result['readiness']['state']);
         $this->assertFalse($result['results'][1]['ok']);
         $this->assertSame('retry_lifecycle', $result['nextAction']);
+    }
+
+    public function testRecoveredOptionalHookBatchClearsFailureMetadata(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install_all',
+            'stage' => 'hook',
+            'error' => 'A child failed.',
+            'nextAction' => 'retry_lifecycle',
+            'results' => [[
+                'ok' => false,
+                'action' => 'install',
+                'addon' => 'sample',
+                'changed' => true,
+                'stage' => 'complete',
+                'hooks' => [[
+                    'ok' => false,
+                    'hook' => 'install',
+                    'status' => 'missing_callable',
+                    'error' => 'No compatible lifecycle hook callable was found.',
+                ]],
+                'migrations' => ['ok' => true],
+                'population' => ['ok' => true],
+            ]],
+        ]);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame('complete', $result['stage']);
+        $this->assertNull($result['error']);
+        $this->assertSame('activate_all', $result['nextAction']);
+        $this->assertSame('ready', $result['readiness']['state']);
     }
 }

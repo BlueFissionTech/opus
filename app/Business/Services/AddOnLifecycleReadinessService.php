@@ -63,7 +63,7 @@ final class AddOnLifecycleReadinessService extends Service
     private function normalizeLifecycle(Arr $outcome): array
     {
         $reasons = Arr::make([]);
-        $optionalHookFailureOnly = $this->hasOnlyMissingOptionalHookFailures($outcome);
+        $optionalHookFailureOnly = $this->aggregateFailureIsOptionalHookOnly($outcome);
         $hooks = Arr::make(Arr::is($outcome->get('hooks')) ? $outcome->get('hooks') : [])
             ->map(fn ($hook): array => $this->normalizeHook(Arr::make((array) $hook), $reasons))
             ->values();
@@ -133,13 +133,16 @@ final class AddOnLifecycleReadinessService extends Service
         return $hook->toArray();
     }
 
-    private function hasOnlyMissingOptionalHookFailures(Arr $outcome): bool
+    private function aggregateFailureIsOptionalHookOnly(Arr $outcome): bool
     {
         $failed = Arr::make(Arr::is($outcome->get('hooks')) ? $outcome->get('hooks') : [])
             ->filter(fn ($hook): bool => Flag::isFalse(Arr::getPath((array) $hook, 'ok')))
             ->values();
+        $stage = Str::make((string) $outcome->get('stage'))->trim()->lower()->val();
 
         return $failed->isNotEmpty()
+            && Str::make((string) $outcome->get('error'))->trim()->isEmpty()
+            && Arr::make(['', 'complete', 'hook'])->contains($stage)
             && $failed->filter(fn ($hook): bool => Str::make(
                 (string) Arr::getPath((array) $hook, 'status')
             )->trim()->lower()->val() !== 'missing_callable')->isEmpty();
@@ -171,6 +174,12 @@ final class AddOnLifecycleReadinessService extends Service
         $outcome->set('results', $normalized->toArray());
         if ($failed > 0) {
             $outcome->set('nextAction', 'retry_lifecycle');
+        } else {
+            $outcome->set('stage', 'complete');
+            $outcome->set('error', null);
+            if ((string) $outcome->get('nextAction') === 'retry_lifecycle') {
+                $outcome->set('nextAction', $this->successfulBatchNextAction((string) $outcome->get('action')));
+            }
         }
         $outcome->set('readiness', [
             'state' => $failed === 0 ? 'ready' : 'blocked',
@@ -178,6 +187,13 @@ final class AddOnLifecycleReadinessService extends Service
         ]);
 
         return $outcome->toArray();
+    }
+
+    private function successfulBatchNextAction(string $action): ?string
+    {
+        return Str::make($action)->trim()->lower()->val() === 'install_all'
+            ? 'activate_all'
+            : null;
     }
 
     private function reason(string $code, string $stage, string $message): array
