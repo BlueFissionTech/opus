@@ -97,6 +97,31 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(0, $factory->created);
     }
 
+    public function testRelationshipDenialOverridesLocalToolAllowance(): void
+    {
+        $root = new AgentCapabilityMap(AgentCapabilityMapValidator::VERSION, 'application', [
+            'opus.central' => [
+                'mode' => 'central',
+                'description' => 'Test agent.',
+                'profile' => 'opus.central',
+                'tools' => ['command.list'],
+                'imports' => [['from' => 'addon.missing', 'tools' => ['missing.run']]],
+                'exports' => [],
+                'permissions' => [],
+                'lifecycle' => ['states' => ['active']],
+            ],
+        ]);
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+
+        $result = $service->start('opus.central', new AgentRuntimeContext());
+
+        $this->assertSame(AgentRuntimeResult::DENIED, $result->status());
+        $this->assertSame(['agent_relationship_invalid'], $result->diagnostics());
+        $this->assertSame(0, $factory->created);
+    }
+
     public function testUnavailableRuntimeCanBeRetriedWithoutFatalState(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -368,6 +393,37 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame('execute-c', $rejected->toArray()['metadata']['correlation_id']);
     }
 
+    public function testCompletedStopCannotBeOverwrittenBeforeExecutionStarts(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $nextFactory = $this->factory();
+        $nextFactory->onCreate = function () use ($service): void {
+            $service->stop('opus.central', new AgentRuntimeContext(correlationId: 'stop-b'));
+        };
+        $nextRequest = new AgentCompositionService(
+            new AgentCapabilityMapResolver($root),
+            $nextFactory,
+            $states
+        );
+        $nextRequest->registerMap($root);
+
+        $result = $nextRequest->execute(
+            'opus.central',
+            ['intent' => 'later'],
+            new AgentRuntimeContext(correlationId: 'execute-a')
+        );
+
+        $this->assertSame(AgentRuntimeResult::DENIED, $result->status());
+        $this->assertSame(AgentCompositionService::STOPPED, $result->state());
+        $this->assertSame(['agent_not_running'], $result->diagnostics());
+        $this->assertSame(0, $nextFactory->runtimes[0]->calls['execute']);
+    }
+
     public function testExecutionFailureRetainsTheRequestCorrelationIdentifier(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -431,7 +487,7 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(AgentCompositionService::FAILED, $result->state());
     }
 
-    public function testExpiredLifecycleClaimsCanBeRecovered(): void
+    public function testAbandonedLifecycleClaimsCanBeRecovered(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
         $factory = $this->factory();
@@ -441,7 +497,6 @@ final class AgentCompositionServiceTest extends TestCase
         $states->put('opus.central', null, [
             'state' => AgentCompositionService::REGISTERED,
             'transition_id' => 'abandoned-transition',
-            'transition_expires_at' => 0,
         ]);
 
         $result = $service->start(
@@ -452,6 +507,40 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertTrue($result->ok());
         $this->assertSame(AgentCompositionService::RUNNING, $result->state());
         $this->assertSame(1, $factory->runtimes[0]->calls['start']);
+    }
+
+    public function testLiveTransitionClaimBlocksIdempotentSuccessWithoutWallClockExpiry(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $operationId = 'long-running-transition';
+        $path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opus-agent-operation-' . $operationId . '.lock';
+        $handle = fopen($path, 'c+');
+        $this->assertIsResource($handle);
+        $this->assertTrue(flock($handle, LOCK_EX | LOCK_NB));
+        $states->put('opus.central', null, Arr::merge(
+            $states->get('opus.central', null) ?? [],
+            [
+                'transition_id' => $operationId,
+                'transition_action' => 'stop',
+                'transition_expires_at' => 0,
+            ]
+        ));
+
+        try {
+            $result = $service->start('opus.central', new AgentRuntimeContext());
+
+            $this->assertSame(AgentRuntimeResult::DENIED, $result->status());
+            $this->assertSame(['agent_transition_in_progress'], $result->diagnostics());
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+            @unlink($path);
+        }
     }
 
     public function testStorageCompareAndPutUsesTheSharedLockBoundary(): void
@@ -554,6 +643,7 @@ final class AgentCompositionServiceTest extends TestCase
             public bool $throwOnExecute = false;
             public bool $throwOnCreate = false;
             public bool $throwOnAvailable = false;
+            public mixed $onCreate = null;
             public mixed $onStart = null;
             public mixed $onExecute = null;
             public mixed $onCancel = null;
@@ -649,6 +739,9 @@ final class AgentCompositionServiceTest extends TestCase
                 };
                 $this->created++;
                 $this->runtimes[] = $runtime;
+                if (is_callable($this->onCreate)) {
+                    ($this->onCreate)();
+                }
 
                 return $runtime;
             }
