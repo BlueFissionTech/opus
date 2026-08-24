@@ -31,6 +31,29 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
         $this->persist($states);
     }
 
+    public function compareAndPut(
+        string $agentId,
+        ?string $tenantId,
+        array $expected,
+        array $state
+    ): bool {
+        $states = $this->states();
+        $key = $this->key($agentId, $tenantId);
+        $current = (array) $states->get($key);
+        $matches = true;
+        Arr::make($expected)->each(function ($value, $path) use ($current, &$matches): void {
+            $matches = $matches && Arr::getPath($current, (string) $path) === $value;
+        });
+        if (!$matches) {
+            return false;
+        }
+
+        $states->set($key, Arr::merge($current, $state));
+        $this->persist($states);
+
+        return true;
+    }
+
     public function delete(string $agentId, ?string $tenantId): void
     {
         $states = $this->states();

@@ -14,6 +14,7 @@ use App\Domain\Agents\AgentRuntimeResult;
 use App\Domain\Agents\IAgentRuntime;
 use App\Domain\Agents\IAgentRuntimeFactory;
 use App\Domain\Agents\IAgentRuntimeStateStore;
+use BlueFission\Arr;
 use PHPUnit\Framework\TestCase;
 
 final class AgentCompositionServiceTest extends TestCase
@@ -248,6 +249,36 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(AgentRuntimeResult::DENIED, $rejected->status());
     }
 
+    public function testStaleCancellationCannotCancelAReplacementExecution(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $factory->onCancel = function () use ($service): void {
+            $service->execute(
+                'opus.central',
+                ['intent' => 'replacement'],
+                new AgentRuntimeContext(correlationId: 'execute-b')
+            );
+        };
+
+        $cancelled = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-a')
+        );
+        $factory->onCancel = null;
+        $nextCancellation = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-c')
+        );
+
+        $this->assertTrue($cancelled->toArray()['metadata']['cancellation_superseded']);
+        $this->assertTrue($nextCancellation->ok());
+        $this->assertSame(2, $factory->runtimes[0]->calls['cancel']);
+    }
+
     public function testRuntimeCreationFailureDoesNotClearCancellationEvidence(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -327,6 +358,50 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame('failure-a', $result->toArray()['metadata']['correlation_id']);
     }
 
+    public function testConcurrentIdenticalLifecycleTransitionsInvokeTheProviderOnce(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $concurrent = null;
+        $factory->onStart = function () use ($service, &$concurrent): void {
+            $concurrent = $service->start(
+                'opus.central',
+                new AgentRuntimeContext(correlationId: 'start-b')
+            );
+        };
+
+        $started = $service->start(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'start-a')
+        );
+
+        $this->assertTrue($started->ok());
+        $this->assertInstanceOf(AgentRuntimeResult::class, $concurrent);
+        $this->assertSame(AgentRuntimeResult::DENIED, $concurrent->status());
+        $this->assertSame(['agent_transition_in_progress'], $concurrent->diagnostics());
+        $this->assertSame(1, $factory->runtimes[0]->calls['start']);
+    }
+
+    public function testAvailabilityProbeFailuresReturnStructuredLifecycleFailures(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $factory->throwOnAvailable = true;
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+
+        $result = $service->start(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'start-a')
+        );
+
+        $this->assertSame(AgentRuntimeResult::FAILED, $result->status());
+        $this->assertSame(['runtime_availability_failed'], $result->diagnostics());
+        $this->assertSame(AgentCompositionService::FAILED, $result->state());
+    }
+
     public function testApplicationScopeDoesNotCollideWithTenantNamedApplication(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -359,6 +434,25 @@ final class AgentCompositionServiceTest extends TestCase
                 $this->states[$this->key($agentId, $tenantId)] = $state;
             }
 
+            public function compareAndPut(
+                string $agentId,
+                ?string $tenantId,
+                array $expected,
+                array $state
+            ): bool {
+                $key = $this->key($agentId, $tenantId);
+                $current = $this->states[$key] ?? [];
+                foreach ($expected as $path => $value) {
+                    $actual = $current[$path] ?? null;
+                    if ($actual !== $value) {
+                        return false;
+                    }
+                }
+                $this->states[$key] = Arr::merge($current, $state);
+
+                return true;
+            }
+
             public function delete(string $agentId, ?string $tenantId): void
             {
                 unset($this->states[$this->key($agentId, $tenantId)]);
@@ -380,6 +474,8 @@ final class AgentCompositionServiceTest extends TestCase
             public bool $failNextStart = false;
             public bool $throwOnExecute = false;
             public bool $throwOnCreate = false;
+            public bool $throwOnAvailable = false;
+            public mixed $onStart = null;
             public mixed $onExecute = null;
             public mixed $onCancel = null;
             public int $created = 0;
@@ -387,6 +483,9 @@ final class AgentCompositionServiceTest extends TestCase
 
             public function available(AgentDescriptor $descriptor, AgentRuntimeContext $context): bool
             {
+                if ($this->throwOnAvailable) {
+                    throw new \RuntimeException('runtime_availability_failed');
+                }
                 return $this->available;
             }
 
@@ -414,6 +513,9 @@ final class AgentCompositionServiceTest extends TestCase
                     {
                         $this->calls['start']++;
                         $this->contexts[] = $context;
+                        if (is_callable($this->factory->onStart)) {
+                            ($this->factory->onStart)();
+                        }
                         if ($this->factory->failNextStart) {
                             $this->factory->failNextStart = false;
                             return AgentRuntimeResult::failed('start', '', null, 'failed', 'start_failed');

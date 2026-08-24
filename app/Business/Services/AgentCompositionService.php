@@ -105,6 +105,7 @@ final class AgentCompositionService extends Service
 
         $current = $this->state($agentId, $context);
         $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
+        $coveredExecution = Arr::getPath($persisted, 'execution_id');
         if (Arr::getPath($persisted, 'cancelled') === true) {
             return $this->idempotent('cancel', $agentId, $context, $current);
         }
@@ -121,6 +122,11 @@ final class AgentCompositionService extends Service
         if ($result->ok()) {
             $latest = $this->states->get($agentId, $context->tenantId()) ?? [];
             $latestState = (string) Arr::getPath($latest, 'state', $current);
+            if (Arr::getPath($latest, 'execution_id') !== $coveredExecution) {
+                return $result
+                    ->withMetadata(['cancellation_superseded' => true])
+                    ->forScope('cancel', $agentId, $context->tenantId(), $latestState);
+            }
             $this->states->put($agentId, $context->tenantId(), Arr::merge($latest, [
                 'status' => $result->status(),
                 'cancelled' => true,
@@ -171,8 +177,10 @@ final class AgentCompositionService extends Service
 
             $runtime = $this->runtime($agentId, $context);
             $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
+            $executionId = $this->operationId();
             $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
                 'state' => self::RUNNING,
+                'execution_id' => $executionId,
                 'cancelled' => false,
                 'cancellation_correlation_id' => null,
                 'correlation_id' => $context->correlationId(),
@@ -235,6 +243,31 @@ final class AgentCompositionService extends Service
         string $target
     ): AgentRuntimeResult {
         $current = $this->state($agentId, $context);
+        $transitionId = $this->operationId();
+        $persisted = $this->states->get($agentId, $context->tenantId());
+        $claimed = $this->states->compareAndPut(
+            $agentId,
+            $context->tenantId(),
+            [
+                'state' => $persisted === null ? null : $current,
+                'transition_id' => null,
+            ],
+            [
+                'state' => $current,
+                'transition_id' => $transitionId,
+                'transition_action' => $action,
+                'transition_correlation_id' => $context->correlationId(),
+            ]
+        );
+        if (!$claimed) {
+            return AgentRuntimeResult::denied(
+                $action,
+                $agentId,
+                $context->tenantId(),
+                $this->state($agentId, $context),
+                'agent_transition_in_progress'
+            );
+        }
         $result = $this->invoke($action, $agentId, $context)->forScope(
             $action,
             $agentId,
@@ -250,6 +283,9 @@ final class AgentCompositionService extends Service
             'status' => $result->status(),
             'diagnostics' => $result->diagnostics(),
             'correlation_id' => $context->correlationId(),
+            'transition_id' => null,
+            'transition_action' => null,
+            'transition_correlation_id' => null,
         ]));
 
         return $result->forScope($action, $agentId, $context->tenantId(), $state);
@@ -257,17 +293,16 @@ final class AgentCompositionService extends Service
 
     private function invoke(string $action, string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
     {
-        if (!$this->runtimeAvailable($agentId, $context)) {
-            return AgentRuntimeResult::unavailable(
-                $action,
-                $agentId,
-                $context->tenantId(),
-                $this->state($agentId, $context),
-                'agent_runtime_unavailable'
-            );
-        }
-
         try {
+            if (!$this->runtimeAvailable($agentId, $context)) {
+                return AgentRuntimeResult::unavailable(
+                    $action,
+                    $agentId,
+                    $context->tenantId(),
+                    $this->state($agentId, $context),
+                    'agent_runtime_unavailable'
+                );
+            }
             $runtime = $this->runtime($agentId, $context);
 
             return $runtime->{$action}($context);
@@ -395,5 +430,10 @@ final class AgentCompositionService extends Service
     private function correlate(AgentRuntimeResult $result, AgentRuntimeContext $context): AgentRuntimeResult
     {
         return $result->withMetadata(['correlation_id' => $context->correlationId()]);
+    }
+
+    private function operationId(): string
+    {
+        return bin2hex(random_bytes(16));
     }
 }

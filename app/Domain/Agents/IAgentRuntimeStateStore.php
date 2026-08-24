@@ -10,5 +10,12 @@ interface IAgentRuntimeStateStore
 
     public function put(string $agentId, ?string $tenantId, array $state): void;
 
+    public function compareAndPut(
+        string $agentId,
+        ?string $tenantId,
+        array $expected,
+        array $state
+    ): bool;
+
     public function delete(string $agentId, ?string $tenantId): void;
 }
