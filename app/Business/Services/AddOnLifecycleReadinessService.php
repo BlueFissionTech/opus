@@ -184,7 +184,7 @@ final class AddOnLifecycleReadinessService extends Service
     private function normalizeBatch(Arr $outcome, array $results): array
     {
         $aggregateFailed = Flag::isFalse($outcome->get('ok'));
-        $aggregateStage = (string) ($outcome->get('stage') ?: 'lifecycle');
+        $aggregateStage = (string) $outcome->get('stage');
         $aggregateError = (string) $outcome->get('error');
         $normalized = Arr::make($results)
             ->map(fn ($result): array => $this->normalizeLifecycle(Arr::make((array) $result)))
@@ -209,7 +209,7 @@ final class AddOnLifecycleReadinessService extends Service
         if ($independentAggregateFailure) {
             $reasons->unshift($this->reason(
                 'addon_lifecycle_failed',
-                $aggregateStage,
+                $aggregateStage ?: 'lifecycle',
                 $aggregateError ?: 'Add-on lifecycle batch failed.'
             ));
         }
