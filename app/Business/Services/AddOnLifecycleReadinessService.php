@@ -179,6 +179,10 @@ final class AddOnLifecycleReadinessService extends Service
             return false;
         }
 
+        if (Str::isEmpty($stage) && $this->hasMatchingReasonMessage($reasons, $message)) {
+            return false;
+        }
+
         $stage = $stage ?: 'lifecycle';
         $matched = $this->hasMatchingReason($reasons, $stage, $message);
 
@@ -209,8 +213,10 @@ final class AddOnLifecycleReadinessService extends Service
             $aggregateStage
         );
         $aggregateExplainedByChildren = $reasons->isNotEmpty()
-            && Str::isEmpty($aggregateStage)
-            && Str::isEmpty($aggregateError);
+            && Str::isEmpty($aggregateError)
+            && Arr::make(['', 'complete'])->contains(
+                Str::make($aggregateStage)->trim()->lower()->val()
+            );
         $independentAggregateFailure = $aggregateFailed
             && !$recoveredChildFailuresOnly
             && !$aggregateExplainedByChildren
@@ -273,6 +279,20 @@ final class AddOnLifecycleReadinessService extends Service
                     || Arr::getPath((array) $reason, 'message') === $message
                 )
             );
+        });
+
+        return $matched;
+    }
+
+    private function hasMatchingReasonMessage(Arr $reasons, string $message): bool
+    {
+        if (Str::isEmpty($message)) {
+            return false;
+        }
+
+        $matched = false;
+        $reasons->each(function ($reason) use ($message, &$matched): void {
+            $matched = $matched || Arr::getPath((array) $reason, 'message') === $message;
         });
 
         return $matched;

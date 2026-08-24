@@ -382,4 +382,39 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('Schema failed.', $result['error']);
         $this->assertCount(1, $result['readiness']['reasons']);
     }
+
+    public function testUnstagedSingleAggregateErrorMatchesItsChildFailure(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'error' => 'Schema failed.',
+            'migrations' => ['ok' => false, 'error' => 'Schema failed.'],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('migrations', $result['stage']);
+        $this->assertSame('Schema failed.', $result['error']);
+        $this->assertCount(1, $result['readiness']['reasons']);
+    }
+
+    public function testTerminalBatchStageUsesItsActionableChildFailure(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install_all',
+            'stage' => 'complete',
+            'results' => [[
+                'ok' => false,
+                'action' => 'install',
+                'stage' => 'population',
+                'population' => ['ok' => false, 'error' => 'Population failed.'],
+            ]],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('population', $result['stage']);
+        $this->assertSame('Population failed.', $result['error']);
+        $this->assertCount(1, $result['readiness']['reasons']);
+    }
 }
