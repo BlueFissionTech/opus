@@ -175,15 +175,7 @@ final class AddOnLifecycleReadinessService extends Service
 
         $stage = (string) ($outcome->get('stage') ?: 'lifecycle');
         $message = (string) $outcome->get('error');
-        $matched = false;
-        $reasons->each(function ($reason) use ($stage, $message, &$matched): void {
-            $matched = $matched
-                || Arr::getPath((array) $reason, 'stage') === $stage
-                || (
-                    Str::isNotEmpty($message)
-                    && Arr::getPath((array) $reason, 'message') === $message
-                );
-        });
+        $matched = $this->hasMatchingReason($reasons, $stage, $message);
 
         return !$matched
             && (Str::isNotEmpty($message) || !Arr::make(['complete', 'hook'])->contains($stage));
@@ -191,6 +183,9 @@ final class AddOnLifecycleReadinessService extends Service
 
     private function normalizeBatch(Arr $outcome, array $results): array
     {
+        $aggregateFailed = Flag::isFalse($outcome->get('ok'));
+        $aggregateStage = (string) ($outcome->get('stage') ?: 'lifecycle');
+        $aggregateError = (string) ($outcome->get('error') ?: 'Add-on lifecycle batch failed.');
         $normalized = Arr::make($results)
             ->map(fn ($result): array => $this->normalizeLifecycle(Arr::make((array) $result)))
             ->values();
@@ -204,17 +199,29 @@ final class AddOnLifecycleReadinessService extends Service
         $failures->each(function (array $result) use ($reasons): void {
             $reasons->mergeRecursive((array) Arr::getPath($result, 'readiness.reasons', []));
         });
+        $recoveredChildFailuresOnly = $this->batchFailureIsRecoveredChildrenOnly($results);
+        $independentAggregateFailure = $aggregateFailed
+            && !$recoveredChildFailuresOnly
+            && !$this->hasMatchingReason($reasons, $aggregateStage, $aggregateError);
+        if ($independentAggregateFailure) {
+            $reasons->unshift($this->reason(
+                'addon_lifecycle_failed',
+                $aggregateStage,
+                $aggregateError
+            ));
+        }
         $total = $normalized->count();
         $failed = $failures->count();
+        $blocked = $failed > 0 || $independentAggregateFailure;
 
-        $outcome->set('ok', $failed === 0);
+        $outcome->set('ok', !$blocked);
         $outcome->set('changed', $changes->count() > 0);
         $outcome->set('total', $total);
         $outcome->set('succeeded', $total - $failed);
         $outcome->set('failed', $failed);
         $outcome->set('results', $normalized->toArray());
-        if ($failed > 0) {
-            $first = Arr::make((array) $reasons->get(0));
+        if ($blocked) {
+            $first = $this->selectedReason($outcome, $reasons);
             $outcome->set('stage', $first->get('stage') ?: 'lifecycle');
             $outcome->set('error', $first->get('message') ?: 'Add-on lifecycle action failed.');
             $outcome->set('nextAction', 'retry_lifecycle');
@@ -226,7 +233,7 @@ final class AddOnLifecycleReadinessService extends Service
             }
         }
         $outcome->set('readiness', [
-            'state' => $failed === 0 ? 'ready' : 'blocked',
+            'state' => $blocked ? 'blocked' : 'ready',
             'reasons' => $reasons->toArray(),
         ]);
 
@@ -241,6 +248,34 @@ final class AddOnLifecycleReadinessService extends Service
         }
 
         return $action === 'install_all' ? 'activate_all' : null;
+    }
+
+    private function hasMatchingReason(Arr $reasons, string $stage, string $message): bool
+    {
+        $matched = false;
+        $reasons->each(function ($reason) use ($stage, $message, &$matched): void {
+            $matched = $matched || (
+                Arr::getPath((array) $reason, 'stage') === $stage
+                && (
+                    Str::isEmpty($message)
+                    || Arr::getPath((array) $reason, 'message') === $message
+                )
+            );
+        });
+
+        return $matched;
+    }
+
+    private function batchFailureIsRecoveredChildrenOnly(array $results): bool
+    {
+        $failed = Arr::make($results)
+            ->filter(fn ($result): bool => Flag::isFalse(Arr::getPath((array) $result, 'ok')))
+            ->values();
+
+        return $failed->isNotEmpty()
+            && $failed->filter(
+                fn ($result): bool => !$this->aggregateFailureIsOptionalHookOnly(Arr::make((array) $result))
+            )->isEmpty();
     }
 
     private function reason(string $code, string $stage, string $message): array

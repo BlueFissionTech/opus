@@ -249,4 +249,40 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('activate_all', $result['nextAction']);
         $this->assertSame('ready', $result['readiness']['state']);
     }
+
+    public function testBatchPreservesAnIndependentFailureWithoutFailedChildren(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install_all',
+            'stage' => 'discovery',
+            'error' => 'Add-on discovery failed.',
+            'results' => [],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('discovery', $result['stage']);
+        $this->assertSame('Add-on discovery failed.', $result['error']);
+        $this->assertSame('blocked', $result['readiness']['state']);
+        $this->assertSame('addon_lifecycle_failed', $result['readiness']['reasons'][0]['code']);
+    }
+
+    public function testAggregateFailureWithSharedMessageAndDifferentStageRemainsIndependent(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'stage' => 'registration',
+            'error' => 'Operation failed.',
+            'hooks' => [[
+                'ok' => false,
+                'status' => 'failed',
+                'error' => 'Operation failed.',
+            ]],
+        ]);
+
+        $this->assertSame('registration', $result['stage']);
+        $this->assertSame('addon_lifecycle_failed', $result['readiness']['reasons'][0]['code']);
+        $this->assertSame('addon_hook_failed', $result['readiness']['reasons'][1]['code']);
+    }
 }
