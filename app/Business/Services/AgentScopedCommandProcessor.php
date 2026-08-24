@@ -37,7 +37,7 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
 
         $parsed = $this->processor->process(CommandRequest::parse($request->input(), $request->context()));
         if ($parsed->status() !== CommandResult::PARSED || !$parsed->command() instanceof Command) {
-            return $parsed->withMetadata(Arr::merge($metadata, [
+            return $this->withMetadata($parsed, Arr::merge($metadata, [
                 'agent_decision' => 'deny',
                 'agent_reason' => 'command_parse_failed',
                 'agent_result_status' => $parsed->status(),
@@ -60,7 +60,7 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
         }
 
         if (!$request->shouldExecute()) {
-            return $parsed->withMetadata(Arr::merge($metadata, [
+            return $this->withMetadata($parsed, Arr::merge($metadata, [
                 'agent_tool' => $tool,
                 'agent_decision' => 'allow',
                 'agent_reason' => 'tool_granted',
@@ -73,7 +73,7 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             CommandRequest::EXECUTE,
             $request->context()
         ));
-        $result = $result->withMetadata(Arr::merge($metadata, [
+        $result = $this->withMetadata($result, Arr::merge($metadata, [
             'agent_tool' => $tool,
             'agent_decision' => 'allow',
             'agent_reason' => 'tool_granted',
@@ -155,7 +155,7 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
 
         $result = $this->processor->process($request);
 
-        return $result->withMetadata(Arr::merge($metadata, [
+        return $this->withMetadata($result, Arr::merge($metadata, [
             'agent_tool' => $tool,
             'agent_decision' => 'allow',
             'agent_reason' => 'continuation_granted',
@@ -214,5 +214,19 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             ->append('.')
             ->append(Str::make((string) $command->verb)->trim()->lower()->val())
             ->val();
+    }
+
+    private function withMetadata(CommandResult $result, array $metadata): CommandResult
+    {
+        return new CommandResult(
+            $result->status(),
+            $result->output(),
+            $result->command(),
+            $result->confirmationRequired(),
+            $result->exitCode(),
+            $result->diagnostics(),
+            Arr::merge($result->metadata(), $metadata),
+            $result->continuationToken()
+        );
     }
 }
