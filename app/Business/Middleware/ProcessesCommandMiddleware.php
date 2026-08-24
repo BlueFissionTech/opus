@@ -69,7 +69,8 @@ class ProcessesCommandMiddleware implements Received, Sending
         $command = $this->commandProcessor->process(new CommandRequest($walkerResults, context: $context));
         
         if ($command->confirmationRequired()) {
-            $question = Question::create("Do you want to proceed with this command: {$command->getDescription()}?")
+            $description = $this->confirmationDescription($command);
+            $question = Question::create("Do you want to proceed with this command: {$description}?")
                 ->addButtons([
                     Button::create('Yes')->value('yes'),
                     Button::create('No')->value('no'),
@@ -91,6 +92,13 @@ class ProcessesCommandMiddleware implements Received, Sending
     protected function resumeCommand(string $token, bool $approved, array $context): CommandResult
     {
         return $this->commandProcessor->process(CommandRequest::resume($token, $approved, $context));
+    }
+
+    protected function confirmationDescription(CommandResult $result): string
+    {
+        return Str::make((string) ($result->command()?->description() ?? $result->description()))
+            ->trim()
+            ->val();
     }
 
     public function matching(IncomingMessage $message, $pattern, $regexMatched)

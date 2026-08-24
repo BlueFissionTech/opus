@@ -755,8 +755,18 @@ PHP
                 {
                     return $this->resumeCommand($token, $approved, $context);
                 }
+
+                public function description(CommandResult $result): string
+                {
+                    return $this->confirmationDescription($result);
+                }
             };
         $context = ['actor' => ['id' => 'operator-a']];
+
+        $pendingCommand = new Command();
+        $pendingCommand->verb = 'list';
+        $pendingCommand->resources = ['command'];
+        $pending = CommandResult::pending('Confirm command.', $pendingCommand, 'continuation-b');
 
         $result = $middleware->resume('continuation-a', true, $context);
 
@@ -765,6 +775,7 @@ PHP
         $this->assertSame('continuation-a', $processor->request?->continuationToken());
         $this->assertTrue($processor->request?->approved());
         $this->assertSame($context, $processor->request?->context());
+        $this->assertSame('list command', $middleware->description($pending));
     }
 
     public function testProductionContextIncludesTrustedActivatedAddOnState(): void
