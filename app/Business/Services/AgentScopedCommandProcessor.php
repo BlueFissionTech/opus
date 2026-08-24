@@ -80,6 +80,19 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             'agent_result_status' => $result->status(),
         ]));
         if ($result->confirmationRequired() && Str::isNotEmpty((string) $result->continuationToken())) {
+            if (!$this->hasActorScope($context->get('actor'))) {
+                return CommandResult::invalid(
+                    'A trusted actor is required to continue this command.',
+                    ['agent_actor_required'],
+                    Arr::merge($metadata, [
+                        'agent_tool' => $tool,
+                        'agent_decision' => 'deny',
+                        'agent_reason' => 'actor_scope_required',
+                        'agent_result_status' => CommandResult::INVALID,
+                    ]),
+                    $result->command()
+                );
+            }
             $this->continuations->put((string) $result->continuationToken(), [
                 'agent_id' => $resolved->agentId(),
                 'tenant_id' => $resolved->tenantId(),
@@ -118,6 +131,8 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
         $continuation = Arr::make((array) $this->continuations->get($token));
         $tool = $continuation->get('tool');
         if ($continuation->isEmpty()
+            || !$this->hasActorScope($continuation->get('actor'))
+            || !$this->hasActorScope($context->get('actor'))
             || $continuation->get('agent_id') !== $resolved->agentId()
             || $continuation->get('tenant_id') !== $resolved->tenantId()
             || $continuation->get('actor') !== $context->get('actor')
@@ -146,6 +161,18 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             'agent_reason' => 'continuation_granted',
             'agent_result_status' => $result->status(),
         ]));
+    }
+
+    private function hasActorScope(mixed $actor): bool
+    {
+        if (Str::is($actor)) {
+            return Str::make((string) $actor)->trim()->isNotEmpty();
+        }
+        if (!Arr::is($actor)) {
+            return false;
+        }
+
+        return Str::make((string) Arr::getPath((array) $actor, 'id'))->trim()->isNotEmpty();
     }
 
     private function resolve(Arr $context): ResolvedAgentToolMap

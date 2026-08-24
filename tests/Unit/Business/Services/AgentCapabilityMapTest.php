@@ -592,6 +592,7 @@ PHP
             'tenant_id' => 'tenant-a',
         ];
 
+        $unscoped = $scoped->process(new CommandRequest('list commands'));
         $pending = $scoped->process(new CommandRequest('list commands', context: $scope));
         $wrongTenant = $scoped->process(CommandRequest::resume(
             'continuation-a',
@@ -610,6 +611,8 @@ PHP
         );
         $completed = $nextRequest->process(CommandRequest::resume('continuation-a', true, $scope));
 
+        $this->assertSame(CommandResult::INVALID, $unscoped->status());
+        $this->assertSame('actor_scope_required', $unscoped->metadata()['agent_reason']);
         $this->assertTrue($pending->confirmationRequired());
         $this->assertSame(CommandResult::INVALID, $wrongTenant->status());
         $this->assertSame(CommandResult::INVALID, $wrongActor->status());

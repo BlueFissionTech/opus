@@ -6,6 +6,8 @@ use BotMan\BotMan\BotMan;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Business\Managers\CommandManager;
 use BlueFission\Wise\Cmd\ICommandProcessor;
+use BlueFission\Wise\Cmd\CommandRequest;
+use BlueFission\Str;
 use BotMan\BotMan\Interfaces\Middleware\Received;
 use BotMan\BotMan\Interfaces\Middleware\Sending;
 use BotMan\BotMan\Messages\Incoming\IncomingMessage;
@@ -51,7 +53,12 @@ class ProcessesCommandMiddleware implements Received, Sending
 
     protected function logMessage(BotMan $bot, $walkerResults)
     {
-        $command = $this->commandProcessor->process($walkerResults);
+        $user = $bot->getUser();
+        $actorId = is_object($user) && method_exists($user, 'getId')
+            ? Str::make((string) $user->getId())->trim()->val()
+            : '';
+        $context = $actorId === '' ? [] : ['actor' => ['id' => $actorId]];
+        $command = $this->commandProcessor->process(new CommandRequest($walkerResults, context: $context));
         
         if ($command->confirmationRequired()) {
             $question = Question::create("Do you want to proceed with this command: {$command->getDescription()}?")
