@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Business\Services;
 
-use App\Business\Services\AgentCapabilityMapResolver;
+use App\Business\Services\AgentCapabilityMapCatalog;
 use App\Business\Services\AgentCapabilityMapLoader;
+use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentScopedCommandProcessor;
 use App\Business\Services\DeclarativeArrayParser;
@@ -124,6 +125,60 @@ PHP
 
         $this->assertSame(['command.list'], $loader->load($valid, 'application')->agent('opus.central')?->tools());
         $this->assertSame([], $loader->load($invalid, 'application')->agents());
+    }
+
+    public function testResolverLoadsOnlyRequestedActiveAddOnMapsFromTheCatalog(): void
+    {
+        $root = $this->workspace . DIRECTORY_SEPARATOR . 'addons';
+        $mapping = $root . DIRECTORY_SEPARATOR . 'sample_tools' . DIRECTORY_SEPARATOR . 'mapping';
+        mkdir($mapping, 0777, true);
+        file_put_contents($mapping . DIRECTORY_SEPARATOR . 'agents.php', <<<'PHP'
+<?php
+return [
+    'version' => 1,
+    'owner' => 'sample_tools',
+    'agents' => [
+        'addon.sample_tools' => [
+            'mode' => 'specialist',
+            'description' => 'Sample specialist.',
+            'profile' => 'sample.profile',
+            'tools' => ['sample.list'],
+            'imports' => [],
+            'exports' => [],
+            'permissions' => [],
+            'lifecycle' => ['states' => ['active']],
+        ],
+    ],
+];
+PHP
+        );
+
+        try {
+            $application = $this->map(
+                $this->mapping('application', 'opus.central', 'central', ['command.list']),
+                ['command.list']
+            );
+            $resolver = new AgentCapabilityMapResolver(
+                $application,
+                catalog: new AgentCapabilityMapCatalog($root)
+            );
+
+            $inactive = $resolver->resolve('addon.sample_tools');
+            $active = $resolver->resolve(
+                'addon.sample_tools',
+                ['sample_tools'],
+                ['sample_tools' => 'active']
+            );
+
+            $this->assertSame([], $inactive->tools());
+            $this->assertSame(['sample.list'], $active->tools());
+            $this->assertSame(['sample_tools' => 1], $active->versions());
+        } finally {
+            unlink($mapping . DIRECTORY_SEPARATOR . 'agents.php');
+            rmdir($mapping);
+            rmdir(dirname($mapping));
+            rmdir($root);
+        }
     }
 
     public function testValidatorRejectsUnknownToolsInvalidModesAndCentralLeakage(): void

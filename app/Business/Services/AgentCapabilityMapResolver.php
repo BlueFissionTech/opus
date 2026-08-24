@@ -13,8 +13,11 @@ final class AgentCapabilityMapResolver
 {
     private Arr $maps;
 
-    public function __construct(private AgentCapabilityMap $application, array $addOns = [])
-    {
+    public function __construct(
+        private AgentCapabilityMap $application,
+        array $addOns = [],
+        private ?AgentCapabilityMapCatalog $catalog = null
+    ) {
         $this->maps = Arr::make([]);
         Arr::make($addOns)->each(function ($map, $owner): void {
             if ($map instanceof AgentCapabilityMap && $map->owner() === $owner) {
@@ -35,6 +38,7 @@ final class AgentCapabilityMapResolver
         $capabilities = Arr::make($capabilities);
         $decisions = Arr::make([]);
         $versions = Arr::make([]);
+        $this->loadActiveMaps($activeAddOns);
         $source = $this->find($agentId);
 
         if ($source === null) {
@@ -131,6 +135,20 @@ final class AgentCapabilityMapResolver
         }
 
         return null;
+    }
+
+    private function loadActiveMaps(Arr $activeAddOns): void
+    {
+        if ($this->catalog === null) {
+            return;
+        }
+
+        Arr::make($this->catalog->load($activeAddOns->toArray()))
+            ->each(function ($map, $owner): void {
+                if ($map instanceof AgentCapabilityMap && $map->owner() === $owner) {
+                    $this->maps->set((string) $owner, $map);
+                }
+            });
     }
 
     private function isActive(AgentDescriptor $agent, Arr $activeAddOns, Arr $lifecycleStates): bool

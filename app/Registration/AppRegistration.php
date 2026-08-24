@@ -6,6 +6,7 @@ use BlueFission\BlueCore\Business\Managers\DatasourceManager;
 use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use App\Business\MysqlConnector;
 use App\Business\Services\VibeThemeRenderer;
+use App\Business\Services\AgentCapabilityMapCatalog;
 use App\Business\Services\AgentCapabilityMapLoader;
 use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentContinuationScopeStore;
@@ -107,6 +108,7 @@ class AppRegistration implements IExtension {
 	 */
 	public function arguments() {
 		$commandStorage = new Session(['location' => 'cache', 'name' => 'system']);
+		$agentMapLoader = new AgentCapabilityMapLoader();
 
 		$this->bindArgs( ['session'=>new Session()], 'App\Business\Http\AdminController');
 		$this->bindArgs( ['session'=>new Session()], 'BlueFission\BlueCore\Auth');
@@ -122,7 +124,8 @@ class AppRegistration implements IExtension {
 		$this->bindArgs([
 			'processor' => \App::makeInstance(CommandProcessor::class),
 			'resolver' => new AgentCapabilityMapResolver(
-				(new AgentCapabilityMapLoader())->load(APP_ROOT . 'mapping/agents.php', 'application')
+				$agentMapLoader->load(APP_ROOT . 'mapping/agents.php', 'application'),
+				catalog: new AgentCapabilityMapCatalog(APP_ROOT . 'addons', $agentMapLoader)
 			),
 			'continuations' => new AgentContinuationScopeStore($commandStorage),
 		], AgentScopedCommandProcessor::class);
