@@ -51,6 +51,7 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertTrue($started->ok());
         $this->assertTrue($startedAgain->toArray()['metadata']['idempotent']);
         $this->assertSame(['intent' => 'status'], $executed->output());
+        $this->assertSame('correlation-a', $executed->toArray()['metadata']['correlation_id']);
         $this->assertSame(AgentCompositionService::STOPPED, $stopped->state());
         $this->assertTrue($stoppedAgain->toArray()['metadata']['idempotent']);
         $this->assertSame(1, $factory->created);
@@ -183,6 +184,45 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(2, $factory->runtimes[0]->calls['cancel']);
     }
 
+    public function testCancellationIsClearedBeforeAReplacementExecutionStarts(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $service->cancel('opus.central', new AgentRuntimeContext(correlationId: 'cancel-a'));
+        $duringExecution = null;
+        $factory->onExecute = function () use ($service, &$duringExecution): void {
+            $duringExecution = $service->cancel(
+                'opus.central',
+                new AgentRuntimeContext(correlationId: 'cancel-b')
+            );
+        };
+
+        $service->execute('opus.central', ['intent' => 'next'], new AgentRuntimeContext(correlationId: 'execute-b'));
+
+        $this->assertInstanceOf(AgentRuntimeResult::class, $duringExecution);
+        $this->assertTrue($duringExecution->ok());
+        $this->assertSame(2, $factory->runtimes[0]->calls['cancel']);
+    }
+
+    public function testLifecycleTransitionsPreserveCancellationDeduplication(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $service->cancel('opus.central', new AgentRuntimeContext(correlationId: 'cancel-a'));
+        $service->suspend('opus.central', new AgentRuntimeContext());
+
+        $retried = $service->cancel('opus.central', new AgentRuntimeContext(correlationId: 'cancel-b'));
+
+        $this->assertTrue($retried->toArray()['metadata']['idempotent']);
+        $this->assertSame(1, $factory->runtimes[0]->calls['cancel']);
+    }
+
     public function testApplicationScopeDoesNotCollideWithTenantNamedApplication(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -234,6 +274,7 @@ final class AgentCompositionServiceTest extends TestCase
         return new class implements IAgentRuntimeFactory {
             public bool $available = true;
             public bool $failNextStart = false;
+            public mixed $onExecute = null;
             public int $created = 0;
             public array $runtimes = [];
 
@@ -303,6 +344,9 @@ final class AgentCompositionServiceTest extends TestCase
                     {
                         $this->calls['execute']++;
                         $this->contexts[] = $context;
+                        if (is_callable($this->factory->onExecute)) {
+                            ($this->factory->onExecute)();
+                        }
                         return AgentRuntimeResult::completed('execute', '', null, 'running', $task);
                     }
                 };

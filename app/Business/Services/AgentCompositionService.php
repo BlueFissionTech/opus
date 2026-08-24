@@ -119,14 +119,13 @@ final class AgentCompositionService extends Service
             $current
         );
         if ($result->ok()) {
-            $this->states->put($agentId, $context->tenantId(), [
-                ...$persisted,
+            $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
                 'state' => $current,
                 'status' => $result->status(),
                 'cancelled' => true,
                 'cancellation_correlation_id' => $context->correlationId(),
                 'diagnostics' => $result->diagnostics(),
-            ]);
+            ]));
         }
 
         return $result;
@@ -155,17 +154,25 @@ final class AgentCompositionService extends Service
                 );
             }
 
+            $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
+            $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
+                'state' => self::RUNNING,
+                'cancelled' => false,
+                'cancellation_correlation_id' => null,
+                'correlation_id' => $context->correlationId(),
+            ]));
             $result = $this->runtime($agentId, $context)
                 ->execute($task, $context)
+                ->withMetadata(['correlation_id' => $context->correlationId()])
                 ->forScope('execute', $agentId, $context->tenantId(), self::RUNNING);
             if ($result->ok()) {
-                $this->states->put($agentId, $context->tenantId(), [
+                $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
+                $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
                     'state' => self::RUNNING,
                     'status' => $result->status(),
-                    'cancelled' => false,
                     'diagnostics' => $result->diagnostics(),
                     'correlation_id' => $context->correlationId(),
-                ]);
+                ]));
             }
 
             return $result;
@@ -219,12 +226,13 @@ final class AgentCompositionService extends Service
         $state = $result->ok()
             ? $target
             : ($result->status() === AgentRuntimeResult::UNAVAILABLE ? $current : self::FAILED);
-        $this->states->put($agentId, $context->tenantId(), [
+        $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
+        $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
             'state' => $state,
             'status' => $result->status(),
             'diagnostics' => $result->diagnostics(),
             'correlation_id' => $context->correlationId(),
-        ]);
+        ]));
 
         return $result->forScope($action, $agentId, $context->tenantId(), $state);
     }

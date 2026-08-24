@@ -132,6 +132,22 @@ final class AgentRuntimeResult
         );
     }
 
+    public function withMetadata(array $metadata): self
+    {
+        return new self(
+            $this->ok(),
+            $this->status(),
+            $this->action->val(),
+            $this->agentId->val(),
+            $this->tenantId?->val(),
+            $this->state(),
+            $this->output(),
+            $this->diagnostics(),
+            $this->trace->toArray(),
+            Arr::merge($this->metadata->toArray(), $metadata)
+        );
+    }
+
     public function toArray(): array
     {
         return [
