@@ -35,7 +35,8 @@ final class AgentCapabilityMapCatalog
 
     private function validOwner(string $owner): bool
     {
-        return Str::make($owner)->matches('/^[a-z0-9][a-z0-9_-]*$/');
+        return $owner !== 'application'
+            && Str::make($owner)->matches('/^[a-z0-9][a-z0-9_-]*$/');
     }
 
     private function path(string $owner): string

@@ -124,7 +124,7 @@ class AppRegistration implements IExtension {
 		$this->bindArgs([
 			'processor' => \App::makeInstance(CommandProcessor::class),
 			'resolver' => new AgentCapabilityMapResolver(
-				$agentMapLoader->load(APP_ROOT . 'mapping/agents.php', 'application'),
+				$agentMapLoader->loadApplication(APP_ROOT . 'mapping/agents.php'),
 				catalog: new AgentCapabilityMapCatalog(APP_ROOT . 'addons', $agentMapLoader)
 			),
 			'continuations' => new AgentContinuationScopeStore($commandStorage),
