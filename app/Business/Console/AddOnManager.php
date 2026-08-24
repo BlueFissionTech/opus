@@ -101,8 +101,8 @@ class AddOnManager extends Service
         }
 
         $addOn = $this->manager->getAddOnData($name);
-        $id = $addOn?->addon_id ?? null;
-        if ($addOn === null || $id === null) {
+        $id = is_object($addOn) ? ($addOn->addon_id ?? null) : null;
+        if ($id === null) {
             return ['failure' => $this->readiness->failure(
                 $action,
                 'addon_not_found',

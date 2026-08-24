@@ -203,8 +203,12 @@ final class AddOnLifecycleReadinessService extends Service
             $results,
             $aggregateStage
         );
+        $aggregateExplainedByChildren = $reasons->isNotEmpty()
+            && Str::isEmpty($aggregateStage)
+            && Str::isEmpty($aggregateError);
         $independentAggregateFailure = $aggregateFailed
             && !$recoveredChildFailuresOnly
+            && !$aggregateExplainedByChildren
             && !$this->hasMatchingReason($reasons, $aggregateStage, $aggregateError);
         if ($independentAggregateFailure) {
             $reasons->unshift($this->reason(

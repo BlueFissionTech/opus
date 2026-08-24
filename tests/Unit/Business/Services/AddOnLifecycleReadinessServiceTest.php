@@ -349,4 +349,23 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertNull($result['error']);
         $this->assertSame('ready', $result['readiness']['state']);
     }
+
+    public function testUnstagedBatchUsesItsActionableChildFailure(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install_all',
+            'results' => [[
+                'ok' => false,
+                'action' => 'install',
+                'stage' => 'migrations',
+                'migrations' => ['ok' => false, 'error' => 'Schema failed.'],
+            ]],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('migrations', $result['stage']);
+        $this->assertSame('Schema failed.', $result['error']);
+        $this->assertCount(1, $result['readiness']['reasons']);
+    }
 }

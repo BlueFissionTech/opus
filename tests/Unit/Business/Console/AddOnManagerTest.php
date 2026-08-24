@@ -49,6 +49,23 @@ final class AddOnManagerTest extends TestCase
         $this->assertSame('addon_name_required', $result['readiness']['reasons'][0]['code']);
     }
 
+    public function testFalseAddOnLookupReturnsStableNotFoundFailure(): void
+    {
+        $manager = new class {
+            public function getAddOnData(string $name): bool
+            {
+                return false;
+            }
+        };
+        $command = new AddOnManager($manager);
+
+        $result = $command->activate((object) ['context' => ['data' => 'Missing']]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('addon_not_found', $result['readiness']['reasons'][0]['code']);
+        $this->assertSame('request', $result['stage']);
+    }
+
     public function testShowReturnsAStableCollectionSummary(): void
     {
         $manager = new class {
