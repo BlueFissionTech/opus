@@ -13,6 +13,7 @@ final class RuntimePathResolver
     private string $packageInstallRoot;
     private ?string $hostRoot;
     private ?string $activeAutoloader;
+    private ?string $activeAutoloaderInstallPath;
 
     public function __construct(
         ?string $packageRoot = null,
@@ -23,8 +24,11 @@ final class RuntimePathResolver
         $this->packageInstallRoot = self::normalizeLexical($packageRoot);
         $this->packageRoot = self::normalize($packageRoot);
         $this->hostRoot = $hostRoot !== null && $hostRoot !== '' ? self::normalize($hostRoot) : null;
-        $this->activeAutoloader = $activeAutoloader !== null && $activeAutoloader !== ''
-            ? self::normalize($activeAutoloader)
+        $this->activeAutoloaderInstallPath = $activeAutoloader !== null && $activeAutoloader !== ''
+            ? self::normalizeLexical($activeAutoloader)
+            : null;
+        $this->activeAutoloader = $this->activeAutoloaderInstallPath !== null
+            ? self::normalize($this->activeAutoloaderInstallPath)
             : null;
     }
 
@@ -63,6 +67,23 @@ final class RuntimePathResolver
         return is_file(self::join($root, 'common/bootstrap/runtime.php'));
     }
 
+    public static function composerProxyAutoloaderFromEntrypoint(string $entrypoint): ?string
+    {
+        if (!self::isAbsolute($entrypoint)) {
+            $entrypoint = getcwd() . DIRECTORY_SEPARATOR . $entrypoint;
+        }
+        $entrypoint = self::normalizeLexical($entrypoint);
+        if (!self::pathEndsWith($entrypoint, DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'opus-addon.php')) {
+            return null;
+        }
+
+        $candidate = self::normalizeLexical(
+            dirname($entrypoint, 2) . DIRECTORY_SEPARATOR . 'autoload.php'
+        );
+
+        return is_file($candidate) ? $candidate : null;
+    }
+
     public function packageRoot(): string
     {
         return $this->packageRoot;
@@ -78,8 +99,12 @@ final class RuntimePathResolver
         }
 
         $autoloadPath = $this->autoloadPath();
+        $searchRoots = [$this->packageInstallRoot, dirname($autoloadPath)];
+        if ($this->activeAutoloaderInstallPath !== null) {
+            $searchRoots[] = dirname($this->activeAutoloaderInstallPath);
+        }
         $configuredHost = self::configuredVendorHost(
-            [$this->packageInstallRoot, dirname($autoloadPath)],
+            $searchRoots,
             $autoloadPath
         );
 
@@ -109,9 +134,11 @@ final class RuntimePathResolver
 
         foreach (self::ancestorDirectories($this->packageInstallRoot) as $ancestor) {
             $configuredAutoloader = self::configuredVendorAutoloader($ancestor);
+            $configuredVendorRoot = self::configuredVendorRoot($ancestor);
             if (
                 $configuredAutoloader !== null
-                && self::pathStartsWith($this->packageInstallRoot, dirname($configuredAutoloader))
+                && $configuredVendorRoot !== null
+                && self::pathStartsWith($this->packageInstallRoot, $configuredVendorRoot)
             ) {
                 $candidates[] = $configuredAutoloader;
             }
@@ -253,6 +280,13 @@ final class RuntimePathResolver
 
     private static function configuredVendorAutoloader(string $hostRoot): ?string
     {
+        $vendorRoot = self::configuredVendorRoot($hostRoot);
+
+        return $vendorRoot === null ? null : self::join($vendorRoot, 'autoload.php');
+    }
+
+    private static function configuredVendorRoot(string $hostRoot): ?string
+    {
         $composerPath = self::join($hostRoot, 'composer.json');
         if (!is_file($composerPath)) {
             return null;
@@ -269,11 +303,11 @@ final class RuntimePathResolver
             return null;
         }
 
-        $vendorRoot = self::isAbsolute($vendorDirectory)
+        return self::isAbsolute($vendorDirectory)
             ? $vendorDirectory
-            : self::join($hostRoot, $vendorDirectory);
-
-        return self::join($vendorRoot, 'autoload.php');
+            : self::normalizeLexical(
+                rtrim($hostRoot, '/\\') . DIRECTORY_SEPARATOR . ltrim($vendorDirectory, '/\\')
+            );
     }
 
     private static function configuredVendorHost(array $searchRoots, string $autoloadPath): ?string

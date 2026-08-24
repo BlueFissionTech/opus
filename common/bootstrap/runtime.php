@@ -10,6 +10,12 @@ require_once $packageRoot . '/app/Business/Services/RuntimePathResolver.php';
 $configuredHostRoot = getenv('OPUS_HOST_ROOT');
 $activeAutoloader = $GLOBALS['_composer_autoload_path'] ?? null;
 $entrypoint = $_SERVER['SCRIPT_FILENAME'] ?? null;
+if (is_string($activeAutoloader) && is_string($entrypoint)) {
+    $proxyAutoloader = RuntimePathResolver::composerProxyAutoloaderFromEntrypoint($entrypoint);
+    if ($proxyAutoloader !== null && realpath($proxyAutoloader) === realpath($activeAutoloader)) {
+        $activeAutoloader = $proxyAutoloader;
+    }
+}
 if ((!is_string($activeAutoloader) || $activeAutoloader === '') && is_string($entrypoint)) {
     $entrypointPackageRoot = RuntimePathResolver::packageInstallRootFromEntrypoint($entrypoint);
     if ($entrypointPackageRoot !== null && RuntimePathResolver::isPackageInstallRoot($entrypointPackageRoot)) {

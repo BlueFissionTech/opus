@@ -220,6 +220,47 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($package), $resolver->hostRoot());
     }
 
+    public function testSymlinkedConfiguredVendorRetainsLexicalHostOwnership(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {
+            $this->markTestSkipped('Directory symlinks are unavailable in this environment.');
+        }
+
+        $sharedVendor = $this->workspace . '/shared/deps';
+        $package = $this->package($sharedVendor . '/bluefission/opus');
+        $this->autoload($sharedVendor . '/autoload.php');
+        $host = $this->workspace . '/linked-vendor-host';
+        mkdir($host, 0777, true);
+        file_put_contents($host . '/composer.json', '{"config":{"vendor-dir":"deps"}}');
+        if (!@symlink($sharedVendor, $host . '/deps')) {
+            $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
+        }
+        $lexicalPackage = $host . '/deps/bluefission/opus';
+        $lexicalAutoloader = $host . '/deps/autoload.php';
+
+        $direct = RuntimePathResolver::discover($lexicalPackage);
+        $proxied = RuntimePathResolver::discover($package, activeAutoloader: $lexicalAutoloader);
+
+        $this->assertSame(realpath($lexicalAutoloader), $direct->autoloadPath());
+        $this->assertSame(realpath($host), $direct->hostRoot());
+        $this->assertSame(realpath($host), $proxied->hostRoot());
+    }
+
+    public function testComposerProxyEntrypointRetainsItsLexicalAutoloaderPath(): void
+    {
+        $vendor = $this->workspace . '/proxy/deps';
+        $this->autoload($vendor . '/autoload.php');
+        mkdir($vendor . '/bin', 0777, true);
+        file_put_contents($vendor . '/bin/opus-addon.php', '<?php');
+
+        $this->assertSame(
+            realpath($vendor) . DIRECTORY_SEPARATOR . 'autoload.php',
+            RuntimePathResolver::composerProxyAutoloaderFromEntrypoint(
+                $vendor . '/bin/opus-addon.php'
+            )
+        );
+    }
+
     public function testAncestorTraversalIncludesTheFilesystemRoot(): void
     {
         $root = DIRECTORY_SEPARATOR === '\\' ? 'C:\\' : DIRECTORY_SEPARATOR;
