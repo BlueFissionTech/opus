@@ -148,6 +148,9 @@ runtime state is keyed by tenant and agent; process-local runtime adapters may
 be reconstructed by the factory for a later request. Factories must therefore
 rehydrate their own provider/session context from the bounded descriptor and
 runtime context instead of relying on ambient globals.
+Provider adapters receive an immutable identifier for every execution and must
+scope cancellation to the requested identifier. They must not interpret a
+cancellation request as permission to terminate a newer execution generation.
 
 Specialist agents require an active package lifecycle state and explicit
 tenant. They do not inherit central or peer command surfaces. The central

@@ -105,6 +105,9 @@ Acceptance criteria:
   correlation context even when a provider adapter is reused across requests.
 - Successful cancellation is persisted and deduplicated until a subsequent
   task execution begins for that agent scope.
+- Every provider execution receives an immutable execution identifier, and
+  cancellation targets that exact generation so an older cancellation cannot
+  affect a replacement execution on another host.
 - Task execution revalidates lifecycle and permission policy and returns
   provider-neutral output, diagnostics, trace, and correlation metadata.
 - Opus selects permitted participants and context. Automata owns hierarchical

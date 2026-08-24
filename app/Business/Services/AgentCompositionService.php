@@ -114,7 +114,7 @@ final class AgentCompositionService extends Service
         }
 
         $existingClaim = Arr::getPath($persisted, 'cancellation_id');
-        if (Str::isNotEmpty((string) $existingClaim) && $this->claimIsLive((string) $existingClaim)) {
+        if (Str::isNotEmpty((string) $existingClaim)) {
             return AgentRuntimeResult::denied(
                 'cancel',
                 $agentId,
@@ -124,44 +124,33 @@ final class AgentCompositionService extends Service
             );
         }
         $cancellationId = $this->operationId();
-        try {
-            $operationLock = $this->acquireOperationLock($cancellationId);
-        } catch (Throwable $exception) {
-            return AgentRuntimeResult::failed(
+        $claimed = $this->states->compareAndPut(
+            $agentId,
+            $context->tenantId(),
+            [
+                'state' => $current,
+                'execution_id' => $coveredExecution,
+                'cancelled' => Arr::getPath($persisted, 'cancelled'),
+                'cancellation_id' => $existingClaim,
+            ],
+            [
+                'cancellation_id' => $cancellationId,
+                'cancellation_execution_id' => $coveredExecution,
+                'cancellation_expires_at' => null,
+            ]
+        );
+        if (!$claimed) {
+            return AgentRuntimeResult::denied(
                 'cancel',
                 $agentId,
                 $context->tenantId(),
-                $current,
-                $exception->getMessage()
+                $this->state($agentId, $context),
+                'agent_cancellation_in_progress'
             );
         }
-        try {
-            $claimed = $this->states->compareAndPut(
-                $agentId,
-                $context->tenantId(),
-                [
-                    'state' => $current,
-                    'execution_id' => $coveredExecution,
-                    'cancelled' => Arr::getPath($persisted, 'cancelled'),
-                    'cancellation_id' => $existingClaim,
-                ],
-                [
-                    'cancellation_id' => $cancellationId,
-                    'cancellation_execution_id' => $coveredExecution,
-                    'cancellation_expires_at' => null,
-                ]
-            );
-            if (!$claimed) {
-                return AgentRuntimeResult::denied(
-                    'cancel',
-                    $agentId,
-                    $context->tenantId(),
-                    $this->state($agentId, $context),
-                    'agent_cancellation_in_progress'
-                );
-            }
 
-            $result = $this->invoke('cancel', $agentId, $context)->forScope(
+        try {
+            $result = $this->invokeCancellation($agentId, $coveredExecution, $context)->forScope(
                 'cancel',
                 $agentId,
                 $context->tenantId(),
@@ -212,8 +201,25 @@ final class AgentCompositionService extends Service
             );
 
             return $result;
-        } finally {
-            $this->releaseOperationLock($operationLock, $cancellationId);
+        } catch (Throwable $exception) {
+            $this->states->compareAndPut(
+                $agentId,
+                $context->tenantId(),
+                ['cancellation_id' => $cancellationId],
+                [
+                    'cancellation_id' => null,
+                    'cancellation_execution_id' => null,
+                    'cancellation_expires_at' => null,
+                ]
+            );
+
+            return AgentRuntimeResult::failed(
+                'cancel',
+                $agentId,
+                $context->tenantId(),
+                $current,
+                $exception->getMessage()
+            );
         }
     }
 
@@ -268,18 +274,6 @@ final class AgentCompositionService extends Service
                 );
             }
             $cancellationId = Arr::getPath($persisted, 'cancellation_id');
-            if (Str::isNotEmpty((string) $cancellationId) && $this->claimIsLive((string) $cancellationId)) {
-                return $this->correlate(
-                    AgentRuntimeResult::denied(
-                        'execute',
-                        $agentId,
-                        $context->tenantId(),
-                        $current,
-                        'agent_cancellation_in_progress'
-                    ),
-                    $context
-                );
-            }
             $executionId = $this->operationId();
             $accepted = $this->states->compareAndPut($agentId, $context->tenantId(), [
                 'state' => self::RUNNING,
@@ -303,7 +297,7 @@ final class AgentCompositionService extends Service
                 $latestRecord = $this->states->get($agentId, $context->tenantId()) ?? [];
                 $latest = (string) Arr::getPath($latestRecord, 'state', self::REGISTERED);
                 $latestCancellation = (string) Arr::getPath($latestRecord, 'cancellation_id');
-                $reason = Str::isNotEmpty($latestCancellation) && $this->claimIsLive($latestCancellation)
+                $reason = Str::isNotEmpty($latestCancellation)
                     ? 'agent_cancellation_in_progress'
                     : ($latest === self::RUNNING ? 'agent_transition_in_progress' : 'agent_not_running');
 
@@ -319,8 +313,11 @@ final class AgentCompositionService extends Service
                 );
             }
             $result = $runtime
-                ->execute($task, $context)
-                ->withMetadata(['correlation_id' => $context->correlationId()]);
+                ->execute($executionId, $task, $context)
+                ->withMetadata([
+                    'correlation_id' => $context->correlationId(),
+                    'execution_id' => $executionId,
+                ]);
             if ($result->ok()) {
                 $this->states->compareAndPut($agentId, $context->tenantId(), [
                     'execution_id' => $executionId,
@@ -456,6 +453,24 @@ final class AgentCompositionService extends Service
         } finally {
             $this->releaseOperationLock($operationLock, $transitionId);
         }
+    }
+
+    private function invokeCancellation(
+        string $agentId,
+        ?string $executionId,
+        AgentRuntimeContext $context
+    ): AgentRuntimeResult {
+        if (!$this->runtimeAvailable($agentId, $context)) {
+            return AgentRuntimeResult::unavailable(
+                'cancel',
+                $agentId,
+                $context->tenantId(),
+                $this->state($agentId, $context),
+                'agent_runtime_unavailable'
+            );
+        }
+
+        return $this->runtime($agentId, $context)->cancel($executionId, $context);
     }
 
     private function invoke(string $action, string $agentId, AgentRuntimeContext $context): AgentRuntimeResult

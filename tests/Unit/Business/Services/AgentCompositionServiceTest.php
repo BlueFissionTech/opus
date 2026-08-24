@@ -276,16 +276,28 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(AgentRuntimeResult::DENIED, $rejected->status());
     }
 
-    public function testReplacementExecutionWaitsForCancellationCompletion(): void
+    public function testReplacementExecutionIsFencedFromConcurrentCancellation(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
         $factory = $this->factory();
         $service = $this->service($root, $factory);
         $service->registerMap($root);
         $service->start('opus.central', new AgentRuntimeContext());
+        $initial = $service->execute(
+            'opus.central',
+            ['intent' => 'initial'],
+            new AgentRuntimeContext(correlationId: 'execute-a')
+        );
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $otherHost = new AgentCompositionService(
+            new AgentCapabilityMapResolver($root),
+            $factory,
+            $states
+        );
+        $otherHost->registerMap($root);
         $duringCancellation = null;
-        $factory->onCancel = function () use ($service, &$duringCancellation): void {
-            $duringCancellation = $service->execute(
+        $factory->onCancel = function () use ($otherHost, &$duringCancellation): void {
+            $duringCancellation = $otherHost->execute(
                 'opus.central',
                 ['intent' => 'replacement'],
                 new AgentRuntimeContext(correlationId: 'execute-b')
@@ -308,11 +320,23 @@ final class AgentCompositionServiceTest extends TestCase
         );
 
         $this->assertTrue($cancelled->ok());
+        $this->assertTrue($cancelled->toArray()['metadata']['cancellation_superseded']);
         $this->assertInstanceOf(AgentRuntimeResult::class, $duringCancellation);
-        $this->assertSame(AgentRuntimeResult::DENIED, $duringCancellation->status());
-        $this->assertSame(['agent_cancellation_in_progress'], $duringCancellation->diagnostics());
+        $this->assertTrue($duringCancellation->ok());
         $this->assertTrue($replacement->ok());
         $this->assertTrue($nextCancellation->ok());
+        $this->assertSame(
+            $initial->toArray()['metadata']['execution_id'],
+            $factory->runtimes[0]->cancelledExecutions[0]
+        );
+        $this->assertNotSame(
+            $factory->runtimes[0]->cancelledExecutions[0],
+            $duringCancellation->toArray()['metadata']['execution_id']
+        );
+        $this->assertSame(
+            $replacement->toArray()['metadata']['execution_id'],
+            $factory->runtimes[0]->cancelledExecutions[1]
+        );
         $this->assertSame(2, $factory->runtimes[0]->calls['cancel']);
     }
 
@@ -748,6 +772,7 @@ final class AgentCompositionServiceTest extends TestCase
                         'execute' => 0,
                     ];
                     public array $contexts = [];
+                    public array $cancelledExecutions = [];
 
                     public function __construct(private object $factory)
                     {
@@ -789,17 +814,22 @@ final class AgentCompositionServiceTest extends TestCase
                         return AgentRuntimeResult::completed('stop', '', null, 'stopped');
                     }
 
-                    public function cancel(AgentRuntimeContext $context): AgentRuntimeResult
+                    public function cancel(?string $executionId, AgentRuntimeContext $context): AgentRuntimeResult
                     {
                         $this->calls['cancel']++;
                         $this->contexts[] = $context;
+                        $this->cancelledExecutions[] = $executionId;
                         if (is_callable($this->factory->onCancel)) {
                             ($this->factory->onCancel)();
                         }
                         return AgentRuntimeResult::completed('cancel', '', null, 'running');
                     }
 
-                    public function execute(array $task, AgentRuntimeContext $context): AgentRuntimeResult
+                    public function execute(
+                        string $executionId,
+                        array $task,
+                        AgentRuntimeContext $context
+                    ): AgentRuntimeResult
                     {
                         $this->calls['execute']++;
                         $this->contexts[] = $context;

@@ -14,7 +14,7 @@ interface IAgentRuntime
 
     public function stop(AgentRuntimeContext $context): AgentRuntimeResult;
 
-    public function cancel(AgentRuntimeContext $context): AgentRuntimeResult;
+    public function cancel(?string $executionId, AgentRuntimeContext $context): AgentRuntimeResult;
 
-    public function execute(array $task, AgentRuntimeContext $context): AgentRuntimeResult;
+    public function execute(string $executionId, array $task, AgentRuntimeContext $context): AgentRuntimeResult;
 }
