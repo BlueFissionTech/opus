@@ -119,13 +119,16 @@ final class AgentCompositionService extends Service
             $current
         );
         if ($result->ok()) {
-            $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
-                'state' => $current,
+            $latest = $this->states->get($agentId, $context->tenantId()) ?? [];
+            $latestState = (string) Arr::getPath($latest, 'state', $current);
+            $this->states->put($agentId, $context->tenantId(), Arr::merge($latest, [
                 'status' => $result->status(),
                 'cancelled' => true,
                 'cancellation_correlation_id' => $context->correlationId(),
                 'diagnostics' => $result->diagnostics(),
             ]));
+
+            return $result->forScope('cancel', $agentId, $context->tenantId(), $latestState);
         }
 
         return $result;
@@ -166,6 +169,7 @@ final class AgentCompositionService extends Service
                 );
             }
 
+            $runtime = $this->runtime($agentId, $context);
             $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
             $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
                 'state' => self::RUNNING,
@@ -173,7 +177,7 @@ final class AgentCompositionService extends Service
                 'cancellation_correlation_id' => null,
                 'correlation_id' => $context->correlationId(),
             ]));
-            $result = $this->runtime($agentId, $context)
+            $result = $runtime
                 ->execute($task, $context)
                 ->withMetadata(['correlation_id' => $context->correlationId()]);
             $latestState = $this->state($agentId, $context);

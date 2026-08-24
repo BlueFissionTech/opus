@@ -223,6 +223,64 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(1, $factory->runtimes[0]->calls['cancel']);
     }
 
+    public function testCancellationCompletionPreservesAConcurrentLifecycleTransition(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $factory->onCancel = function () use ($service): void {
+            $service->stop('opus.central', new AgentRuntimeContext(correlationId: 'stop-b'));
+        };
+
+        $cancelled = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-a')
+        );
+        $rejected = $service->execute(
+            'opus.central',
+            ['intent' => 'later'],
+            new AgentRuntimeContext(correlationId: 'execute-c')
+        );
+
+        $this->assertSame(AgentCompositionService::STOPPED, $cancelled->state());
+        $this->assertSame(AgentRuntimeResult::DENIED, $rejected->status());
+    }
+
+    public function testRuntimeCreationFailureDoesNotClearCancellationEvidence(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $service->cancel('opus.central', new AgentRuntimeContext(correlationId: 'cancel-a'));
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $failingFactory = $this->factory();
+        $failingFactory->throwOnCreate = true;
+        $nextRequest = new AgentCompositionService(
+            new AgentCapabilityMapResolver($root),
+            $failingFactory,
+            $states
+        );
+        $nextRequest->registerMap($root);
+
+        $failed = $nextRequest->execute(
+            'opus.central',
+            ['intent' => 'next'],
+            new AgentRuntimeContext(correlationId: 'execute-b')
+        );
+        $cancelledAgain = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-c')
+        );
+
+        $this->assertSame(AgentRuntimeResult::FAILED, $failed->status());
+        $this->assertTrue($cancelledAgain->toArray()['metadata']['idempotent']);
+        $this->assertSame(1, $factory->runtimes[0]->calls['cancel']);
+    }
+
     public function testExecutionCompletionPreservesAConcurrentLifecycleTransition(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -321,7 +379,9 @@ final class AgentCompositionServiceTest extends TestCase
             public bool $available = true;
             public bool $failNextStart = false;
             public bool $throwOnExecute = false;
+            public bool $throwOnCreate = false;
             public mixed $onExecute = null;
+            public mixed $onCancel = null;
             public int $created = 0;
             public array $runtimes = [];
 
@@ -332,6 +392,9 @@ final class AgentCompositionServiceTest extends TestCase
 
             public function create(AgentDescriptor $descriptor, AgentRuntimeContext $context): IAgentRuntime
             {
+                if ($this->throwOnCreate) {
+                    throw new \RuntimeException('runtime_create_failed');
+                }
                 $runtime = new class($this) implements IAgentRuntime {
                     public array $calls = [
                         'start' => 0,
@@ -384,6 +447,9 @@ final class AgentCompositionServiceTest extends TestCase
                     {
                         $this->calls['cancel']++;
                         $this->contexts[] = $context;
+                        if (is_callable($this->factory->onCancel)) {
+                            ($this->factory->onCancel)();
+                        }
                         return AgentRuntimeResult::completed('cancel', '', null, 'running');
                     }
 
