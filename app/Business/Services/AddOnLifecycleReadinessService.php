@@ -79,11 +79,8 @@ final class AddOnLifecycleReadinessService extends Service
             $reasons->push($this->reason($code, $stage, $message));
         });
 
-        if (Flag::isFalse($outcome->get('ok'))
-            && $reasons->count() === 0
-            && !$optionalHookFailureOnly
-        ) {
-            $reasons->push($this->reason(
+        if ($this->hasIndependentAggregateFailure($outcome, $reasons, $optionalHookFailureOnly)) {
+            $reasons->unshift($this->reason(
                 'addon_lifecycle_failed',
                 (string) ($outcome->get('stage') ?: 'lifecycle'),
                 (string) ($outcome->get('error') ?: 'Add-on lifecycle action failed.')
@@ -98,7 +95,11 @@ final class AddOnLifecycleReadinessService extends Service
             $outcome->set('error', $outcome->get('error') ?: $first->get('message'));
         } elseif ($optionalHookFailureOnly) {
             $outcome->set('ok', true);
+            $outcome->set('stage', 'complete');
             $outcome->set('error', null);
+            if ((string) $outcome->get('nextAction') === 'retry_lifecycle') {
+                $outcome->set('nextAction', $this->successfulNextAction((string) $outcome->get('action')));
+            }
         }
 
         $outcome->set('readiness', [
@@ -148,6 +149,26 @@ final class AddOnLifecycleReadinessService extends Service
             )->trim()->lower()->val() !== 'missing_callable')->isEmpty();
     }
 
+    private function hasIndependentAggregateFailure(Arr $outcome, Arr $reasons, bool $optionalHookFailureOnly): bool
+    {
+        if (!Flag::isFalse($outcome->get('ok')) || $optionalHookFailureOnly) {
+            return false;
+        }
+        if ($reasons->isEmpty()) {
+            return true;
+        }
+
+        $stage = (string) ($outcome->get('stage') ?: 'lifecycle');
+        $message = (string) $outcome->get('error');
+        $matched = $reasons->filter(fn ($reason): bool =>
+            Arr::getPath((array) $reason, 'stage') === $stage
+            || (Str::isNotEmpty($message) && Arr::getPath((array) $reason, 'message') === $message)
+        )->isNotEmpty();
+
+        return !$matched
+            && (Str::isNotEmpty($message) || !Arr::make(['complete', 'hook'])->contains($stage));
+    }
+
     private function normalizeBatch(Arr $outcome, array $results): array
     {
         $normalized = Arr::make($results)
@@ -178,7 +199,7 @@ final class AddOnLifecycleReadinessService extends Service
             $outcome->set('stage', 'complete');
             $outcome->set('error', null);
             if ((string) $outcome->get('nextAction') === 'retry_lifecycle') {
-                $outcome->set('nextAction', $this->successfulBatchNextAction((string) $outcome->get('action')));
+                $outcome->set('nextAction', $this->successfulNextAction((string) $outcome->get('action')));
             }
         }
         $outcome->set('readiness', [
@@ -189,11 +210,14 @@ final class AddOnLifecycleReadinessService extends Service
         return $outcome->toArray();
     }
 
-    private function successfulBatchNextAction(string $action): ?string
+    private function successfulNextAction(string $action): ?string
     {
-        return Str::make($action)->trim()->lower()->val() === 'install_all'
-            ? 'activate_all'
-            : null;
+        $action = Str::make($action)->trim()->lower()->val();
+        if ($action === 'install') {
+            return 'activate';
+        }
+
+        return $action === 'install_all' ? 'activate_all' : null;
     }
 
     private function reason(string $code, string $stage, string $message): array

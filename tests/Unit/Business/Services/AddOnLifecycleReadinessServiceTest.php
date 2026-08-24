@@ -107,6 +107,54 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('addon_lifecycle_failed', $result['readiness']['reasons'][0]['code']);
     }
 
+    public function testRequiredHookDoesNotHideAnIndependentAggregateFailure(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'addon' => 'sample',
+            'changed' => false,
+            'stage' => 'registration',
+            'error' => 'Registration factory failed.',
+            'hooks' => [[
+                'ok' => false,
+                'hook' => 'install',
+                'status' => 'failed',
+                'error' => 'Required hook failed.',
+            ]],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('registration', $result['stage']);
+        $this->assertSame('addon_lifecycle_failed', $result['readiness']['reasons'][0]['code']);
+        $this->assertSame('addon_hook_failed', $result['readiness']['reasons'][1]['code']);
+    }
+
+    public function testRecoveredSingleHookClearsFailureMetadata(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'addon' => 'sample',
+            'changed' => true,
+            'stage' => 'hook',
+            'nextAction' => 'retry_lifecycle',
+            'hooks' => [[
+                'ok' => false,
+                'hook' => 'install',
+                'status' => 'missing_callable',
+                'error' => 'No compatible lifecycle hook callable was found.',
+            ]],
+            'migrations' => ['ok' => true],
+            'population' => ['ok' => true],
+        ]);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame('complete', $result['stage']);
+        $this->assertSame('activate', $result['nextAction']);
+        $this->assertNull($result['error']);
+    }
+
     public function testBatchCountsAreRecomputedFromNormalizedChildren(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([
