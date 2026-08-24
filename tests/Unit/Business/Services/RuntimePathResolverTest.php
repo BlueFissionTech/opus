@@ -191,6 +191,21 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
+    public function testActiveNestedAutoloaderResolvesAHostOutsideTheCanonicalPackageAncestors(): void
+    {
+        $package = $this->package($this->workspace . '/source/opus');
+        $host = $this->workspace . '/linked-package-host';
+        mkdir($host, 0777, true);
+        file_put_contents($host . '/composer.json', '{"config":{"vendor-dir":"build/deps"}}');
+        $autoload = $host . '/build/deps/autoload.php';
+        $this->autoload($autoload);
+
+        $resolver = RuntimePathResolver::discover($package, activeAutoloader: $autoload);
+
+        $this->assertSame(realpath($autoload), $resolver->autoloadPath());
+        $this->assertSame(realpath($host), $resolver->hostRoot());
+    }
+
     public function testFilesystemRootsRemainAbsoluteDuringNormalization(): void
     {
         $posix = RuntimePathResolver::discover(DIRECTORY_SEPARATOR, DIRECTORY_SEPARATOR);

@@ -78,7 +78,10 @@ final class RuntimePathResolver
         }
 
         $autoloadPath = $this->autoloadPath();
-        $configuredHost = self::configuredVendorHost($this->packageInstallRoot, $autoloadPath);
+        $configuredHost = self::configuredVendorHost(
+            [$this->packageInstallRoot, dirname($autoloadPath)],
+            $autoloadPath
+        );
 
         return $configuredHost ?? self::normalize(dirname(dirname($autoloadPath)));
     }
@@ -262,19 +265,23 @@ final class RuntimePathResolver
         return self::join($vendorRoot, 'autoload.php');
     }
 
-    private static function configuredVendorHost(string $packageRoot, string $autoloadPath): ?string
+    private static function configuredVendorHost(array $searchRoots, string $autoloadPath): ?string
     {
-        $candidate = $packageRoot;
-        while (true) {
-            $configuredAutoloader = self::configuredVendorAutoloader($candidate);
-            if ($configuredAutoloader !== null && self::pathsMatch($configuredAutoloader, $autoloadPath)) {
-                return self::normalize($candidate);
+        $checked = [];
+        foreach ($searchRoots as $searchRoot) {
+            $candidate = self::normalizeLexical((string) $searchRoot);
+            while (!isset($checked[$candidate])) {
+                $checked[$candidate] = true;
+                $configuredAutoloader = self::configuredVendorAutoloader($candidate);
+                if ($configuredAutoloader !== null && self::pathsMatch($configuredAutoloader, $autoloadPath)) {
+                    return self::normalize($candidate);
+                }
+                $parent = dirname($candidate);
+                if ($parent === $candidate) {
+                    break;
+                }
+                $candidate = $parent;
             }
-            $parent = dirname($candidate);
-            if ($parent === $candidate) {
-                break;
-            }
-            $candidate = $parent;
         }
 
         return null;
