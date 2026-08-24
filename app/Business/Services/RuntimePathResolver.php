@@ -265,12 +265,16 @@ final class RuntimePathResolver
     private static function configuredVendorHost(string $packageRoot, string $autoloadPath): ?string
     {
         $candidate = $packageRoot;
-        while ($candidate !== dirname($candidate)) {
+        while (true) {
             $configuredAutoloader = self::configuredVendorAutoloader($candidate);
             if ($configuredAutoloader !== null && self::pathsMatch($configuredAutoloader, $autoloadPath)) {
                 return self::normalize($candidate);
             }
-            $candidate = dirname($candidate);
+            $parent = dirname($candidate);
+            if ($parent === $candidate) {
+                break;
+            }
+            $candidate = $parent;
         }
 
         return null;
