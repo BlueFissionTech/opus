@@ -297,6 +297,26 @@ final class RuntimePathResolverTest extends TestCase
         $resolver->packageResourcePath('themes/link/template.vibe');
     }
 
+    public function testDanglingResourceSymlinksAreRejected(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {
+            $this->markTestSkipped('Directory symlinks are unavailable in this environment.');
+        }
+
+        $package = $this->package($this->workspace . '/package');
+        mkdir($package . '/resource/themes', 0777, true);
+        $link = $package . '/resource/themes/link';
+        if (!@symlink($this->workspace . '/outside/missing', $link)) {
+            $this->markTestSkipped('Dangling directory symlinks cannot be created in this environment.');
+        }
+        $resolver = RuntimePathResolver::discover($package);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must remain inside their owning root');
+
+        $resolver->packageResourcePath('themes/link/template.vibe');
+    }
+
     private function package(string $root): string
     {
         mkdir($root . '/resource/markup/default', 0777, true);

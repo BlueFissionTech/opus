@@ -212,6 +212,12 @@ final class RuntimePathResolver
             $ancestor = $parent;
         }
 
+        if (is_link($ancestor) && realpath($ancestor) === false) {
+            throw new \InvalidArgumentException(
+                'Runtime resource paths must remain inside their owning root.'
+            );
+        }
+
         $ancestor = self::normalize($ancestor);
         $suffix = '';
         foreach ($segments as $segment) {
