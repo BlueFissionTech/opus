@@ -155,6 +155,26 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertNull($result['error']);
     }
 
+    public function testMultipleRequiredFailuresKeepTheSelectedStageAndErrorAligned(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'addon' => 'sample',
+            'changed' => true,
+            'stage' => 'population',
+            'error' => 'Population failed.',
+            'hooks' => [],
+            'migrations' => ['ok' => false, 'error' => 'Migration failed.'],
+            'population' => ['ok' => false, 'error' => 'Population failed.'],
+        ]);
+
+        $this->assertSame('population', $result['stage']);
+        $this->assertSame('Population failed.', $result['error']);
+        $this->assertSame('addon_migration_failed', $result['readiness']['reasons'][0]['code']);
+        $this->assertSame('addon_population_failed', $result['readiness']['reasons'][1]['code']);
+    }
+
     public function testBatchCountsAreRecomputedFromNormalizedChildren(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([

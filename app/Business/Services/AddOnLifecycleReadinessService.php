@@ -88,11 +88,11 @@ final class AddOnLifecycleReadinessService extends Service
         }
 
         if ($reasons->count() > 0) {
-            $first = Arr::make((array) $reasons->get(0));
+            $first = $this->selectedReason($outcome, $reasons);
             $outcome->set('ok', false);
             $outcome->set('stage', $first->get('stage'));
             $outcome->set('nextAction', 'retry_lifecycle');
-            $outcome->set('error', $outcome->get('error') ?: $first->get('message'));
+            $outcome->set('error', $first->get('message'));
         } elseif ($optionalHookFailureOnly) {
             $outcome->set('ok', true);
             $outcome->set('stage', 'complete');
@@ -108,6 +108,21 @@ final class AddOnLifecycleReadinessService extends Service
         ]);
 
         return $outcome->toArray();
+    }
+
+    private function selectedReason(Arr $outcome, Arr $reasons): Arr
+    {
+        $stage = (string) $outcome->get('stage');
+        $message = (string) $outcome->get('error');
+        $matching = $reasons->filter(fn ($reason): bool =>
+            Arr::getPath((array) $reason, 'stage') === $stage
+            && (
+                Str::isEmpty($message)
+                || Arr::getPath((array) $reason, 'message') === $message
+            )
+        )->values();
+
+        return Arr::make((array) ($matching->get(0) ?? $reasons->get(0)));
     }
 
     private function normalizeHook(Arr $hook, Arr $reasons): array
@@ -160,10 +175,15 @@ final class AddOnLifecycleReadinessService extends Service
 
         $stage = (string) ($outcome->get('stage') ?: 'lifecycle');
         $message = (string) $outcome->get('error');
-        $matched = $reasons->filter(fn ($reason): bool =>
-            Arr::getPath((array) $reason, 'stage') === $stage
-            || (Str::isNotEmpty($message) && Arr::getPath((array) $reason, 'message') === $message)
-        )->isNotEmpty();
+        $matched = false;
+        $reasons->each(function ($reason) use ($stage, $message, &$matched): void {
+            $matched = $matched
+                || Arr::getPath((array) $reason, 'stage') === $stage
+                || (
+                    Str::isNotEmpty($message)
+                    && Arr::getPath((array) $reason, 'message') === $message
+                );
+        });
 
         return !$matched
             && (Str::isNotEmpty($message) || !Arr::make(['complete', 'hook'])->contains($stage));
