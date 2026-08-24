@@ -23,6 +23,7 @@ final class AgentCompositionService extends Service
     public const SUSPENDED = 'suspended';
     public const STOPPED = 'stopped';
     public const FAILED = 'failed';
+    private const OPERATION_LEASE_SECONDS = 60;
 
     private Arr $descriptors;
     private Arr $runtimes;
@@ -113,6 +114,43 @@ final class AgentCompositionService extends Service
             return AgentRuntimeResult::denied('cancel', $agentId, $context->tenantId(), $current, 'agent_not_active');
         }
 
+        $existingClaim = Arr::getPath($persisted, 'cancellation_id');
+        $claimExpiresAt = (int) Arr::getPath($persisted, 'cancellation_expires_at', 0);
+        if (Str::isNotEmpty((string) $existingClaim) && $claimExpiresAt > time()) {
+            return AgentRuntimeResult::denied(
+                'cancel',
+                $agentId,
+                $context->tenantId(),
+                $current,
+                'agent_cancellation_in_progress'
+            );
+        }
+        $cancellationId = $this->operationId();
+        $claimed = $this->states->compareAndPut(
+            $agentId,
+            $context->tenantId(),
+            [
+                'state' => $current,
+                'execution_id' => $coveredExecution,
+                'cancelled' => Arr::getPath($persisted, 'cancelled'),
+                'cancellation_id' => $existingClaim,
+            ],
+            [
+                'cancellation_id' => $cancellationId,
+                'cancellation_execution_id' => $coveredExecution,
+                'cancellation_expires_at' => time() + self::OPERATION_LEASE_SECONDS,
+            ]
+        );
+        if (!$claimed) {
+            return AgentRuntimeResult::denied(
+                'cancel',
+                $agentId,
+                $context->tenantId(),
+                $this->state($agentId, $context),
+                'agent_cancellation_in_progress'
+            );
+        }
+
         $result = $this->invoke('cancel', $agentId, $context)->forScope(
             'cancel',
             $agentId,
@@ -123,19 +161,45 @@ final class AgentCompositionService extends Service
             $latest = $this->states->get($agentId, $context->tenantId()) ?? [];
             $latestState = (string) Arr::getPath($latest, 'state', $current);
             if (Arr::getPath($latest, 'execution_id') !== $coveredExecution) {
+                $this->states->compareAndPut(
+                    $agentId,
+                    $context->tenantId(),
+                    ['cancellation_id' => $cancellationId],
+                    [
+                        'cancellation_id' => null,
+                        'cancellation_execution_id' => null,
+                        'cancellation_expires_at' => null,
+                    ]
+                );
                 return $result
                     ->withMetadata(['cancellation_superseded' => true])
                     ->forScope('cancel', $agentId, $context->tenantId(), $latestState);
             }
-            $this->states->put($agentId, $context->tenantId(), Arr::merge($latest, [
+            $this->states->compareAndPut($agentId, $context->tenantId(), [
+                'cancellation_id' => $cancellationId,
+            ], [
                 'status' => $result->status(),
                 'cancelled' => true,
                 'cancellation_correlation_id' => $context->correlationId(),
+                'cancellation_id' => null,
+                'cancellation_execution_id' => null,
+                'cancellation_expires_at' => null,
                 'diagnostics' => $result->diagnostics(),
-            ]));
+            ]);
 
             return $result->forScope('cancel', $agentId, $context->tenantId(), $latestState);
         }
+
+        $this->states->compareAndPut(
+            $agentId,
+            $context->tenantId(),
+            ['cancellation_id' => $cancellationId],
+            [
+                'cancellation_id' => null,
+                'cancellation_execution_id' => null,
+                'cancellation_expires_at' => null,
+            ]
+        );
 
         return $result;
     }
@@ -183,6 +247,9 @@ final class AgentCompositionService extends Service
                 'execution_id' => $executionId,
                 'cancelled' => false,
                 'cancellation_correlation_id' => null,
+                'cancellation_id' => null,
+                'cancellation_execution_id' => null,
+                'cancellation_expires_at' => null,
                 'correlation_id' => $context->correlationId(),
             ]));
             $result = $runtime
@@ -245,18 +312,30 @@ final class AgentCompositionService extends Service
         $current = $this->state($agentId, $context);
         $transitionId = $this->operationId();
         $persisted = $this->states->get($agentId, $context->tenantId());
+        $existingTransition = Arr::getPath((array) $persisted, 'transition_id');
+        $transitionExpiresAt = (int) Arr::getPath((array) $persisted, 'transition_expires_at', 0);
+        if (Str::isNotEmpty((string) $existingTransition) && $transitionExpiresAt > time()) {
+            return AgentRuntimeResult::denied(
+                $action,
+                $agentId,
+                $context->tenantId(),
+                $current,
+                'agent_transition_in_progress'
+            );
+        }
         $claimed = $this->states->compareAndPut(
             $agentId,
             $context->tenantId(),
             [
                 'state' => $persisted === null ? null : $current,
-                'transition_id' => null,
+                'transition_id' => $existingTransition,
             ],
             [
                 'state' => $current,
                 'transition_id' => $transitionId,
                 'transition_action' => $action,
                 'transition_correlation_id' => $context->correlationId(),
+                'transition_expires_at' => time() + self::OPERATION_LEASE_SECONDS,
             ]
         );
         if (!$claimed) {
@@ -277,8 +356,9 @@ final class AgentCompositionService extends Service
         $state = $result->ok()
             ? $target
             : ($result->status() === AgentRuntimeResult::UNAVAILABLE ? $current : self::FAILED);
-        $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
-        $this->states->put($agentId, $context->tenantId(), Arr::merge($persisted, [
+        $updated = $this->states->compareAndPut($agentId, $context->tenantId(), [
+            'transition_id' => $transitionId,
+        ], [
             'state' => $state,
             'status' => $result->status(),
             'diagnostics' => $result->diagnostics(),
@@ -286,7 +366,13 @@ final class AgentCompositionService extends Service
             'transition_id' => null,
             'transition_action' => null,
             'transition_correlation_id' => null,
-        ]));
+            'transition_expires_at' => null,
+        ]);
+        if (!$updated) {
+            return $result
+                ->withMetadata(['transition_superseded' => true])
+                ->forScope($action, $agentId, $context->tenantId(), $this->state($agentId, $context));
+        }
 
         return $result->forScope($action, $agentId, $context->tenantId(), $state);
     }

@@ -7,6 +7,7 @@ namespace Tests\Unit\Business\Services;
 use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentCompositionService;
+use App\Business\Services\AgentRuntimeStateStore;
 use App\Domain\Agents\AgentCapabilityMap;
 use App\Domain\Agents\AgentDescriptor;
 use App\Domain\Agents\AgentRuntimeContext;
@@ -15,6 +16,7 @@ use App\Domain\Agents\IAgentRuntime;
 use App\Domain\Agents\IAgentRuntimeFactory;
 use App\Domain\Agents\IAgentRuntimeStateStore;
 use BlueFission\Arr;
+use BlueFission\Data\Storage\Storage;
 use PHPUnit\Framework\TestCase;
 
 final class AgentCompositionServiceTest extends TestCase
@@ -279,6 +281,33 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(2, $factory->runtimes[0]->calls['cancel']);
     }
 
+    public function testConcurrentCancellationClaimsInvokeTheProviderOnce(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $concurrent = null;
+        $factory->onCancel = function () use ($service, &$concurrent): void {
+            $concurrent = $service->cancel(
+                'opus.central',
+                new AgentRuntimeContext(correlationId: 'cancel-b')
+            );
+        };
+
+        $cancelled = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-a')
+        );
+
+        $this->assertTrue($cancelled->ok());
+        $this->assertInstanceOf(AgentRuntimeResult::class, $concurrent);
+        $this->assertSame(AgentRuntimeResult::DENIED, $concurrent->status());
+        $this->assertSame(['agent_cancellation_in_progress'], $concurrent->diagnostics());
+        $this->assertSame(1, $factory->runtimes[0]->calls['cancel']);
+    }
+
     public function testRuntimeCreationFailureDoesNotClearCancellationEvidence(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -400,6 +429,56 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(AgentRuntimeResult::FAILED, $result->status());
         $this->assertSame(['runtime_availability_failed'], $result->diagnostics());
         $this->assertSame(AgentCompositionService::FAILED, $result->state());
+    }
+
+    public function testExpiredLifecycleClaimsCanBeRecovered(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $states->put('opus.central', null, [
+            'state' => AgentCompositionService::REGISTERED,
+            'transition_id' => 'abandoned-transition',
+            'transition_expires_at' => 0,
+        ]);
+
+        $result = $service->start(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'recovery-a')
+        );
+
+        $this->assertTrue($result->ok());
+        $this->assertSame(AgentCompositionService::RUNNING, $result->state());
+        $this->assertSame(1, $factory->runtimes[0]->calls['start']);
+    }
+
+    public function testStorageCompareAndPutUsesTheSharedLockBoundary(): void
+    {
+        $lock = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opus-agent-state-' . bin2hex(random_bytes(5));
+        $storage = new Storage();
+        $first = new AgentRuntimeStateStore($storage, $lock);
+        $second = new AgentRuntimeStateStore($storage, $lock);
+        $first->put('opus.central', null, ['state' => AgentCompositionService::REGISTERED]);
+
+        $claimed = $first->compareAndPut(
+            'opus.central',
+            null,
+            ['state' => AgentCompositionService::REGISTERED, 'transition_id' => null],
+            ['transition_id' => 'claim-a']
+        );
+        $duplicate = $second->compareAndPut(
+            'opus.central',
+            null,
+            ['state' => AgentCompositionService::REGISTERED, 'transition_id' => null],
+            ['transition_id' => 'claim-b']
+        );
+
+        $this->assertTrue($claimed);
+        $this->assertFalse($duplicate);
+        $this->assertSame('claim-a', $second->get('opus.central', null)['transition_id']);
+        @unlink($lock);
     }
 
     public function testApplicationScopeDoesNotCollideWithTenantNamedApplication(): void
