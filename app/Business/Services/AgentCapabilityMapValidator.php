@@ -49,6 +49,7 @@ final class AgentCapabilityMapValidator
     {
         $mapping = Arr::make($mapping);
         $errors = Arr::make([]);
+        $normalizedAgents = Arr::make([]);
         $version = $mapping->get('version');
         $owner = $mapping->get('owner');
         $agents = $mapping->get('agents');
@@ -74,7 +75,12 @@ final class AgentCapabilityMapValidator
             $errors->push($this->problem('agent_map_agents', 'Each map must declare exactly one agent boundary.'));
         }
 
-        Arr::make((array) $agents)->each(function ($descriptor, $id) use ($errors, $knownTools, $owner): void {
+        Arr::make((array) $agents)->each(function ($descriptor, $id) use (
+            $errors,
+            $knownTools,
+            $normalizedAgents,
+            $owner
+        ): void {
             if (!Str::is($id) || !Str::make($id)->matches('/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/')) {
                 $errors->push($this->problem('agent_identifier', 'Agent identifiers must use lowercase dotted or dashed names.'));
                 return;
@@ -84,14 +90,19 @@ final class AgentCapabilityMapValidator
                 return;
             }
 
-            $this->validateDescriptor((string) $id, (string) $owner, $descriptor, $knownTools, $errors);
+            $normalizedAgents->set(
+                (string) $id,
+                $this->validateDescriptor((string) $id, (string) $owner, $descriptor, $knownTools, $errors)
+            );
         });
 
         $valid = $errors->isEmpty();
 
         return [
             'valid' => $valid,
-            'map' => $valid ? new AgentCapabilityMap((int) $version, (string) $owner, (array) $agents) : null,
+            'map' => $valid
+                ? new AgentCapabilityMap((int) $version, (string) $owner, $normalizedAgents->toArray())
+                : null,
             'errors' => $errors->toArray(),
         ];
     }
@@ -180,7 +191,13 @@ final class AgentCapabilityMapValidator
         ];
     }
 
-    private function validateDescriptor(string $id, string $owner, array $descriptor, Arr $knownTools, Arr $errors): void
+    private function validateDescriptor(
+        string $id,
+        string $owner,
+        array $descriptor,
+        Arr $knownTools,
+        Arr $errors
+    ): array
     {
         $descriptor = Arr::make($descriptor);
         $mode = $descriptor->get('mode');
@@ -250,6 +267,15 @@ final class AgentCapabilityMapValidator
                 "Package {$owner} must define the exact addon.{$owner} agent boundary."
             ));
         }
+
+        $descriptor->set('tools', $tools->toArray());
+        $descriptor->set('permissions', $permissions->toArray());
+        $descriptor->set('imports', $imports->toArray());
+        $descriptor->set('exports', $exports->toArray());
+        $lifecycle->set('states', $states->toArray());
+        $descriptor->set('lifecycle', $lifecycle->toArray());
+
+        return $descriptor->toArray();
     }
 
     private function rejectUnknownKeys(Arr $value, array $allowed, string $code, Arr $errors): void

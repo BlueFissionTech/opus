@@ -356,7 +356,10 @@ final class AddOnContractValidator extends Service
             if ($method === 'add') {
                 $name = $this->literalString((array) Arr::make($arguments)->get(2));
                 $path = $this->literalString((array) Arr::make($arguments)->get(0));
-                $tool = $this->normalizeTool(Str::is($name) ? (string) $name : (string) $path);
+                $tool = Str::is($name) ? $this->normalizeTool((string) $name) : null;
+                if ($tool === null && Str::is($path)) {
+                    $tool = $this->normalizeTool((string) $path);
+                }
                 if ($tool !== null) {
                     $tools->push($tool);
                 }

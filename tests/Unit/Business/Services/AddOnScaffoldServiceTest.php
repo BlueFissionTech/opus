@@ -432,6 +432,7 @@ PHP
 use BlueFission\Services\Mapping;
 
 Mapping::add('/sample/run', ['SampleController', 'run'], 'sample.run', 'post');
+Mapping::add('/sample/status', ['SampleController', 'status'], 'health', 'get');
 Mapping::crud('/admin', 'users', 'UserController', 'id');
 PHP
         );
@@ -439,7 +440,7 @@ PHP
         file_put_contents(
             $agentPath,
             Str::make((string) FileSystem::fileContents($agentPath))
-                ->replace("'tools' => [],", "'tools' => ['sample.run', 'admin_users.list'],")
+                ->replace("'tools' => [],", "'tools' => ['sample.run', 'sample.status', 'admin_users.list'],")
                 ->val()
         );
 
