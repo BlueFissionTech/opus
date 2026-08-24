@@ -77,7 +77,10 @@ final class RuntimePathResolver
             return self::normalize(dirname($this->packageInstallRoot));
         }
 
-        return self::normalize(dirname(dirname($this->autoloadPath())));
+        $autoloadPath = $this->autoloadPath();
+        $configuredHost = self::configuredVendorHost($this->packageInstallRoot, $autoloadPath);
+
+        return $configuredHost ?? self::normalize(dirname(dirname($autoloadPath)));
     }
 
     public function autoloadPath(): string
@@ -257,6 +260,20 @@ final class RuntimePathResolver
             : self::join($hostRoot, $vendorDirectory);
 
         return self::join($vendorRoot, 'autoload.php');
+    }
+
+    private static function configuredVendorHost(string $packageRoot, string $autoloadPath): ?string
+    {
+        $candidate = $packageRoot;
+        while ($candidate !== dirname($candidate)) {
+            $configuredAutoloader = self::configuredVendorAutoloader($candidate);
+            if ($configuredAutoloader !== null && self::pathsMatch($configuredAutoloader, $autoloadPath)) {
+                return self::normalize($candidate);
+            }
+            $candidate = dirname($candidate);
+        }
+
+        return null;
     }
 
     private static function isAbsolute(string $path): bool
