@@ -193,6 +193,8 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertTrue($result['changed']);
         $this->assertSame('blocked', $result['readiness']['state']);
         $this->assertFalse($result['results'][1]['ok']);
+        $this->assertSame('migrations', $result['stage']);
+        $this->assertSame('Migration failed.', $result['error']);
         $this->assertSame('retry_lifecycle', $result['nextAction']);
     }
 

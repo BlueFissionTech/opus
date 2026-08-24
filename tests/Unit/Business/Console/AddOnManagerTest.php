@@ -34,7 +34,7 @@ final class AddOnManagerTest extends TestCase
 
         $this->assertSame('', $output);
         $this->assertFalse($result['ok']);
-        $this->assertSame('sample', $result['addon']);
+        $this->assertSame('Sample', $result['addon']);
         $this->assertSame('addon_migration_failed', $result['readiness']['reasons'][0]['code']);
     }
 

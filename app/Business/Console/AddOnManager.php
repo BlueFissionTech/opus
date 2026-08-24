@@ -86,7 +86,7 @@ class AddOnManager extends Service
             return null;
         }
 
-        return Str::make((string) $name)->trim()->lower()->val();
+        return Str::make((string) $name)->trim()->val();
     }
 
     private function installedAddOn($behavior, string $action): array

@@ -194,6 +194,9 @@ final class AddOnLifecycleReadinessService extends Service
         $outcome->set('failed', $failed);
         $outcome->set('results', $normalized->toArray());
         if ($failed > 0) {
+            $first = Arr::make((array) $reasons->get(0));
+            $outcome->set('stage', $first->get('stage') ?: 'lifecycle');
+            $outcome->set('error', $first->get('message') ?: 'Add-on lifecycle action failed.');
             $outcome->set('nextAction', 'retry_lifecycle');
         } else {
             $outcome->set('stage', 'complete');
