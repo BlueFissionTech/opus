@@ -173,8 +173,13 @@ final class AddOnLifecycleReadinessService extends Service
             return true;
         }
 
-        $stage = (string) ($outcome->get('stage') ?: 'lifecycle');
+        $stage = (string) $outcome->get('stage');
         $message = (string) $outcome->get('error');
+        if (Str::isEmpty($stage) && Str::isEmpty($message)) {
+            return false;
+        }
+
+        $stage = $stage ?: 'lifecycle';
         $matched = $this->hasMatchingReason($reasons, $stage, $message);
 
         return !$matched
