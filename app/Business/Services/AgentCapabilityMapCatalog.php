@@ -40,11 +40,15 @@ final class AgentCapabilityMapCatalog
 
     private function path(string $owner): string
     {
-        return Str::make($this->addOnRoot)
-            ->trim('/\\')
-            ->append(DIRECTORY_SEPARATOR)
+        $root = Str::make($this->addOnRoot);
+        $separator = $root->contains('\\') ? '\\' : '/';
+        if (!$root->endsWith('/') && !$root->endsWith('\\')) {
+            $root->append($separator);
+        }
+
+        return $root
             ->append($owner)
-            ->append(DIRECTORY_SEPARATOR . 'mapping' . DIRECTORY_SEPARATOR . 'agents.php')
+            ->append($separator . 'mapping' . $separator . 'agents.php')
             ->val();
     }
 }
