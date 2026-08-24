@@ -298,6 +298,21 @@ PHP
         $this->assertContains('agent_addon_identifier', $codes);
     }
 
+    public function testValidatorRetainsCanonicalListValuesInTheLoadedMap(): void
+    {
+        $mapping = $this->mapping('sample', 'addon.sample', 'specialist', [' Sample.Run ']);
+        $mapping['agents']['addon.sample']['permissions'] = [' Sample.Manage '];
+        $mapping['agents']['addon.sample']['lifecycle']['states'] = [' Active '];
+
+        $result = (new AgentCapabilityMapValidator())->validate($mapping, ['sample.run'], 'sample');
+        $agent = $result['map']?->agent('addon.sample');
+
+        $this->assertTrue($result['valid']);
+        $this->assertSame(['sample.run'], $agent?->tools());
+        $this->assertSame(['sample.manage'], $agent?->permissions());
+        $this->assertSame(['active'], $agent?->lifecycleStates());
+    }
+
     public function testCentralImportsRequireAnActiveCentralModeBoundaryAndReciprocalGrant(): void
     {
         $root = $this->map($this->mapping(
