@@ -1,6 +1,8 @@
 <?php
 namespace App\Registration;
 // use BlueFission\BlueCore\Business\Managers\CommandManager;
+use App\Business\Middleware\ProcessesCommandMiddleware;
+use App\Business\Services\AgentCommandContextProvider;
 use BlueFission\BlueCore\Business\Managers\NavMenuManager;
 use BlueFission\BlueCore\Business\Managers\DatasourceManager;
 use BlueFission\BlueCore\Business\Managers\AddOnManager;
@@ -15,6 +17,7 @@ use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\Theme;
 use BlueFission\BlueCore\IExtension;
+use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\Wise\Cmd\CommandProcessor;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 
@@ -129,6 +132,11 @@ class AppRegistration implements IExtension {
 			),
 			'continuations' => new AgentContinuationScopeStore($commandStorage),
 		], AgentScopedCommandProcessor::class);
+		$this->bindArgs([
+			'contextProvider' => new AgentCommandContextProvider(
+				\App::makeInstance(IActivatedAddOnsQuery::class)
+			),
+		], ProcessesCommandMiddleware::class);
 	}
 
 	public function addons()

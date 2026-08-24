@@ -8,6 +8,7 @@ use App\Business\Services\AgentCapabilityMapCatalog;
 use App\Business\Services\AgentCapabilityMapLoader;
 use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
+use App\Business\Services\AgentCommandContextProvider;
 use App\Business\Services\AgentScopedCommandProcessor;
 use App\Business\Services\DeclarativeArrayParser;
 use App\Business\Middleware\ProcessesCommandMiddleware;
@@ -15,6 +16,7 @@ use App\Domain\Agents\AgentCapabilityMap;
 use App\Domain\Agents\IAgentContinuationScopeStore;
 use BlueFission\Arr;
 use BlueFission\BlueCore\Business\Managers\CommandManager;
+use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
@@ -311,6 +313,36 @@ PHP
         $this->assertSame(['sample.run'], $agent?->tools());
         $this->assertSame(['sample.manage'], $agent?->permissions());
         $this->assertSame(['active'], $agent?->lifecycleStates());
+    }
+
+    public function testValidatorRejectsAssociativeListFields(): void
+    {
+        $mapping = $this->mapping('sample', 'addon.sample', 'specialist', ['sample.run']);
+        $mapping['agents']['addon.sample']['tools'] = ['alias' => 'sample.run'];
+
+        $result = (new AgentCapabilityMapValidator())->validate($mapping, ['sample.run'], 'sample');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => $error['code'])
+            ->toArray();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('agent_tools', $codes);
+    }
+
+    public function testResolverFailsClosedForInvalidCollectiveRelationships(): void
+    {
+        $root = $this->map($this->mapping(
+            'application',
+            'opus.central',
+            'central',
+            ['command.list'],
+            ['addon.missing' => ['missing.run']]
+        ), ['command.list']);
+
+        $resolved = (new AgentCapabilityMapResolver($root))->resolve('opus.central');
+
+        $this->assertSame(['command.list'], $resolved->tools());
+        $this->assertSame('agent_relationship_invalid', Arr::make($resolved->decisions())->pop()['reason']);
     }
 
     public function testCentralImportsRequireAnActiveCentralModeBoundaryAndReciprocalGrant(): void
@@ -732,6 +764,27 @@ PHP
         $this->assertSame('continuation-a', $processor->request?->continuationToken());
         $this->assertTrue($processor->request?->approved());
         $this->assertSame($context, $processor->request?->context());
+    }
+
+    public function testProductionContextIncludesTrustedActivatedAddOnState(): void
+    {
+        $query = new class implements IActivatedAddOnsQuery {
+            public function fetch(): array
+            {
+                return [
+                    ['name' => 'sample', 'is_active' => 1],
+                    ['name' => 'reports', 'is_active' => 1],
+                ];
+            }
+        };
+
+        $context = (new AgentCommandContextProvider($query))->forActor('operator-a');
+
+        $this->assertSame('opus.central', $context['agent_id']);
+        $this->assertSame(['sample', 'reports'], $context['active_addons']);
+        $this->assertSame(['sample' => 'active', 'reports' => 'active'], $context['addon_states']);
+        $this->assertSame([], $context['capabilities']);
+        $this->assertSame('operator-a', $context['actor']['id']);
     }
 
     private function continuationStore(): IAgentContinuationScopeStore

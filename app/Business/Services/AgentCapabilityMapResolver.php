@@ -12,13 +12,16 @@ use BlueFission\Arr;
 final class AgentCapabilityMapResolver
 {
     private Arr $maps;
+    private AgentCapabilityMapValidator $validator;
 
     public function __construct(
         private AgentCapabilityMap $application,
         array $addOns = [],
-        private ?AgentCapabilityMapCatalog $catalog = null
+        private ?AgentCapabilityMapCatalog $catalog = null,
+        ?AgentCapabilityMapValidator $validator = null
     ) {
         $this->maps = Arr::make([]);
+        $this->validator = $validator ?? new AgentCapabilityMapValidator();
         Arr::make($addOns)->each(function ($map, $owner): void {
             if ($map instanceof AgentCapabilityMap && $map->owner() === $owner) {
                 $this->maps->set((string) $owner, $map);
@@ -39,6 +42,11 @@ final class AgentCapabilityMapResolver
         $decisions = Arr::make([]);
         $versions = Arr::make([]);
         $this->loadActiveMaps($activeAddOns);
+        $relationships = Arr::make($this->validator->validateRelationships(
+            $this->application,
+            $this->maps->toArray()
+        ));
+        $relationshipsValid = (bool) $relationships->get('valid');
         $source = $this->find($agentId);
 
         if ($source === null) {
@@ -110,6 +118,10 @@ final class AgentCapabilityMapResolver
                 'agent' => $targetId,
             ]);
         });
+
+        if (!$relationshipsValid) {
+            $decisions->push(['decision' => 'deny', 'reason' => 'agent_relationship_invalid']);
+        }
 
         return new ResolvedAgentToolMap(
             $agentId,

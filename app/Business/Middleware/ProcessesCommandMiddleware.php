@@ -2,6 +2,7 @@
 // ProcessesCommandMiddleware.php
 namespace App\Business\Middleware;
 
+use App\Business\Services\AgentCommandContextProvider;
 use BotMan\BotMan\BotMan;
 use BlueFission\BlueCore\Business\Managers\CommandManager;
 use BlueFission\Wise\Cmd\ICommandProcessor;
@@ -19,13 +20,19 @@ class ProcessesCommandMiddleware implements Received, Sending
 {
     protected $commandManager;
     protected $commandProcessor;
+    private AgentCommandContextProvider $contextProvider;
     // protected $_core;
 
-    public function __construct(CommandManager $commandManager, ICommandProcessor $commandProcessor)
+    public function __construct(
+        CommandManager $commandManager,
+        ICommandProcessor $commandProcessor,
+        ?AgentCommandContextProvider $contextProvider = null
+    )
     // public function __construct()
     {
         $this->commandManager = $commandManager;
         $this->commandProcessor = $commandProcessor;
+        $this->contextProvider = $contextProvider ?? new AgentCommandContextProvider();
     }
 
     public function received(IncomingMessage $message, $next, BotMan $bot)
@@ -58,7 +65,7 @@ class ProcessesCommandMiddleware implements Received, Sending
         $actorId = is_object($user) && method_exists($user, 'getId')
             ? Str::make((string) $user->getId())->trim()->val()
             : '';
-        $context = $this->actorContext($actorId);
+        $context = $this->contextProvider->forActor($actorId);
         $command = $this->commandProcessor->process(new CommandRequest($walkerResults, context: $context));
         
         if ($command->confirmationRequired()) {
@@ -84,13 +91,6 @@ class ProcessesCommandMiddleware implements Received, Sending
     protected function resumeCommand(string $token, bool $approved, array $context): CommandResult
     {
         return $this->commandProcessor->process(CommandRequest::resume($token, $approved, $context));
-    }
-
-    private function actorContext(string $actorId): array
-    {
-        return Str::isNotEmpty($actorId)
-            ? ['actor' => ['id' => $actorId]]
-            : [];
     }
 
     public function matching(IncomingMessage $message, $pattern, $regexMatched)
