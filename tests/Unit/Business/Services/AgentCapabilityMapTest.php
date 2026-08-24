@@ -10,9 +10,11 @@ use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentScopedCommandProcessor;
 use App\Business\Services\DeclarativeArrayParser;
+use App\Business\Middleware\ProcessesCommandMiddleware;
 use App\Domain\Agents\AgentCapabilityMap;
 use App\Domain\Agents\IAgentContinuationScopeStore;
 use BlueFission\Arr;
+use BlueFission\BlueCore\Business\Managers\CommandManager;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
@@ -152,6 +154,15 @@ return [
 ];
 PHP
         );
+        file_put_contents($mapping . DIRECTORY_SEPARATOR . 'console.php', <<<'PHP'
+<?php
+return [
+    'resources' => [
+        'sample' => ['list'],
+    ],
+];
+PHP
+        );
 
         try {
             $application = $this->map(
@@ -175,10 +186,52 @@ PHP
             $this->assertSame(['sample_tools' => 1], $active->versions());
         } finally {
             unlink($mapping . DIRECTORY_SEPARATOR . 'agents.php');
+            unlink($mapping . DIRECTORY_SEPARATOR . 'console.php');
             rmdir($mapping);
             rmdir(dirname($mapping));
             rmdir($root);
         }
+    }
+
+    public function testRuntimeLoaderRejectsAddOnToolsMissingFromTheConsoleMapping(): void
+    {
+        $mapping = $this->workspace . DIRECTORY_SEPARATOR . 'mapping';
+        mkdir($mapping, 0777, true);
+        file_put_contents($mapping . DIRECTORY_SEPARATOR . 'console.php', <<<'PHP'
+<?php
+return ['resources' => ['sample' => ['list']]];
+PHP
+        );
+        file_put_contents($mapping . DIRECTORY_SEPARATOR . 'agents.php', <<<'PHP'
+<?php
+return [
+    'version' => 1,
+    'owner' => 'sample',
+    'agents' => [
+        'addon.sample' => [
+            'mode' => 'specialist',
+            'description' => 'Sample specialist.',
+            'profile' => 'sample.profile',
+            'tools' => ['command.list'],
+            'imports' => [],
+            'exports' => [],
+            'permissions' => [],
+            'lifecycle' => ['states' => ['active']],
+        ],
+    ],
+];
+PHP
+        );
+
+        $map = (new AgentCapabilityMapLoader())->load(
+            $mapping . DIRECTORY_SEPARATOR . 'agents.php',
+            'sample'
+        );
+
+        $this->assertSame([], $map->agents());
+        unlink($mapping . DIRECTORY_SEPARATOR . 'agents.php');
+        unlink($mapping . DIRECTORY_SEPARATOR . 'console.php');
+        rmdir($mapping);
     }
 
     public function testCatalogPreservesAnAbsoluteUnixRoot(): void
@@ -619,6 +672,44 @@ PHP
         $this->assertSame(CommandResult::COMPLETED, $completed->status());
         $this->assertSame(1, $processor->resumes);
         $this->assertSame('opus.central', $completed->metadata()['agent_id']);
+    }
+
+    public function testBotMiddlewareResumesWiseContinuationWithTheAuthenticatedContext(): void
+    {
+        if (!interface_exists(ICommandProcessor::class)
+            || !class_exists(CommandRequest::class)
+            || !class_exists(CommandResult::class)
+            || !interface_exists(\BotMan\BotMan\Interfaces\Middleware\Received::class)
+        ) {
+            $this->markTestSkipped('The optional chat transport or typed Wise processor is unavailable.');
+        }
+
+        $processor = new class implements ICommandProcessor {
+            public ?CommandRequest $request = null;
+
+            public function process(CommandRequest|Command|array|string $request): CommandResult
+            {
+                $this->request = $request instanceof CommandRequest ? $request : new CommandRequest($request);
+
+                return CommandResult::completed(['resumed' => true]);
+            }
+        };
+        $middleware = new class($this->createMock(CommandManager::class), $processor)
+            extends ProcessesCommandMiddleware {
+                public function resume(string $token, bool $approved, array $context): CommandResult
+                {
+                    return $this->resumeCommand($token, $approved, $context);
+                }
+            };
+        $context = ['actor' => ['id' => 'operator-a']];
+
+        $result = $middleware->resume('continuation-a', true, $context);
+
+        $this->assertSame(CommandResult::COMPLETED, $result->status());
+        $this->assertTrue($processor->request?->isContinuation());
+        $this->assertSame('continuation-a', $processor->request?->continuationToken());
+        $this->assertTrue($processor->request?->approved());
+        $this->assertSame($context, $processor->request?->context());
     }
 
     private function continuationStore(): IAgentContinuationScopeStore

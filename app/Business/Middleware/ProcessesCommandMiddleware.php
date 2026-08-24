@@ -3,16 +3,17 @@
 namespace App\Business\Middleware;
 
 use BotMan\BotMan\BotMan;
-use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Business\Managers\CommandManager;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 use BlueFission\Wise\Cmd\CommandRequest;
+use BlueFission\Wise\Cmd\CommandResult;
 use BlueFission\Str;
 use BotMan\BotMan\Interfaces\Middleware\Received;
 use BotMan\BotMan\Interfaces\Middleware\Sending;
 use BotMan\BotMan\Messages\Incoming\IncomingMessage;
 use BotMan\BotMan\Messages\Outgoing\OutgoingMessage;
 use BotMan\BotMan\Messages\Outgoing\Actions\Button;
+use BotMan\BotMan\Messages\Outgoing\Question;
 
 class ProcessesCommandMiddleware implements Received, Sending
 {
@@ -57,7 +58,7 @@ class ProcessesCommandMiddleware implements Received, Sending
         $actorId = is_object($user) && method_exists($user, 'getId')
             ? Str::make((string) $user->getId())->trim()->val()
             : '';
-        $context = $actorId === '' ? [] : ['actor' => ['id' => $actorId]];
+        $context = $this->actorContext($actorId);
         $command = $this->commandProcessor->process(new CommandRequest($walkerResults, context: $context));
         
         if ($command->confirmationRequired()) {
@@ -67,20 +68,29 @@ class ProcessesCommandMiddleware implements Received, Sending
                     Button::create('No')->value('no'),
                 ]);
 
-            $bot->ask($question, function (IncomingMessage $response) use ($bot, $command) {
-                if ($response->getValue() === 'yes') {
-                    // // Execute the command
-                    // $this->commandProcessor->executeCommand($command);
-                    // // Forward the conversation to a representative
-                    // $contactManager = new ContactManager();
-                    // $contactManager->forwardConversationToRepresentative($bot, $response);
-                    $this->command($command);
-                }
-            });
-        } else {
-            // Automatically execute the command
-            $this->command($command);
+            $token = $command->continuationToken();
+            if (Str::isNotEmpty((string) $token)) {
+                $bot->ask($question, function (IncomingMessage $response) use ($token, $context): void {
+                    $this->resumeCommand(
+                        (string) $token,
+                        $response->getValue() === 'yes',
+                        $context
+                    );
+                });
+            }
         }
+    }
+
+    protected function resumeCommand(string $token, bool $approved, array $context): CommandResult
+    {
+        return $this->commandProcessor->process(CommandRequest::resume($token, $approved, $context));
+    }
+
+    private function actorContext(string $actorId): array
+    {
+        return Str::isNotEmpty($actorId)
+            ? ['actor' => ['id' => $actorId]]
+            : [];
     }
 
     public function matching(IncomingMessage $message, $pattern, $regexMatched)
