@@ -109,14 +109,15 @@ final class DeclarativeArrayParser
                 $item = $candidate;
             }
 
-            $identity = $this->arrayKeyIdentity($key);
+            $normalizedKey = $this->normalizedArrayKey($key);
+            $identity = $this->arrayKeyIdentity($normalizedKey);
             if ($keys->has($identity, true)) {
                 $duplicates->push($path . '.' . (string) $key);
             }
             $keys->push($identity);
-            $value[$key] = $item;
-            if (is_int($key) && $key >= $nextIndex) {
-                $nextIndex = $key + 1;
+            $value[$normalizedKey] = $item;
+            if (is_int($normalizedKey) && $normalizedKey >= $nextIndex) {
+                $nextIndex = $normalizedKey + 1;
             }
 
             if ($tokens->get(0) === ',') {
@@ -137,11 +138,16 @@ final class DeclarativeArrayParser
 
     private function arrayKeyIdentity(int|string $key): string
     {
+        return (is_int($key) ? 'i:' : 's:') . (string) $key;
+    }
+
+    private function normalizedArrayKey(int|string $key): int|string
+    {
         $normalized = [];
         $normalized[$key] = true;
         $normalizedKey = Arr::make($normalized)->keys()->get(0);
 
-        return (is_int($normalizedKey) ? 'i:' : 's:') . (string) $normalizedKey;
+        return is_int($normalizedKey) ? $normalizedKey : (string) $normalizedKey;
     }
 
     private function consumeStrictTypes(Arr $tokens): void

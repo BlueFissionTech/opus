@@ -52,4 +52,17 @@ final class AgentCommandContextProvider
 
         return Arr::is($filtered) ? (array) $filtered : $context->toArray();
     }
+
+    public function forContinuation(array $priorContext): array
+    {
+        $context = Arr::make($priorContext);
+        $actorId = (string) Arr::getPath((array) $context->get('actor'), 'id', '');
+        $refreshed = Arr::make($this->forActor($actorId));
+        $tenantId = $context->get('tenant_id');
+        if (Str::isNotEmpty((string) $tenantId)) {
+            $refreshed->set('tenant_id', $tenantId);
+        }
+
+        return $refreshed->toArray();
+    }
 }

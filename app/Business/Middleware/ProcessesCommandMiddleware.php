@@ -91,6 +91,8 @@ class ProcessesCommandMiddleware implements Received, Sending
 
     protected function resumeCommand(string $token, bool $approved, array $context): CommandResult
     {
+        $context = $this->contextProvider->forContinuation($context);
+
         return $this->commandProcessor->process(CommandRequest::resume($token, $approved, $context));
     }
 
