@@ -125,7 +125,7 @@ PHP
 
         $loader = new AgentCapabilityMapLoader();
 
-        $this->assertSame(['command.list'], $loader->load($valid, 'application')->agent('opus.central')?->tools());
+        $this->assertSame(['command.list'], $loader->loadApplication($valid)->agent('opus.central')?->tools());
         $this->assertSame([], $loader->load($invalid, 'application')->agents());
     }
 
@@ -243,6 +243,13 @@ PHP
             '/srv/opus/addons/sample_tools/mapping/agents.php',
             $method->invoke($catalog, 'sample_tools')
         );
+    }
+
+    public function testCatalogCannotPromoteAnAddOnNamedApplicationToTheRootTrustBoundary(): void
+    {
+        $catalog = new AgentCapabilityMapCatalog($this->workspace);
+
+        $this->assertSame([], $catalog->load(['application']));
     }
 
     public function testValidatorRejectsUnknownToolsInvalidModesAndCentralLeakage(): void

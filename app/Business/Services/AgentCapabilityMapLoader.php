@@ -24,22 +24,43 @@ final class AgentCapabilityMapLoader
 
     public function load(string $path, string $owner): AgentCapabilityMap
     {
+        if ($owner === 'application') {
+            return $this->empty($owner);
+        }
+
+        return $this->loadValidated(
+            $path,
+            $owner,
+            $this->contractValidator->knownToolsFromConsoleFile(
+                dirname($path) . DIRECTORY_SEPARATOR . 'console.php'
+            )
+        );
+    }
+
+    public function loadApplication(string $path): AgentCapabilityMap
+    {
+        $parsed = Arr::make($this->parser->parseFile($path));
+        if (!$parsed->get('valid')) {
+            return $this->empty('application');
+        }
+        $mapping = Arr::make((array) $parsed->get('value'));
+
+        return $this->validatedMap($mapping, 'application', $this->declaredTools($mapping));
+    }
+
+    private function loadValidated(string $path, string $owner, array $knownTools): AgentCapabilityMap
+    {
         $parsed = Arr::make($this->parser->parseFile($path));
         if (!$parsed->get('valid')) {
             return $this->empty($owner);
         }
 
-        $mapping = Arr::make((array) $parsed->get('value'));
-        $knownTools = $owner === 'application'
-            ? $this->declaredTools($mapping)
-            : $this->contractValidator->knownToolsFromConsoleFile(
-                dirname($path) . DIRECTORY_SEPARATOR . 'console.php'
-            );
-        $validated = Arr::make($this->validator->validate(
-            $mapping->toArray(),
-            $knownTools,
-            $owner
-        ));
+        return $this->validatedMap(Arr::make((array) $parsed->get('value')), $owner, $knownTools);
+    }
+
+    private function validatedMap(Arr $mapping, string $owner, array $knownTools): AgentCapabilityMap
+    {
+        $validated = Arr::make($this->validator->validate($mapping->toArray(), $knownTools, $owner));
         $map = $validated->get('map');
 
         return $validated->get('valid') && $map instanceof AgentCapabilityMap
