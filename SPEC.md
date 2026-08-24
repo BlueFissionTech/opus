@@ -91,6 +91,21 @@ Acceptance criteria:
 - Central orchestration can inspect add-on readiness without taking ownership
   of add-on internals.
 - Agent outputs are represented as stable command or service results.
+- Agent descriptors register without constructing provider clients or runtime
+  sessions.
+- Runtime factories remain provider-neutral and may resolve hosted,
+  self-hosted, or fallback providers from the descriptor's opaque profile
+  reference.
+- Central and specialist runtime instances are isolated by agent and tenant;
+  specialist startup requires an explicit tenant, active add-on state, and
+  current capability grant.
+- Start, suspend, resume, stop, and cancel transitions are idempotent and
+  persist structured state independently from process-local runtime objects.
+- Task execution revalidates lifecycle and permission policy and returns
+  provider-neutral output, diagnostics, trace, and correlation metadata.
+- Opus selects permitted participants and context. Automata owns hierarchical
+  and peer orchestration execution; Opus does not reimplement orchestration
+  patterns.
 
 ### Templates And Generation
 

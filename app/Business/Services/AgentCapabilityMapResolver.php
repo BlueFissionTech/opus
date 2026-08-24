@@ -26,6 +26,16 @@ final class AgentCapabilityMapResolver
         });
     }
 
+    public function register(AgentCapabilityMap $map): void
+    {
+        if ($map->owner() === 'application') {
+            $this->application = $map;
+            return;
+        }
+
+        $this->maps->set($map->owner(), $map);
+    }
+
     public function resolve(
         string $agentId,
         array $activeAddOns = [],
@@ -146,7 +156,7 @@ final class AgentCapabilityMapResolver
         Arr::make($this->catalog->load($activeAddOns->toArray()))
             ->each(function ($map, $owner): void {
                 if ($map instanceof AgentCapabilityMap && $map->owner() === $owner) {
-                    $this->maps->set((string) $owner, $map);
+                    $this->register($map);
                 }
             });
     }
