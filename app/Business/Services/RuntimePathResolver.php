@@ -107,17 +107,18 @@ final class RuntimePathResolver
             $candidates[] = self::join(dirname($this->packageInstallRoot), 'vendor/autoload.php');
         }
 
-        $ancestor = dirname($this->packageInstallRoot);
-        while ($ancestor !== dirname($ancestor)) {
+        foreach (self::ancestorDirectories($this->packageInstallRoot) as $ancestor) {
             $configuredAutoloader = self::configuredVendorAutoloader($ancestor);
-            if ($configuredAutoloader !== null) {
+            if (
+                $configuredAutoloader !== null
+                && self::pathStartsWith($this->packageInstallRoot, dirname($configuredAutoloader))
+            ) {
                 $candidates[] = $configuredAutoloader;
             }
             if (basename($ancestor) === 'vendor') {
                 $candidates[] = self::join($ancestor, 'autoload.php');
                 break;
             }
-            $ancestor = dirname($ancestor);
         }
         $candidates[] = self::join($this->packageRoot, 'vendor/autoload.php');
 
@@ -295,6 +296,24 @@ final class RuntimePathResolver
         }
 
         return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function ancestorDirectories(string $path): array
+    {
+        $ancestors = [];
+        $ancestor = dirname(self::normalizeLexical($path));
+
+        while (true) {
+            $ancestors[] = $ancestor;
+            $parent = dirname($ancestor);
+            if ($parent === $ancestor) {
+                return $ancestors;
+            }
+            $ancestor = $parent;
+        }
     }
 
     private static function isAbsolute(string $path): bool

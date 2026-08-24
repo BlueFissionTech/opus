@@ -7,6 +7,7 @@ namespace Tests\Unit\Business\Services;
 use App\Business\Services\RuntimePathResolver;
 use BlueFission\Data\FileSystem;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
@@ -203,6 +204,32 @@ final class RuntimePathResolverTest extends TestCase
 
         $this->assertSame(realpath($autoload), $resolver->autoloadPath());
         $this->assertSame(realpath($host), $resolver->hostRoot());
+    }
+
+    public function testConfiguredVendorDirectoryDoesNotCaptureAnUnrelatedNestedCheckout(): void
+    {
+        $host = $this->workspace . '/parent-composer-host';
+        $package = $this->package($host . '/tools/opus');
+        file_put_contents($host . '/composer.json', '{"config":{"vendor-dir":"deps"}}');
+        $this->autoload($host . '/deps/autoload.php');
+        $this->autoload($package . '/vendor/autoload.php');
+
+        $resolver = RuntimePathResolver::discover($package);
+
+        $this->assertSame(realpath($package . '/vendor/autoload.php'), $resolver->autoloadPath());
+        $this->assertSame(realpath($package), $resolver->hostRoot());
+    }
+
+    public function testAncestorTraversalIncludesTheFilesystemRoot(): void
+    {
+        $root = DIRECTORY_SEPARATOR === '\\' ? 'C:\\' : DIRECTORY_SEPARATOR;
+        $package = $root . 'deps' . DIRECTORY_SEPARATOR . 'bluefission' . DIRECTORY_SEPARATOR . 'opus';
+        $method = new ReflectionMethod(RuntimePathResolver::class, 'ancestorDirectories');
+
+        $ancestors = $method->invoke(null, $package);
+
+        $this->assertIsArray($ancestors);
+        $this->assertSame($root, $ancestors[array_key_last($ancestors)]);
     }
 
     public function testActiveNestedAutoloaderResolvesAHostOutsideTheCanonicalPackageAncestors(): void
