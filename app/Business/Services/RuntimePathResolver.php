@@ -321,6 +321,12 @@ final class RuntimePathResolver
                 if ($configuredAutoloader !== null && self::pathsMatch($configuredAutoloader, $autoloadPath)) {
                     return self::normalize($candidate);
                 }
+                if (
+                    basename($candidate) === 'vendor'
+                    && self::pathsMatch(self::join($candidate, 'autoload.php'), $autoloadPath)
+                ) {
+                    return self::normalize(dirname($candidate));
+                }
                 $parent = dirname($candidate);
                 if ($parent === $candidate) {
                     break;

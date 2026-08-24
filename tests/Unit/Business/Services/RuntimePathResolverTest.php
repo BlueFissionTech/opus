@@ -246,6 +246,30 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $proxied->hostRoot());
     }
 
+    public function testSymlinkedDefaultVendorRetainsLexicalHostOwnership(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {
+            $this->markTestSkipped('Directory symlinks are unavailable in this environment.');
+        }
+
+        $sharedVendor = $this->workspace . '/shared-default/vendor';
+        $package = $this->package($sharedVendor . '/bluefission/opus');
+        $this->autoload($sharedVendor . '/autoload.php');
+        $host = $this->workspace . '/default-vendor-host';
+        mkdir($host, 0777, true);
+        if (!@symlink($sharedVendor, $host . '/vendor')) {
+            $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
+        }
+        $lexicalPackage = $host . '/vendor/bluefission/opus';
+        $lexicalAutoloader = $host . '/vendor/autoload.php';
+
+        $direct = RuntimePathResolver::discover($lexicalPackage);
+        $proxied = RuntimePathResolver::discover($package, activeAutoloader: $lexicalAutoloader);
+
+        $this->assertSame(realpath($host), $direct->hostRoot());
+        $this->assertSame(realpath($host), $proxied->hostRoot());
+    }
+
     public function testComposerProxyEntrypointRetainsItsLexicalAutoloaderPath(): void
     {
         $vendor = $this->workspace . '/proxy/deps';
