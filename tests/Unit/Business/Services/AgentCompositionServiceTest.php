@@ -276,15 +276,16 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(AgentRuntimeResult::DENIED, $rejected->status());
     }
 
-    public function testStaleCancellationCannotCancelAReplacementExecution(): void
+    public function testReplacementExecutionWaitsForCancellationCompletion(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
         $factory = $this->factory();
         $service = $this->service($root, $factory);
         $service->registerMap($root);
         $service->start('opus.central', new AgentRuntimeContext());
-        $factory->onCancel = function () use ($service): void {
-            $service->execute(
+        $duringCancellation = null;
+        $factory->onCancel = function () use ($service, &$duringCancellation): void {
+            $duringCancellation = $service->execute(
                 'opus.central',
                 ['intent' => 'replacement'],
                 new AgentRuntimeContext(correlationId: 'execute-b')
@@ -296,12 +297,21 @@ final class AgentCompositionServiceTest extends TestCase
             new AgentRuntimeContext(correlationId: 'cancel-a')
         );
         $factory->onCancel = null;
+        $replacement = $service->execute(
+            'opus.central',
+            ['intent' => 'replacement'],
+            new AgentRuntimeContext(correlationId: 'execute-c')
+        );
         $nextCancellation = $service->cancel(
             'opus.central',
-            new AgentRuntimeContext(correlationId: 'cancel-c')
+            new AgentRuntimeContext(correlationId: 'cancel-d')
         );
 
-        $this->assertTrue($cancelled->toArray()['metadata']['cancellation_superseded']);
+        $this->assertTrue($cancelled->ok());
+        $this->assertInstanceOf(AgentRuntimeResult::class, $duringCancellation);
+        $this->assertSame(AgentRuntimeResult::DENIED, $duringCancellation->status());
+        $this->assertSame(['agent_cancellation_in_progress'], $duringCancellation->diagnostics());
+        $this->assertTrue($replacement->ok());
         $this->assertTrue($nextCancellation->ok());
         $this->assertSame(2, $factory->runtimes[0]->calls['cancel']);
     }

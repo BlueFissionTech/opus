@@ -267,10 +267,24 @@ final class AgentCompositionService extends Service
                     $context
                 );
             }
+            $cancellationId = Arr::getPath($persisted, 'cancellation_id');
+            if (Str::isNotEmpty((string) $cancellationId) && $this->claimIsLive((string) $cancellationId)) {
+                return $this->correlate(
+                    AgentRuntimeResult::denied(
+                        'execute',
+                        $agentId,
+                        $context->tenantId(),
+                        $current,
+                        'agent_cancellation_in_progress'
+                    ),
+                    $context
+                );
+            }
             $executionId = $this->operationId();
             $accepted = $this->states->compareAndPut($agentId, $context->tenantId(), [
                 'state' => self::RUNNING,
                 'transition_id' => $transitionId,
+                'cancellation_id' => $cancellationId,
             ], [
                 'state' => self::RUNNING,
                 'execution_id' => $executionId,
@@ -286,10 +300,12 @@ final class AgentCompositionService extends Service
                 'transition_expires_at' => null,
             ]);
             if (!$accepted) {
-                $latest = $this->state($agentId, $context);
-                $reason = $latest === self::RUNNING
-                    ? 'agent_transition_in_progress'
-                    : 'agent_not_running';
+                $latestRecord = $this->states->get($agentId, $context->tenantId()) ?? [];
+                $latest = (string) Arr::getPath($latestRecord, 'state', self::REGISTERED);
+                $latestCancellation = (string) Arr::getPath($latestRecord, 'cancellation_id');
+                $reason = Str::isNotEmpty($latestCancellation) && $this->claimIsLive($latestCancellation)
+                    ? 'agent_cancellation_in_progress'
+                    : ($latest === self::RUNNING ? 'agent_transition_in_progress' : 'agent_not_running');
 
                 return $this->correlate(
                     AgentRuntimeResult::denied(
