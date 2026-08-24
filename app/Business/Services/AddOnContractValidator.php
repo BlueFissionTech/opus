@@ -302,7 +302,7 @@ final class AddOnContractValidator extends Service
         });
     }
 
-    private function knownToolsFromConsoleFile(string $path): array
+    public function knownToolsFromConsoleFile(string $path): array
     {
         $console = Arr::make($this->declarativeParser->parseFile($path));
         if ($console->get('valid')) {
