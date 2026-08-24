@@ -580,7 +580,7 @@ PHP
                 $this->executions++;
                 $this->executedParsedCommand = $request->input() instanceof Command;
 
-                return CommandResult::completed(['ok' => true], $command);
+                return CommandResult::completed(['ok' => true], $command, ['provider' => 'test']);
             }
         };
         $root = $this->map($this->mapping('application', 'opus.central', 'central', ['command.list']), ['command.list']);
@@ -607,6 +607,7 @@ PHP
         $this->assertSame(1, $processor->executions);
         $this->assertTrue($processor->executedParsedCommand);
         $this->assertSame('command.list', $result->metadata()['agent_tool']);
+        $this->assertSame('test', $result->metadata()['provider']);
         $this->assertSame('correlation-a', $result->metadata()['correlation_id']);
         $this->assertSame(CommandResult::COMPLETED, $result->metadata()['agent_result_status']);
     }
