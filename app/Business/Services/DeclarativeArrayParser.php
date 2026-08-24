@@ -59,7 +59,10 @@ final class DeclarativeArrayParser
     {
         $token = $tokens->shift();
         if ($token === '[') {
-            return $this->consumeArray($tokens, $duplicates, $path);
+            return $this->consumeArray($tokens, $duplicates, $path, ']');
+        }
+        if ($this->tokenIs($token, T_ARRAY) && $tokens->shift() === '(') {
+            return $this->consumeArray($tokens, $duplicates, $path, ')');
         }
         if ($this->tokenIs($token, T_CONSTANT_ENCAPSED_STRING)) {
             return $this->stringValue((string) Arr::make($token)->get(1));
@@ -86,13 +89,13 @@ final class DeclarativeArrayParser
         throw new UnexpectedValueException("Unsupported value at {$path}.");
     }
 
-    private function consumeArray(Arr $tokens, Arr $duplicates, string $path): array
+    private function consumeArray(Arr $tokens, Arr $duplicates, string $path, string $closing): array
     {
         $value = [];
         $keys = Arr::make([]);
         $nextIndex = 0;
 
-        while (!$tokens->isEmpty() && $tokens->get(0) !== ']') {
+        while (!$tokens->isEmpty() && $tokens->get(0) !== $closing) {
             $candidate = $this->consumeValue($tokens, $duplicates, $path);
             if ($this->tokenIs($tokens->get(0), T_DOUBLE_ARROW)) {
                 $tokens->shift();
@@ -120,12 +123,12 @@ final class DeclarativeArrayParser
                 $tokens->shift();
                 continue;
             }
-            if ($tokens->get(0) !== ']') {
-                throw new UnexpectedValueException("Expected a comma or closing bracket at {$path}.");
+            if ($tokens->get(0) !== $closing) {
+                throw new UnexpectedValueException("Expected a comma or closing array delimiter at {$path}.");
             }
         }
 
-        if ($tokens->shift() !== ']') {
+        if ($tokens->shift() !== $closing) {
             throw new UnexpectedValueException("Unclosed array at {$path}.");
         }
 

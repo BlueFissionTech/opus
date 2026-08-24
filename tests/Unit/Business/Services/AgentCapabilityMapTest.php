@@ -10,6 +10,7 @@ use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentCommandContextProvider;
 use App\Business\Services\AgentScopedCommandProcessor;
+use App\Business\Services\AddOnContractValidator;
 use App\Business\Services\DeclarativeArrayParser;
 use App\Business\Middleware\ProcessesCommandMiddleware;
 use App\Domain\Agents\AgentCapabilityMap;
@@ -97,6 +98,24 @@ PHP
 
         $this->assertFalse($result['valid']);
         $this->assertSame('mapping_duplicate_key', $result['errors'][0]['code']);
+    }
+
+    public function testLongArrayConsoleMappingsProvideKnownAgentTools(): void
+    {
+        $path = $this->workspace . '/console.php';
+        file_put_contents($path, <<<'PHP'
+<?php
+return array(
+    'resources' => array(
+        'sample' => array('list', 'show'),
+    ),
+);
+PHP
+        );
+
+        $tools = (new AddOnContractValidator())->knownToolsFromConsoleFile($path);
+
+        $this->assertSame(['sample.list', 'sample.show'], $tools);
     }
 
     public function testRuntimeLoaderFailsClosedForMalformedMaps(): void
