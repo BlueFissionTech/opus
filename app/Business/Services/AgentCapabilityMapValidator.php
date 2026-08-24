@@ -292,7 +292,7 @@ final class AgentCapabilityMapValidator
 
     private function stringList($value, string $code, Arr $errors): Arr
     {
-        if (!Arr::is($value)) {
+        if (!Arr::is($value) || !array_is_list($value)) {
             $errors->push($this->problem($code, 'Expected a list of strings.'));
             return Arr::make([]);
         }
