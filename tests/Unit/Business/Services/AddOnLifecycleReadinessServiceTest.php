@@ -285,4 +285,47 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('addon_lifecycle_failed', $result['readiness']['reasons'][0]['code']);
         $this->assertSame('addon_hook_failed', $result['readiness']['reasons'][1]['code']);
     }
+
+    public function testIndependentDiscoveryFailureSurvivesOptionalChildRecovery(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install_all',
+            'stage' => 'discovery',
+            'error' => 'Discovery failed.',
+            'results' => [[
+                'ok' => false,
+                'action' => 'install',
+                'stage' => 'hook',
+                'hooks' => [[
+                    'ok' => false,
+                    'status' => 'missing_callable',
+                    'error' => 'No lifecycle hook.',
+                ]],
+            ]],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('discovery', $result['stage']);
+        $this->assertSame('Discovery failed.', $result['error']);
+    }
+
+    public function testBatchWithoutAggregateErrorUsesTheMatchingChildFailure(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install_all',
+            'stage' => 'migrations',
+            'results' => [[
+                'ok' => false,
+                'action' => 'install',
+                'stage' => 'migrations',
+                'migrations' => ['ok' => false, 'error' => 'Schema failed.'],
+            ]],
+        ]);
+
+        $this->assertSame('migrations', $result['stage']);
+        $this->assertSame('Schema failed.', $result['error']);
+        $this->assertCount(1, $result['readiness']['reasons']);
+    }
 }

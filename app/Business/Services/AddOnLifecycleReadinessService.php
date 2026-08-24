@@ -185,7 +185,7 @@ final class AddOnLifecycleReadinessService extends Service
     {
         $aggregateFailed = Flag::isFalse($outcome->get('ok'));
         $aggregateStage = (string) ($outcome->get('stage') ?: 'lifecycle');
-        $aggregateError = (string) ($outcome->get('error') ?: 'Add-on lifecycle batch failed.');
+        $aggregateError = (string) $outcome->get('error');
         $normalized = Arr::make($results)
             ->map(fn ($result): array => $this->normalizeLifecycle(Arr::make((array) $result)))
             ->values();
@@ -199,7 +199,10 @@ final class AddOnLifecycleReadinessService extends Service
         $failures->each(function (array $result) use ($reasons): void {
             $reasons->mergeRecursive((array) Arr::getPath($result, 'readiness.reasons', []));
         });
-        $recoveredChildFailuresOnly = $this->batchFailureIsRecoveredChildrenOnly($results);
+        $recoveredChildFailuresOnly = $this->batchFailureIsRecoveredChildrenOnly(
+            $results,
+            $aggregateStage
+        );
         $independentAggregateFailure = $aggregateFailed
             && !$recoveredChildFailuresOnly
             && !$this->hasMatchingReason($reasons, $aggregateStage, $aggregateError);
@@ -207,7 +210,7 @@ final class AddOnLifecycleReadinessService extends Service
             $reasons->unshift($this->reason(
                 'addon_lifecycle_failed',
                 $aggregateStage,
-                $aggregateError
+                $aggregateError ?: 'Add-on lifecycle batch failed.'
             ));
         }
         $total = $normalized->count();
@@ -266,8 +269,11 @@ final class AddOnLifecycleReadinessService extends Service
         return $matched;
     }
 
-    private function batchFailureIsRecoveredChildrenOnly(array $results): bool
+    private function batchFailureIsRecoveredChildrenOnly(array $results, string $aggregateStage): bool
     {
+        if (!Arr::make(['', 'complete', 'hook'])->contains($aggregateStage)) {
+            return false;
+        }
         $failed = Arr::make($results)
             ->filter(fn ($result): bool => Flag::isFalse(Arr::getPath((array) $result, 'ok')))
             ->values();
