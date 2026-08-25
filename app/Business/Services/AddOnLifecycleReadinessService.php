@@ -114,8 +114,15 @@ final class AddOnLifecycleReadinessService extends Service
     {
         $stage = (string) $outcome->get('stage');
         $message = (string) $outcome->get('error');
+        $messageSelectsStage = $this->messageSelectsStage($stage)
+            && Str::isNotEmpty($message);
         $matching = $reasons->filter(fn ($reason): bool =>
-            (Str::isEmpty($stage) || Arr::getPath((array) $reason, 'stage') === $stage)
+            (
+                Str::isEmpty($stage)
+                || Arr::getPath((array) $reason, 'stage') === $stage
+                || ($messageSelectsStage
+                    && Arr::getPath((array) $reason, 'message') === $message)
+            )
             && (
                 Str::isEmpty($message)
                 || Arr::getPath((array) $reason, 'message') === $message
@@ -179,7 +186,9 @@ final class AddOnLifecycleReadinessService extends Service
             return false;
         }
 
-        if (Str::isEmpty($stage) && $this->hasMatchingReasonMessage($reasons, $message)) {
+        if ($this->messageSelectsStage($stage)
+            && $this->hasMatchingReasonMessage($reasons, $message)
+        ) {
             return false;
         }
 
@@ -218,7 +227,7 @@ final class AddOnLifecycleReadinessService extends Service
                 Str::make($aggregateStage)->trim()->lower()->val()
             );
         $aggregateMatchesChild = $this->hasMatchingReason($reasons, $aggregateStage, $aggregateError)
-            || (Str::isEmpty($aggregateStage)
+            || ($this->messageSelectsStage($aggregateStage)
                 && $this->hasMatchingReasonMessage($reasons, $aggregateError));
         $independentAggregateFailure = $aggregateFailed
             && !$recoveredChildFailuresOnly
@@ -299,6 +308,13 @@ final class AddOnLifecycleReadinessService extends Service
         });
 
         return $matched;
+    }
+
+    private function messageSelectsStage(string $stage): bool
+    {
+        return Arr::make(['', 'complete'])->contains(
+            Str::make($stage)->trim()->lower()->val()
+        );
     }
 
     private function batchFailureIsRecoveredChildrenOnly(array $results, string $aggregateStage): bool

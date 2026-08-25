@@ -414,11 +414,48 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertCount(2, $result['readiness']['reasons']);
     }
 
+    public function testTerminalSingleAggregateErrorSelectsItsMatchingChildFailure(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'stage' => 'complete',
+            'error' => 'Population failed.',
+            'migrations' => ['ok' => false, 'error' => 'Schema failed.'],
+            'population' => ['ok' => false, 'error' => 'Population failed.'],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('population', $result['stage']);
+        $this->assertSame('Population failed.', $result['error']);
+        $this->assertCount(2, $result['readiness']['reasons']);
+    }
+
     public function testUnstagedBatchAggregateErrorMatchesItsChildFailure(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([
             'ok' => false,
             'action' => 'install_all',
+            'error' => 'Population failed.',
+            'results' => [[
+                'ok' => false,
+                'action' => 'install',
+                'population' => ['ok' => false, 'error' => 'Population failed.'],
+            ]],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('population', $result['stage']);
+        $this->assertSame('Population failed.', $result['error']);
+        $this->assertCount(1, $result['readiness']['reasons']);
+    }
+
+    public function testTerminalBatchAggregateErrorMatchesItsChildFailure(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install_all',
+            'stage' => 'complete',
             'error' => 'Population failed.',
             'results' => [[
                 'ok' => false,
