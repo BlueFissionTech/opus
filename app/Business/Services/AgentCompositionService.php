@@ -136,7 +136,8 @@ final class AgentCompositionService extends Service
 
         $current = $this->state($agentId, $context);
         $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
-        $coveredExecution = Arr::getPath($persisted, 'execution_id');
+        $coveredExecution = Arr::getPath($persisted, 'active_execution_id')
+            ?? Arr::getPath($persisted, 'execution_id');
         if (Arr::getPath($persisted, 'cancelled') === true) {
             return $this->idempotent('cancel', $agentId, $context, $current);
         }
@@ -289,7 +290,6 @@ final class AgentCompositionService extends Service
                 );
             }
 
-            $runtime = $this->runtime($agentId, $context);
             $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
             $transitionId = Arr::getPath($persisted, 'transition_id');
             if (Str::isNotEmpty((string) $transitionId) && $this->claimIsLive((string) $transitionId)) {
@@ -304,15 +304,31 @@ final class AgentCompositionService extends Service
                     $context
                 );
             }
+            $activeExecutionId = Arr::getPath($persisted, 'active_execution_id');
+            if (Str::isNotEmpty((string) $activeExecutionId)) {
+                return $this->correlate(
+                    AgentRuntimeResult::denied(
+                        'execute',
+                        $agentId,
+                        $context->tenantId(),
+                        $current,
+                        'agent_execution_in_progress'
+                    ),
+                    $context
+                );
+            }
+            $runtime = $this->runtime($agentId, $context);
             $cancellationId = Arr::getPath($persisted, 'cancellation_id');
             $executionId = $this->operationId();
             $accepted = $this->states->compareAndPut($agentId, $context->tenantId(), [
                 'state' => self::RUNNING,
                 'transition_id' => $transitionId,
                 'cancellation_id' => $cancellationId,
+                'active_execution_id' => $activeExecutionId,
             ], [
                 'state' => self::RUNNING,
                 'execution_id' => $executionId,
+                'active_execution_id' => $executionId,
                 'cancelled' => false,
                 'cancellation_correlation_id' => null,
                 'cancellation_id' => null,
@@ -328,9 +344,16 @@ final class AgentCompositionService extends Service
                 $latestRecord = $this->states->get($agentId, $context->tenantId()) ?? [];
                 $latest = (string) Arr::getPath($latestRecord, 'state', self::REGISTERED);
                 $latestCancellation = (string) Arr::getPath($latestRecord, 'cancellation_id');
-                $reason = Str::isNotEmpty($latestCancellation)
-                    ? 'agent_cancellation_in_progress'
-                    : ($latest === self::RUNNING ? 'agent_transition_in_progress' : 'agent_not_running');
+                $latestExecution = (string) Arr::getPath($latestRecord, 'active_execution_id');
+                if (Str::isNotEmpty($latestCancellation)) {
+                    $reason = 'agent_cancellation_in_progress';
+                } elseif (Str::isNotEmpty($latestExecution)) {
+                    $reason = 'agent_execution_in_progress';
+                } else {
+                    $reason = $latest === self::RUNNING
+                        ? 'agent_transition_in_progress'
+                        : 'agent_not_running';
+                }
 
                 return $this->correlate(
                     AgentRuntimeResult::denied(
@@ -349,19 +372,30 @@ final class AgentCompositionService extends Service
                     'correlation_id' => $context->correlationId(),
                     'execution_id' => $executionId,
                 ]);
+            $completion = [
+                'active_execution_id' => null,
+            ];
             if ($result->ok()) {
-                $this->states->compareAndPut($agentId, $context->tenantId(), [
-                    'execution_id' => $executionId,
-                ], [
+                $completion = Arr::merge($completion, [
                     'status' => $result->status(),
                     'diagnostics' => $result->diagnostics(),
                     'correlation_id' => $context->correlationId(),
                 ]);
             }
+            $this->states->compareAndPut($agentId, $context->tenantId(), [
+                'active_execution_id' => $executionId,
+            ], $completion);
             $latestState = $this->state($agentId, $context);
 
             return $result->forScope('execute', $agentId, $context->tenantId(), $latestState);
         } catch (Throwable $exception) {
+            if (isset($executionId)) {
+                $this->states->compareAndPut($agentId, $context->tenantId(), [
+                    'active_execution_id' => $executionId,
+                ], [
+                    'active_execution_id' => null,
+                ]);
+            }
             return $this->correlate(
                 AgentRuntimeResult::failed(
                     'execute',

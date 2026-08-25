@@ -383,6 +383,51 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(1, $factory->runtimes[0]->calls['cancel']);
     }
 
+    public function testConcurrentExecutionsAreSerializedPerAgentScope(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $otherFactory = $this->factory();
+        $otherHost = new AgentCompositionService(
+            new AgentCapabilityMapResolver($root),
+            $otherFactory,
+            $states
+        );
+        $otherHost->registerMap($root);
+        $overlap = null;
+        $factory->onExecute = function () use ($otherHost, &$overlap): void {
+            $overlap = $otherHost->execute(
+                'opus.central',
+                ['intent' => 'overlap'],
+                new AgentRuntimeContext(correlationId: 'execute-b')
+            );
+        };
+
+        $initial = $service->execute(
+            'opus.central',
+            ['intent' => 'initial'],
+            new AgentRuntimeContext(correlationId: 'execute-a')
+        );
+        $factory->onExecute = null;
+        $next = $otherHost->execute(
+            'opus.central',
+            ['intent' => 'next'],
+            new AgentRuntimeContext(correlationId: 'execute-c')
+        );
+
+        $this->assertTrue($initial->ok());
+        $this->assertInstanceOf(AgentRuntimeResult::class, $overlap);
+        $this->assertSame(AgentRuntimeResult::DENIED, $overlap->status());
+        $this->assertSame(['agent_execution_in_progress'], $overlap->diagnostics());
+        $this->assertTrue($next->ok());
+        $this->assertSame(1, $factory->runtimes[0]->calls['execute']);
+        $this->assertSame(1, $otherFactory->runtimes[0]->calls['execute']);
+    }
+
     public function testRuntimeCreationFailureDoesNotClearCancellationEvidence(): void
     {
         $root = $this->map('application', 'opus.central', 'central');

@@ -151,6 +151,8 @@ runtime context instead of relying on ambient globals.
 Provider adapters receive an immutable identifier for every execution and must
 scope cancellation to the requested identifier. They must not interpret a
 cancellation request as permission to terminate a newer execution generation.
+Opus serializes active execution per tenant-and-agent scope so every admitted
+generation retains a deterministic cancellation path across application hosts.
 
 Specialist agents require an active package lifecycle state and explicit
 tenant. They do not inherit central or peer command surfaces. The central
