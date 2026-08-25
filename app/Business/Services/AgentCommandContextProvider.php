@@ -16,7 +16,7 @@ final class AgentCommandContextProvider
     {
     }
 
-    public function forActor(string $actorId): array
+    public function forActor(string $actorId, ?string $tenantId = null): array
     {
         $active = Arr::make([]);
         $states = Arr::make([]);
@@ -47,21 +47,29 @@ final class AgentCommandContextProvider
         if (Str::isNotEmpty($actorId)) {
             $context->set('actor', ['id' => $actorId]);
         }
+        if (Str::isNotEmpty((string) $tenantId)) {
+            $context->set('tenant_id', $tenantId);
+        }
 
         $filtered = DevElation::apply('opus.agent.command_context', $context->toArray());
+        if (!Arr::is($filtered)) {
+            return $context->toArray();
+        }
+        if (Str::isNotEmpty((string) $tenantId)
+            && Arr::getPath((array) $filtered, 'tenant_id') !== $tenantId
+        ) {
+            return $context->toArray();
+        }
 
-        return Arr::is($filtered) ? (array) $filtered : $context->toArray();
+        return (array) $filtered;
     }
 
     public function forContinuation(array $priorContext): array
     {
         $context = Arr::make($priorContext);
         $actorId = (string) Arr::getPath((array) $context->get('actor'), 'id', '');
-        $refreshed = Arr::make($this->forActor($actorId));
         $tenantId = $context->get('tenant_id');
-        if (Str::isNotEmpty((string) $tenantId)) {
-            $refreshed->set('tenant_id', $tenantId);
-        }
+        $refreshed = Arr::make($this->forActor($actorId, Str::is($tenantId) ? $tenantId : null));
 
         return $refreshed->toArray();
     }

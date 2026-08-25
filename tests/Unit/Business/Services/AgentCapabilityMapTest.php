@@ -18,6 +18,7 @@ use App\Domain\Agents\IAgentContinuationScopeStore;
 use BlueFission\Arr;
 use BlueFission\BlueCore\Business\Managers\CommandManager;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
+use BlueFission\DevElation;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
@@ -360,7 +361,7 @@ PHP
 
         $resolved = (new AgentCapabilityMapResolver($root))->resolve('opus.central');
 
-        $this->assertSame(['command.list'], $resolved->tools());
+        $this->assertSame([], $resolved->tools());
         $this->assertSame('agent_relationship_invalid', Arr::make($resolved->decisions())->pop()['reason']);
     }
 
@@ -426,7 +427,7 @@ PHP
             'opus.central' => $this->descriptor(
                 'central',
                 ['command.list'],
-                ['addon.first' => ['first.run']]
+                []
             ),
         ]);
         $first = new AgentCapabilityMap(1, 'first', [
@@ -839,6 +840,43 @@ PHP
         $this->assertSame(['sample' => 'active', 'reports' => 'active'], $context['addon_states']);
         $this->assertSame([], $context['capabilities']);
         $this->assertSame('operator-a', $context['actor']['id']);
+    }
+
+    public function testContinuationRefreshRunsInsideAndCannotReplaceTheOriginatingTenant(): void
+    {
+        $reflection = new \ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $filters = $reflection->getProperty('_filters');
+        $originalActive = $active->getValue();
+        $originalFilters = $filters->getValue();
+        $observedTenant = null;
+
+        try {
+            DevElation::up();
+            DevElation::filter(
+                'opus.agent.command_context',
+                function (array $context) use (&$observedTenant): array {
+                    $observedTenant = $context['tenant_id'] ?? null;
+                    $context['tenant_id'] = 'tenant-b';
+                    $context['capabilities'] = ['tenant-b.manage'];
+
+                    return $context;
+                }
+            );
+
+            $context = (new AgentCommandContextProvider())->forContinuation([
+                'actor' => ['id' => 'operator-a'],
+                'tenant_id' => 'tenant-a',
+                'capabilities' => ['stale.manage'],
+            ]);
+
+            $this->assertSame('tenant-a', $observedTenant);
+            $this->assertSame('tenant-a', $context['tenant_id']);
+            $this->assertSame([], $context['capabilities']);
+        } finally {
+            $active->setValue(null, $originalActive);
+            $filters->setValue(null, $originalFilters);
+        }
     }
 
     private function continuationStore(): IAgentContinuationScopeStore

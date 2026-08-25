@@ -41,6 +41,9 @@ final class AddOnScaffoldService extends Service
             if (!Str::make($name)->matches('/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/')) {
                 return $this->failure('name_invalid', 'Add-on name must be a lowercase lifecycle-safe key.');
             }
+            if ($name === 'application') {
+                return $this->failure('name_reserved', 'The application capability owner is reserved.');
+            }
 
             $className = $this->className($name);
             $namespace = $namespace === null ? "AddOns\\{$className}" : Str::make($namespace)->trim('\\')->val();

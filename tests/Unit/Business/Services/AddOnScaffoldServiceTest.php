@@ -78,6 +78,15 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertDirectoryDoesNotExist($this->workspace . '/unsafe');
     }
 
+    public function testItRejectsTheReservedApplicationOwnerBeforeWritingOutput(): void
+    {
+        $result = (new AddOnScaffoldService($this->workspace))->generate('application', 'application');
+
+        $this->assertFalse($result['created']);
+        $this->assertSame('name_reserved', $result['errors'][0]['code']);
+        $this->assertDirectoryDoesNotExist($this->workspace . '/application');
+    }
+
     public function testItRejectsNamesThatCannotProduceValidComposerSlugs(): void
     {
         $service = new AddOnScaffoldService($this->workspace);
