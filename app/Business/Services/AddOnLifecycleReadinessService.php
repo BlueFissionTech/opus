@@ -115,7 +115,7 @@ final class AddOnLifecycleReadinessService extends Service
         $stage = (string) $outcome->get('stage');
         $message = (string) $outcome->get('error');
         $matching = $reasons->filter(fn ($reason): bool =>
-            Arr::getPath((array) $reason, 'stage') === $stage
+            (Str::isEmpty($stage) || Arr::getPath((array) $reason, 'stage') === $stage)
             && (
                 Str::isEmpty($message)
                 || Arr::getPath((array) $reason, 'message') === $message
@@ -217,10 +217,13 @@ final class AddOnLifecycleReadinessService extends Service
             && Arr::make(['', 'complete'])->contains(
                 Str::make($aggregateStage)->trim()->lower()->val()
             );
+        $aggregateMatchesChild = $this->hasMatchingReason($reasons, $aggregateStage, $aggregateError)
+            || (Str::isEmpty($aggregateStage)
+                && $this->hasMatchingReasonMessage($reasons, $aggregateError));
         $independentAggregateFailure = $aggregateFailed
             && !$recoveredChildFailuresOnly
             && !$aggregateExplainedByChildren
-            && !$this->hasMatchingReason($reasons, $aggregateStage, $aggregateError);
+            && !$aggregateMatchesChild;
         if ($independentAggregateFailure) {
             $reasons->unshift($this->reason(
                 'addon_lifecycle_failed',
