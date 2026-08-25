@@ -8,6 +8,7 @@ use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentCompositionService;
 use App\Business\Services\AgentRuntimeStateStore;
+use App\Business\Services\MySQLAgentRuntimeStateSynchronizer;
 use App\Domain\Agents\AgentCapabilityMap;
 use App\Domain\Agents\AgentDescriptor;
 use App\Domain\Agents\AgentRuntimeContext;
@@ -15,8 +16,12 @@ use App\Domain\Agents\AgentRuntimeResult;
 use App\Domain\Agents\IAgentRuntime;
 use App\Domain\Agents\IAgentRuntimeFactory;
 use App\Domain\Agents\IAgentRuntimeStateStore;
+use App\Domain\Agents\IAgentRuntimeStateSynchronizer;
 use BlueFission\Arr;
+use BlueFission\Connections\Database\MySQLLink;
 use BlueFission\Data\Storage\Storage;
+use BlueFission\IObj;
+use BlueFission\Str;
 use PHPUnit\Framework\TestCase;
 
 final class AgentCompositionServiceTest extends TestCase
@@ -428,6 +433,32 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(1, $otherFactory->runtimes[0]->calls['execute']);
     }
 
+    public function testAbandonedCancellationClaimsCanBeRecovered(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $states->put('opus.central', null, Arr::merge(
+            $states->get('opus.central', null) ?? [],
+            [
+                'cancellation_id' => 'abandoned-cancellation',
+                'cancellation_expires_at' => time() - 1,
+            ]
+        ));
+
+        $result = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-recovery')
+        );
+
+        $this->assertTrue($result->ok());
+        $this->assertSame(1, $factory->runtimes[0]->calls['cancel']);
+        $this->assertNull($states->get('opus.central', null)['cancellation_id']);
+    }
+
     public function testRuntimeCreationFailureDoesNotClearCancellationEvidence(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -619,6 +650,42 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(1, $factory->runtimes[0]->calls['start']);
     }
 
+    public function testCrossHostExecutionCannotDisplaceALiveLifecycleTransition(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $otherFactory = $this->factory();
+        $otherHost = new AgentCompositionService(
+            new AgentCapabilityMapResolver($root),
+            $otherFactory,
+            $states
+        );
+        $otherHost->registerMap($root);
+        $duringStop = null;
+        $factory->onStop = function () use ($otherHost, &$duringStop): void {
+            $duringStop = $otherHost->execute(
+                'opus.central',
+                ['intent' => 'overlap'],
+                new AgentRuntimeContext(correlationId: 'execute-b')
+            );
+        };
+
+        $stopped = $service->stop(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'stop-a')
+        );
+
+        $this->assertTrue($stopped->ok());
+        $this->assertInstanceOf(AgentRuntimeResult::class, $duringStop);
+        $this->assertSame(AgentRuntimeResult::DENIED, $duringStop->status());
+        $this->assertSame(['agent_transition_in_progress'], $duringStop->diagnostics());
+        $this->assertSame(0, $otherFactory->created);
+    }
+
     public function testAvailabilityProbeFailuresReturnStructuredLifecycleFailures(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -659,7 +726,7 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(1, $factory->runtimes[0]->calls['start']);
     }
 
-    public function testLiveTransitionClaimBlocksIdempotentSuccessWithoutWallClockExpiry(): void
+    public function testLiveTransitionLeaseBlocksIdempotentSuccessAcrossHosts(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
         $factory = $this->factory();
@@ -668,37 +735,38 @@ final class AgentCompositionServiceTest extends TestCase
         $service->start('opus.central', new AgentRuntimeContext());
         $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
         $operationId = 'long-running-transition';
-        $path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opus-agent-operation-' . $operationId . '.lock';
-        $handle = fopen($path, 'c+');
-        $this->assertIsResource($handle);
-        $this->assertTrue(flock($handle, LOCK_EX | LOCK_NB));
         $states->put('opus.central', null, Arr::merge(
             $states->get('opus.central', null) ?? [],
             [
                 'transition_id' => $operationId,
                 'transition_action' => 'stop',
-                'transition_expires_at' => 0,
+                'transition_expires_at' => time() + 60,
             ]
         ));
 
-        try {
-            $result = $service->start('opus.central', new AgentRuntimeContext());
+        $otherHost = new AgentCompositionService(
+            new AgentCapabilityMapResolver($root),
+            $factory,
+            $states
+        );
+        $otherHost->registerMap($root);
+        $result = $otherHost->start('opus.central', new AgentRuntimeContext());
 
-            $this->assertSame(AgentRuntimeResult::DENIED, $result->status());
-            $this->assertSame(['agent_transition_in_progress'], $result->diagnostics());
-        } finally {
-            flock($handle, LOCK_UN);
-            fclose($handle);
-            @unlink($path);
-        }
+        $this->assertSame(AgentRuntimeResult::DENIED, $result->status());
+        $this->assertSame(['agent_transition_in_progress'], $result->diagnostics());
     }
 
-    public function testStorageCompareAndPutUsesTheSharedLockBoundary(): void
+    public function testStorageCompareAndPutUsesTheInjectedSharedLockBoundary(): void
     {
-        $lock = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opus-agent-state-' . bin2hex(random_bytes(5));
         $storage = new Storage();
-        $first = new AgentRuntimeStateStore($storage, $lock);
-        $second = new AgentRuntimeStateStore($storage, $lock);
+        $synchronizer = new class implements IAgentRuntimeStateSynchronizer {
+            public function synchronized(string $scope, callable $operation): mixed
+            {
+                return $operation();
+            }
+        };
+        $first = new AgentRuntimeStateStore($storage, $synchronizer);
+        $second = new AgentRuntimeStateStore($storage, $synchronizer);
         $first->put('opus.central', null, ['state' => AgentCompositionService::REGISTERED]);
 
         $claimed = $first->compareAndPut(
@@ -717,7 +785,44 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertTrue($claimed);
         $this->assertFalse($duplicate);
         $this->assertSame('claim-a', $second->get('opus.central', null)['transition_id']);
-        @unlink($lock);
+    }
+
+    public function testMySQLStateSynchronizerUsesAConnectionScopedAdvisoryLock(): void
+    {
+        $link = new class extends MySQLLink {
+            public array $queries = [];
+
+            public function open(): IObj
+            {
+                return $this;
+            }
+
+            public function query($query = null): IObj
+            {
+                $this->queries[] = (string) $query;
+                $acquired = Str::make((string) $query)->contains('GET_LOCK') ? 1 : null;
+                $this->_result = new class($acquired) {
+                    public function __construct(private ?int $acquired)
+                    {
+                    }
+
+                    public function fetch_assoc(): array
+                    {
+                        return ['acquired' => $this->acquired];
+                    }
+                };
+
+                return $this;
+            }
+        };
+        $synchronizer = new MySQLAgentRuntimeStateSynchronizer($link);
+
+        $result = $synchronizer->synchronized('tenant-a::opus.central', fn (): string => 'done');
+
+        $this->assertSame('done', $result);
+        $this->assertCount(2, $link->queries);
+        $this->assertStringContainsString('GET_LOCK', $link->queries[0]);
+        $this->assertStringContainsString('RELEASE_LOCK', $link->queries[1]);
     }
 
     public function testApplicationScopeDoesNotCollideWithTenantNamedApplication(): void
@@ -807,6 +912,7 @@ final class AgentCompositionServiceTest extends TestCase
             public mixed $onStart = null;
             public mixed $onExecute = null;
             public mixed $onCancel = null;
+            public mixed $onStop = null;
             public int $created = 0;
             public array $runtimes = [];
             public array $profiles = [];
@@ -873,6 +979,9 @@ final class AgentCompositionServiceTest extends TestCase
                     {
                         $this->calls['stop']++;
                         $this->contexts[] = $context;
+                        if (is_callable($this->factory->onStop)) {
+                            ($this->factory->onStop)();
+                        }
                         return AgentRuntimeResult::completed('stop', '', null, 'stopped');
                     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Business\Services;
 
 use App\Domain\Agents\IAgentRuntimeStateStore;
+use App\Domain\Agents\IAgentRuntimeStateSynchronizer;
 use BlueFission\Arr;
 use BlueFission\Data\Storage\Storage;
 use BlueFission\Str;
@@ -12,12 +13,13 @@ use BlueFission\Str;
 final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
 {
     private const FIELD = 'agentRuntimeStates';
-    private string $lockPath;
+    private const LOCK_SCOPE = 'opus-agent-runtime-states';
 
-    public function __construct(private Storage $storage, ?string $lockPath = null)
+    public function __construct(
+        private Storage $storage,
+        private IAgentRuntimeStateSynchronizer $synchronizer
+    )
     {
-        $this->lockPath = $lockPath
-            ?? sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opus-agent-runtime-state.lock';
     }
 
     public function get(string $agentId, ?string $tenantId): ?array
@@ -95,19 +97,6 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
 
     private function synchronized(callable $operation): mixed
     {
-        $handle = fopen($this->lockPath, 'c+');
-        if ($handle === false || !flock($handle, LOCK_EX)) {
-            if (is_resource($handle)) {
-                fclose($handle);
-            }
-            throw new \RuntimeException('Agent runtime state lock is unavailable.');
-        }
-
-        try {
-            return $operation();
-        } finally {
-            flock($handle, LOCK_UN);
-            fclose($handle);
-        }
+        return $this->synchronizer->synchronized(self::LOCK_SCOPE, $operation);
     }
 }

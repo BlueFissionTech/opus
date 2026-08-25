@@ -153,6 +153,10 @@ scope cancellation to the requested identifier. They must not interpret a
 cancellation request as permission to terminate a newer execution generation.
 Opus serializes active execution per tenant-and-agent scope so every admitted
 generation retains a deterministic cancellation path across application hosts.
+Runtime state stores require a shared synchronizer. The MySQL implementation
+uses connection-scoped advisory locks, while persisted lifecycle and cancellation
+leases prevent a dead worker from blocking the scope indefinitely. An execution
+never replaces a nonempty lifecycle transition claim.
 
 Specialist agents require an active package lifecycle state and explicit
 tenant. They do not inherit central or peer command surfaces. The central

@@ -110,6 +110,10 @@ Acceptance criteria:
   affect a replacement execution on another host.
 - Each tenant-and-agent scope admits one active provider execution at a time;
   overlapping requests fail closed until that generation completes.
+- Shared runtime state uses an injected atomic synchronization boundary. MySQL
+  hosts use connection-scoped advisory locks; lifecycle and cancellation claims
+  carry bounded leases so dead workers can be recovered without host-local lock
+  assumptions.
 - Task execution revalidates lifecycle and permission policy and returns
   provider-neutral output, diagnostics, trace, and correlation metadata.
 - Opus selects permitted participants and context. Automata owns hierarchical

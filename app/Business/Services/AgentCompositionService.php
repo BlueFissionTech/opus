@@ -18,6 +18,8 @@ use Throwable;
 
 final class AgentCompositionService extends Service
 {
+    private const CLAIM_LEASE_SECONDS = 300;
+
     public const REGISTERED = 'registered';
     public const RUNNING = 'running';
     public const SUSPENDED = 'suspended';
@@ -30,7 +32,8 @@ final class AgentCompositionService extends Service
     public function __construct(
         private AgentCapabilityMapResolver $resolver,
         private IAgentRuntimeFactory $factory,
-        private IAgentRuntimeStateStore $states
+        private IAgentRuntimeStateStore $states,
+        private int $claimLeaseSeconds = self::CLAIM_LEASE_SECONDS
     ) {
         parent::__construct();
         $this->descriptors = Arr::make([]);
@@ -146,7 +149,10 @@ final class AgentCompositionService extends Service
         }
 
         $existingClaim = Arr::getPath($persisted, 'cancellation_id');
-        if (Str::isNotEmpty((string) $existingClaim)) {
+        $existingClaimExpiresAt = (int) Arr::getPath($persisted, 'cancellation_expires_at', 0);
+        if (Str::isNotEmpty((string) $existingClaim)
+            && $this->claimIsLive($existingClaimExpiresAt)
+        ) {
             return AgentRuntimeResult::denied(
                 'cancel',
                 $agentId,
@@ -164,11 +170,12 @@ final class AgentCompositionService extends Service
                 'execution_id' => $coveredExecution,
                 'cancelled' => Arr::getPath($persisted, 'cancelled'),
                 'cancellation_id' => $existingClaim,
+                'cancellation_expires_at' => Arr::getPath($persisted, 'cancellation_expires_at'),
             ],
             [
                 'cancellation_id' => $cancellationId,
                 'cancellation_execution_id' => $coveredExecution,
-                'cancellation_expires_at' => null,
+                'cancellation_expires_at' => $this->leaseExpiresAt(),
             ]
         );
         if (!$claimed) {
@@ -292,7 +299,7 @@ final class AgentCompositionService extends Service
 
             $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
             $transitionId = Arr::getPath($persisted, 'transition_id');
-            if (Str::isNotEmpty((string) $transitionId) && $this->claimIsLive((string) $transitionId)) {
+            if (Str::isNotEmpty((string) $transitionId)) {
                 return $this->correlate(
                     AgentRuntimeResult::denied(
                         'execute',
@@ -442,7 +449,14 @@ final class AgentCompositionService extends Service
         $transitionId = $this->operationId();
         $persisted = $this->states->get($agentId, $context->tenantId());
         $existingTransition = Arr::getPath((array) $persisted, 'transition_id');
-        if (Str::isNotEmpty((string) $existingTransition) && $this->claimIsLive((string) $existingTransition)) {
+        $existingTransitionExpiresAt = (int) Arr::getPath(
+            (array) $persisted,
+            'transition_expires_at',
+            0
+        );
+        if (Str::isNotEmpty((string) $existingTransition)
+            && $this->claimIsLive($existingTransitionExpiresAt)
+        ) {
             return AgentRuntimeResult::denied(
                 $action,
                 $agentId,
@@ -451,73 +465,62 @@ final class AgentCompositionService extends Service
                 'agent_transition_in_progress'
             );
         }
-        try {
-            $operationLock = $this->acquireOperationLock($transitionId);
-        } catch (Throwable $exception) {
-            return AgentRuntimeResult::failed(
-                $action,
-                $agentId,
-                $context->tenantId(),
-                $source,
-                $exception->getMessage()
-            );
-        }
-        try {
-            $claimed = $this->states->compareAndPut(
-                $agentId,
-                $context->tenantId(),
-                [
-                    'state' => $persisted === null ? null : $source,
-                    'transition_id' => $existingTransition,
-                ],
-                [
-                    'state' => $source,
-                    'transition_id' => $transitionId,
-                    'transition_action' => $action,
-                    'transition_correlation_id' => $context->correlationId(),
-                    'transition_expires_at' => null,
-                ]
-            );
-            if (!$claimed) {
-                return AgentRuntimeResult::denied(
-                    $action,
-                    $agentId,
-                    $context->tenantId(),
-                    $this->state($agentId, $context),
-                    'agent_transition_in_progress'
-                );
-            }
-            $result = $this->invoke($action, $agentId, $context)->forScope(
-                $action,
-                $agentId,
-                $context->tenantId(),
-                $target
-            );
-            $state = $result->ok()
-                ? $target
-                : ($result->status() === AgentRuntimeResult::UNAVAILABLE ? $source : self::FAILED);
-            $updated = $this->states->compareAndPut($agentId, $context->tenantId(), [
+        $claimed = $this->states->compareAndPut(
+            $agentId,
+            $context->tenantId(),
+            [
+                'state' => $persisted === null ? null : $source,
+                'transition_id' => $existingTransition,
+                'transition_expires_at' => Arr::getPath(
+                    (array) $persisted,
+                    'transition_expires_at'
+                ),
+            ],
+            [
+                'state' => $source,
                 'transition_id' => $transitionId,
-            ], [
-                'state' => $state,
-                'status' => $result->status(),
-                'diagnostics' => $result->diagnostics(),
-                'correlation_id' => $context->correlationId(),
-                'transition_id' => null,
-                'transition_action' => null,
-                'transition_correlation_id' => null,
-                'transition_expires_at' => null,
-            ]);
-            if (!$updated) {
-                return $result
-                    ->withMetadata(['transition_superseded' => true])
-                    ->forScope($action, $agentId, $context->tenantId(), $this->state($agentId, $context));
-            }
-
-            return $result->forScope($action, $agentId, $context->tenantId(), $state);
-        } finally {
-            $this->releaseOperationLock($operationLock, $transitionId);
+                'transition_action' => $action,
+                'transition_correlation_id' => $context->correlationId(),
+                'transition_expires_at' => $this->leaseExpiresAt(),
+            ]
+        );
+        if (!$claimed) {
+            return AgentRuntimeResult::denied(
+                $action,
+                $agentId,
+                $context->tenantId(),
+                $this->state($agentId, $context),
+                'agent_transition_in_progress'
+            );
         }
+        $result = $this->invoke($action, $agentId, $context)->forScope(
+            $action,
+            $agentId,
+            $context->tenantId(),
+            $target
+        );
+        $state = $result->ok()
+            ? $target
+            : ($result->status() === AgentRuntimeResult::UNAVAILABLE ? $source : self::FAILED);
+        $updated = $this->states->compareAndPut($agentId, $context->tenantId(), [
+            'transition_id' => $transitionId,
+        ], [
+            'state' => $state,
+            'status' => $result->status(),
+            'diagnostics' => $result->diagnostics(),
+            'correlation_id' => $context->correlationId(),
+            'transition_id' => null,
+            'transition_action' => null,
+            'transition_correlation_id' => null,
+            'transition_expires_at' => null,
+        ]);
+        if (!$updated) {
+            return $result
+                ->withMetadata(['transition_superseded' => true])
+                ->forScope($action, $agentId, $context->tenantId(), $this->state($agentId, $context));
+        }
+
+        return $result->forScope($action, $agentId, $context->tenantId(), $state);
     }
 
     private function invokeCancellation(
@@ -691,7 +694,7 @@ final class AgentCompositionService extends Service
         $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
         $transitionId = Arr::getPath($persisted, 'transition_id');
         if (Str::isNotEmpty((string) $transitionId)) {
-            if ($this->claimIsLive((string) $transitionId)) {
+            if ($this->claimIsLive((int) Arr::getPath($persisted, 'transition_expires_at', 0))) {
                 return AgentRuntimeResult::denied(
                     $action,
                     $agentId,
@@ -758,54 +761,13 @@ final class AgentCompositionService extends Service
         return bin2hex(random_bytes(16));
     }
 
-    private function acquireOperationLock(string $operationId): mixed
+    private function leaseExpiresAt(): int
     {
-        $handle = fopen($this->operationLockPath($operationId), 'c+');
-        if ($handle === false || !flock($handle, LOCK_EX | LOCK_NB)) {
-            if (is_resource($handle)) {
-                fclose($handle);
-            }
-            throw new \RuntimeException('Agent runtime operation lock is unavailable.');
-        }
-
-        return $handle;
+        return time() + max(1, $this->claimLeaseSeconds);
     }
 
-    private function claimIsLive(string $operationId): bool
+    private function claimIsLive(int $expiresAt): bool
     {
-        $handle = fopen($this->operationLockPath($operationId), 'c+');
-        if ($handle === false) {
-            return true;
-        }
-        if (!flock($handle, LOCK_EX | LOCK_NB)) {
-            fclose($handle);
-            return true;
-        }
-
-        flock($handle, LOCK_UN);
-        fclose($handle);
-
-        return false;
-    }
-
-    private function releaseOperationLock(mixed $handle, string $operationId): void
-    {
-        if (is_resource($handle)) {
-            flock($handle, LOCK_UN);
-            fclose($handle);
-        }
-        $path = $this->operationLockPath($operationId);
-        if (is_file($path)) {
-            @unlink($path);
-        }
-    }
-
-    private function operationLockPath(string $operationId): string
-    {
-        return sys_get_temp_dir()
-            . DIRECTORY_SEPARATOR
-            . 'opus-agent-operation-'
-            . $operationId
-            . '.lock';
+        return $expiresAt > time();
     }
 }
