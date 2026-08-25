@@ -202,10 +202,78 @@ PHP
                 ['sample_tools'],
                 ['sample_tools' => 'active']
             );
-
             $this->assertSame([], $inactive->tools());
             $this->assertSame(['sample.list'], $active->tools());
             $this->assertSame(['sample_tools' => 1], $active->versions());
+        } finally {
+            unlink($mapping . DIRECTORY_SEPARATOR . 'agents.php');
+            unlink($mapping . DIRECTORY_SEPARATOR . 'console.php');
+            rmdir($mapping);
+            rmdir(dirname($mapping));
+            rmdir($root);
+        }
+    }
+
+    public function testResolverDropsCatalogMapsAfterAddOnDeactivation(): void
+    {
+        $root = $this->workspace . DIRECTORY_SEPARATOR . 'addons';
+        $mapping = $root . DIRECTORY_SEPARATOR . 'shared' . DIRECTORY_SEPARATOR . 'mapping';
+        mkdir($mapping, 0777, true);
+        file_put_contents($mapping . DIRECTORY_SEPARATOR . 'agents.php', <<<'PHP'
+<?php
+return [
+    'version' => 1,
+    'owner' => 'shared',
+    'agents' => [
+        'addon.shared' => [
+            'mode' => 'central',
+            'description' => 'Central-owned shared tools.',
+            'profile' => 'shared.profile',
+            'tools' => ['shared.status'],
+            'imports' => [],
+            'exports' => ['opus.central' => ['shared.status']],
+            'permissions' => [],
+            'lifecycle' => ['states' => ['active']],
+        ],
+    ],
+];
+PHP
+        );
+        file_put_contents($mapping . DIRECTORY_SEPARATOR . 'console.php', <<<'PHP'
+<?php
+return ['resources' => ['shared' => ['status']]];
+PHP
+        );
+
+        try {
+            $application = $this->map(
+                $this->mapping(
+                    'application',
+                    'opus.central',
+                    'central',
+                    ['command.list'],
+                    ['addon.shared' => ['shared.status']]
+                ),
+                ['command.list', 'shared.status']
+            );
+            $resolver = new AgentCapabilityMapResolver(
+                $application,
+                catalog: new AgentCapabilityMapCatalog($root)
+            );
+
+            $active = $resolver->resolve(
+                'opus.central',
+                ['shared'],
+                ['shared' => 'active']
+            );
+            $inactive = $resolver->resolve('opus.central');
+
+            $this->assertSame(['command.list', 'shared.status'], $active->tools());
+            $this->assertSame([], $inactive->tools());
+            $this->assertSame(
+                'agent_relationship_invalid',
+                Arr::make($inactive->decisions())->pop()['reason']
+            );
         } finally {
             unlink($mapping . DIRECTORY_SEPARATOR . 'agents.php');
             unlink($mapping . DIRECTORY_SEPARATOR . 'console.php');
