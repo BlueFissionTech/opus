@@ -144,8 +144,11 @@ final class RuntimePathResolver
             ) {
                 $candidates[] = $configuredAutoloader;
             }
-            if (basename($ancestor) === 'vendor') {
-                $candidates[] = self::join($ancestor, 'autoload.php');
+        }
+        foreach (self::ancestorDirectories($this->packageInstallRoot) as $ancestor) {
+            $ancestorAutoloader = self::join($ancestor, 'autoload.php');
+            if (is_file($ancestorAutoloader)) {
+                $candidates[] = $ancestorAutoloader;
                 break;
             }
         }
@@ -316,26 +319,30 @@ final class RuntimePathResolver
 
     private static function configuredVendorHost(array $searchRoots, string $autoloadPath): ?string
     {
+        $candidates = [];
         $checked = [];
         foreach ($searchRoots as $searchRoot) {
             $candidate = self::normalizeLexical((string) $searchRoot);
             while (!isset($checked[$candidate])) {
                 $checked[$candidate] = true;
-                $configuredAutoloader = self::configuredVendorAutoloader($candidate);
-                if ($configuredAutoloader !== null && self::pathsMatch($configuredAutoloader, $autoloadPath)) {
-                    return self::normalize($candidate);
-                }
-                if (
-                    basename($candidate) === 'vendor'
-                    && self::pathsMatch(self::join($candidate, 'autoload.php'), $autoloadPath)
-                ) {
-                    return self::normalize(dirname($candidate));
-                }
+                $candidates[] = $candidate;
                 $parent = dirname($candidate);
                 if ($parent === $candidate) {
                     break;
                 }
                 $candidate = $parent;
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            $configuredAutoloader = self::configuredVendorAutoloader($candidate);
+            if ($configuredAutoloader !== null && self::pathsMatch($configuredAutoloader, $autoloadPath)) {
+                return self::normalize($candidate);
+            }
+        }
+        foreach ($candidates as $candidate) {
+            if (self::pathsMatch(self::join($candidate, 'autoload.php'), $autoloadPath)) {
+                return self::normalize(dirname($candidate));
             }
         }
 
