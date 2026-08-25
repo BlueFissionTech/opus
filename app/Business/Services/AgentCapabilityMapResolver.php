@@ -121,6 +121,7 @@ final class AgentCapabilityMapResolver
 
         if (!$relationshipsValid) {
             $decisions->push(['decision' => 'deny', 'reason' => 'agent_relationship_invalid']);
+            $tools = Arr::make([]);
         }
 
         return new ResolvedAgentToolMap(
