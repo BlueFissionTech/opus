@@ -99,10 +99,12 @@ final class RuntimePathResolver
         }
 
         $autoloadPath = $this->autoloadPath();
-        $searchRoots = [$this->packageInstallRoot, dirname($autoloadPath)];
+        $searchRoots = [];
         if ($this->activeAutoloaderInstallPath !== null) {
             $searchRoots[] = dirname($this->activeAutoloaderInstallPath);
         }
+        $searchRoots[] = $this->packageInstallRoot;
+        $searchRoots[] = dirname($autoloadPath);
         $configuredHost = self::configuredVendorHost(
             $searchRoots,
             $autoloadPath
@@ -303,11 +305,13 @@ final class RuntimePathResolver
             return null;
         }
 
-        return self::isAbsolute($vendorDirectory)
-            ? $vendorDirectory
-            : self::normalizeLexical(
-                rtrim($hostRoot, '/\\') . DIRECTORY_SEPARATOR . ltrim($vendorDirectory, '/\\')
-            );
+        return self::normalizeDotSegments(
+            self::isAbsolute($vendorDirectory)
+                ? $vendorDirectory
+                : self::normalizeLexical(
+                    rtrim($hostRoot, '/\\') . DIRECTORY_SEPARATOR . ltrim($vendorDirectory, '/\\')
+                )
+        );
     }
 
     private static function configuredVendorHost(array $searchRoots, string $autoloadPath): ?string
@@ -378,6 +382,55 @@ final class RuntimePathResolver
     {
         $resolved = realpath($path);
         return self::normalizeLexical($resolved !== false ? $resolved : $path);
+    }
+
+    private static function normalizeDotSegments(string $path): string
+    {
+        $path = self::normalizeLexical($path);
+        $root = '';
+        $remainder = $path;
+        if (preg_match('/^[A-Za-z]:[\\/\\\\]/', $path) === 1) {
+            $root = substr($path, 0, 3);
+            $remainder = substr($path, 3);
+        } elseif (\str_starts_with($path, DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR)) {
+            $parts = \explode(DIRECTORY_SEPARATOR, ltrim($path, DIRECTORY_SEPARATOR));
+            $root = DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
+                . (string) array_shift($parts)
+                . DIRECTORY_SEPARATOR
+                . (string) array_shift($parts);
+            $remainder = \implode(DIRECTORY_SEPARATOR, $parts);
+        } elseif (\str_starts_with($path, DIRECTORY_SEPARATOR)) {
+            $root = DIRECTORY_SEPARATOR;
+            $remainder = ltrim($path, DIRECTORY_SEPARATOR);
+        }
+
+        $segments = [];
+        foreach (\explode(DIRECTORY_SEPARATOR, $remainder) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+            if ($segment === '..') {
+                if ($segments !== [] && end($segments) !== '..') {
+                    array_pop($segments);
+                } elseif ($root === '') {
+                    $segments[] = $segment;
+                }
+                continue;
+            }
+            $segments[] = $segment;
+        }
+
+        $suffix = \implode(DIRECTORY_SEPARATOR, $segments);
+        if ($root === '') {
+            return self::normalizeLexical($suffix);
+        }
+        if ($suffix === '') {
+            return self::normalizeLexical($root);
+        }
+
+        return self::normalizeLexical(
+            rtrim($root, '/\\') . DIRECTORY_SEPARATOR . $suffix
+        );
     }
 
     private static function normalizeLexical(string $path): string

@@ -206,6 +206,20 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
+    public function testConfiguredVendorDirectoryNormalizesDotSegmentsWithoutLosingItsHost(): void
+    {
+        $host = $this->workspace . '/dot-segment-vendor-host';
+        $package = $this->package($host . '/deps/bluefission/opus');
+        file_put_contents($host . '/composer.json', '{"config":{"vendor-dir":"./deps"}}');
+        $autoload = $host . '/deps/autoload.php';
+        $this->autoload($autoload);
+
+        $resolver = RuntimePathResolver::discover($package);
+
+        $this->assertSame(realpath($autoload), $resolver->autoloadPath());
+        $this->assertSame(realpath($host), $resolver->hostRoot());
+    }
+
     public function testConfiguredVendorDirectoryDoesNotCaptureAnUnrelatedNestedCheckout(): void
     {
         $host = $this->workspace . '/parent-composer-host';
