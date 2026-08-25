@@ -81,6 +81,22 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(2, $factory->created);
     }
 
+    public function testReplacingADescriptorEvictsEveryCachedRuntimeScope(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $replacement = $this->map('application', 'opus.central', 'central', [], 'opus.central.v2');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+
+        $service->registerMap($replacement);
+        $service->execute('opus.central', ['intent' => 'status'], new AgentRuntimeContext());
+
+        $this->assertSame(2, $factory->created);
+        $this->assertSame(['opus.central', 'opus.central.v2'], $factory->profiles);
+    }
+
     public function testPolicyDenialPreventsRuntimeConstruction(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -748,6 +764,7 @@ final class AgentCompositionServiceTest extends TestCase
             public mixed $onCancel = null;
             public int $created = 0;
             public array $runtimes = [];
+            public array $profiles = [];
 
             public function available(AgentDescriptor $descriptor, AgentRuntimeContext $context): bool
             {
@@ -843,6 +860,7 @@ final class AgentCompositionServiceTest extends TestCase
                     }
                 };
                 $this->created++;
+                $this->profiles[] = $descriptor->profile();
                 $this->runtimes[] = $runtime;
                 if (is_callable($this->onCreate)) {
                     ($this->onCreate)();
@@ -866,13 +884,14 @@ final class AgentCompositionServiceTest extends TestCase
         string $owner,
         string $id,
         string $mode,
-        array $permissions = []
+        array $permissions = [],
+        ?string $profile = null
     ): AgentCapabilityMap {
         return new AgentCapabilityMap(AgentCapabilityMapValidator::VERSION, $owner, [
             $id => [
                 'mode' => $mode,
                 'description' => 'Test agent.',
-                'profile' => $id,
+                'profile' => $profile ?? $id,
                 'tools' => ['command.list'],
                 'imports' => [],
                 'exports' => [],

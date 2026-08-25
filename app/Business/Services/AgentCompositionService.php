@@ -42,6 +42,12 @@ final class AgentCompositionService extends Service
         $registered = 0;
         Arr::make($map->agents())->each(function ($descriptor) use (&$registered): void {
             if ($descriptor instanceof AgentDescriptor) {
+                $existing = $this->descriptors->get($descriptor->id());
+                if ($existing instanceof AgentDescriptor
+                    && $this->descriptorContract($existing) !== $this->descriptorContract($descriptor)
+                ) {
+                    $this->evictRuntimes($descriptor->id());
+                }
                 $this->descriptors->set($descriptor->id(), $descriptor);
                 $registered++;
             }
@@ -55,6 +61,31 @@ final class AgentCompositionService extends Service
             self::REGISTERED,
             ['registered' => $registered]
         );
+    }
+
+    private function descriptorContract(AgentDescriptor $descriptor): array
+    {
+        return [
+            'owner' => $descriptor->owner(),
+            'mode' => $descriptor->mode(),
+            'description' => $descriptor->description(),
+            'profile' => $descriptor->profile(),
+            'tools' => $descriptor->tools(),
+            'imports' => $descriptor->imports(),
+            'exports' => $descriptor->exports(),
+            'permissions' => $descriptor->permissions(),
+            'lifecycle_states' => $descriptor->lifecycleStates(),
+        ];
+    }
+
+    private function evictRuntimes(string $agentId): void
+    {
+        $suffix = '::' . $agentId;
+        $this->runtimes->keys()->each(function ($key) use ($suffix): void {
+            if (Str::make((string) $key)->endsWith($suffix)) {
+                $this->runtimes->delete((string) $key);
+            }
+        });
     }
 
     public function start(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
