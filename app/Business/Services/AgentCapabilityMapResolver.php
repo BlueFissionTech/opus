@@ -12,6 +12,7 @@ use BlueFission\Arr;
 final class AgentCapabilityMapResolver
 {
     private Arr $maps;
+    private Arr $catalogMaps;
     private AgentCapabilityMapValidator $validator;
 
     public function __construct(
@@ -21,6 +22,7 @@ final class AgentCapabilityMapResolver
         ?AgentCapabilityMapValidator $validator = null
     ) {
         $this->maps = Arr::make([]);
+        $this->catalogMaps = Arr::make([]);
         $this->validator = $validator ?? new AgentCapabilityMapValidator();
         Arr::make($addOns)->each(function ($map, $owner): void {
             if ($map instanceof AgentCapabilityMap && $map->owner() === $owner) {
@@ -54,7 +56,7 @@ final class AgentCapabilityMapResolver
         $this->loadActiveMaps($activeAddOns);
         $relationships = Arr::make($this->validator->validateRelationships(
             $this->application,
-            $this->maps->toArray()
+            $this->allMaps()->toArray()
         ));
         $relationshipsValid = (bool) $relationships->get('valid');
         $source = $this->find($agentId);
@@ -150,7 +152,7 @@ final class AgentCapabilityMapResolver
             return [$this->application, $agent];
         }
 
-        foreach ($this->maps as $map) {
+        foreach ($this->allMaps() as $map) {
             $agent = $map->agent($agentId);
             if ($agent instanceof AgentDescriptor) {
                 return [$map, $agent];
@@ -162,6 +164,7 @@ final class AgentCapabilityMapResolver
 
     private function loadActiveMaps(Arr $activeAddOns): void
     {
+        $this->catalogMaps = Arr::make([]);
         if ($this->catalog === null) {
             return;
         }
@@ -169,9 +172,14 @@ final class AgentCapabilityMapResolver
         Arr::make($this->catalog->load($activeAddOns->toArray()))
             ->each(function ($map, $owner): void {
                 if ($map instanceof AgentCapabilityMap && $map->owner() === $owner) {
-                    $this->register($map);
+                    $this->catalogMaps->set((string) $owner, $map);
                 }
             });
+    }
+
+    private function allMaps(): Arr
+    {
+        return Arr::make($this->maps->toArray())->merge($this->catalogMaps->toArray());
     }
 
     private function isActive(AgentDescriptor $agent, Arr $activeAddOns, Arr $lifecycleStates): bool
