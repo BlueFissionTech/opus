@@ -285,6 +285,29 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
+    public function testAbsoluteEnvironmentVendorOverrideCannotMakeTheInstalledPackageTheHost(): void
+    {
+        $host = $this->workspace . '/absolute-environment-vendor-host';
+        $package = $this->package($host . '/build/deps/bluefission/opus');
+        file_put_contents($host . '/composer.json', '{}');
+        file_put_contents($package . '/composer.json', '{}');
+        $autoload = $host . '/build/deps/autoload.php';
+        $this->autoload($autoload);
+        $previous = getenv('COMPOSER_VENDOR_DIR');
+        putenv('COMPOSER_VENDOR_DIR=' . dirname($autoload));
+
+        try {
+            $resolver = RuntimePathResolver::discover($package);
+
+            $this->assertSame(realpath($autoload), $resolver->autoloadPath());
+            $this->assertSame(realpath($host), $resolver->hostRoot());
+        } finally {
+            $previous === false
+                ? putenv('COMPOSER_VENDOR_DIR')
+                : putenv('COMPOSER_VENDOR_DIR=' . $previous);
+        }
+    }
+
     public function testConfiguredVendorDirectoryNormalizesDotSegmentsWithoutLosingItsHost(): void
     {
         $host = $this->workspace . '/dot-segment-vendor-host';

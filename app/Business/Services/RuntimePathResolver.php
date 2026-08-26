@@ -328,12 +328,24 @@ final class RuntimePathResolver
             return null;
         }
 
+        if (self::isAbsolute($vendorDirectory)) {
+            $vendorRoot = self::normalizeDotSegments($vendorDirectory);
+            $canonicalHost = self::normalize($hostRoot);
+            $canonicalVendor = self::normalize($vendorRoot);
+            if (
+                self::pathsMatch($canonicalHost, $canonicalVendor)
+                || self::pathStartsWith($canonicalHost, $canonicalVendor)
+            ) {
+                return null;
+            }
+
+            return $vendorRoot;
+        }
+
         return self::normalizeDotSegments(
-            self::isAbsolute($vendorDirectory)
-                ? $vendorDirectory
-                : self::normalizeLexical(
-                    rtrim($hostRoot, '/\\') . DIRECTORY_SEPARATOR . ltrim($vendorDirectory, '/\\')
-                )
+            self::normalizeLexical(
+                rtrim($hostRoot, '/\\') . DIRECTORY_SEPARATOR . ltrim($vendorDirectory, '/\\')
+            )
         );
     }
 
