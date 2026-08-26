@@ -93,6 +93,20 @@ PHP
         $this->assertSame(['sample' => ['list']], $result['value']['resources']);
     }
 
+    public function testTopLevelParserRecognizesParenthesizedLiteralKeys(): void
+    {
+        $path = $this->workspace . '/parenthesized-key.php';
+        file_put_contents(
+            $path,
+            "<?php\nreturn [('resources') => ['sample' => ['list']]];\n"
+        );
+
+        $result = (new DeclarativeArrayParser())->parseTopLevelKey($path, 'resources');
+
+        $this->assertTrue($result['valid']);
+        $this->assertSame(['sample' => ['list']], $result['value']);
+    }
+
     public function testDeclarativeParserRejectsKeysThatPhpNormalizesToTheSameOffset(): void
     {
         $path = $this->workspace . '/normalized-duplicates.php';
