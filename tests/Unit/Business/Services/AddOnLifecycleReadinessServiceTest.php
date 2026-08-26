@@ -33,6 +33,24 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('retry_lifecycle', $result['nextAction']);
     }
 
+    public function testBlankRequiredStageErrorUsesTheStageFallback(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'stage' => 'migrations',
+            'error' => '',
+            'migrations' => ['ok' => false, 'error' => ''],
+            'population' => ['ok' => true],
+            'hooks' => [],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('migrations', $result['stage']);
+        $this->assertSame('Add-on migrations failed.', $result['error']);
+        $this->assertSame('Add-on migrations failed.', $result['readiness']['reasons'][0]['message']);
+    }
+
     public function testAbsentOptionalHookIsReportedAsSkippedWithoutContradictingSuccess(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([

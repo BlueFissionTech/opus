@@ -75,7 +75,8 @@ final class AddOnLifecycleReadinessService extends Service
                 return;
             }
 
-            $message = (string) Arr::getPath($result, 'error', "Add-on {$stage} failed.");
+            $error = (string) Arr::getPath($result, 'error', '');
+            $message = Str::isNotEmpty($error) ? $error : "Add-on {$stage} failed.";
             $reasons->push($this->reason($code, $stage, $message));
         });
 
