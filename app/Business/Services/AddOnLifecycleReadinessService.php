@@ -75,16 +75,17 @@ final class AddOnLifecycleReadinessService extends Service
                 return;
             }
 
-            $error = (string) Arr::getPath($result, 'error', '');
+            $error = Str::make((string) Arr::getPath($result, 'error', ''))->trim()->val();
             $message = Str::isNotEmpty($error) ? $error : "Add-on {$stage} failed.";
             $reasons->push($this->reason($code, $stage, $message));
         });
 
         if ($this->hasIndependentAggregateFailure($outcome, $reasons, $optionalHookFailureOnly)) {
+            $aggregateError = Str::make((string) $outcome->get('error'))->trim()->val();
             $reasons->unshift($this->reason(
                 'addon_lifecycle_failed',
                 (string) ($outcome->get('stage') ?: 'lifecycle'),
-                (string) ($outcome->get('error') ?: 'Add-on lifecycle action failed.')
+                Str::isNotEmpty($aggregateError) ? $aggregateError : 'Add-on lifecycle action failed.'
             ));
         }
 
@@ -114,7 +115,7 @@ final class AddOnLifecycleReadinessService extends Service
     private function selectedReason(Arr $outcome, Arr $reasons): Arr
     {
         $stage = (string) $outcome->get('stage');
-        $message = (string) $outcome->get('error');
+        $message = Str::make((string) $outcome->get('error'))->trim()->val();
         $messageSelectsStage = $this->messageSelectsStage($stage)
             && Str::isNotEmpty($message);
         $matching = $reasons->filter(fn ($reason): bool =>
@@ -192,7 +193,7 @@ final class AddOnLifecycleReadinessService extends Service
         }
 
         $stage = (string) $outcome->get('stage');
-        $message = (string) $outcome->get('error');
+        $message = Str::make((string) $outcome->get('error'))->trim()->val();
         if (Str::isEmpty($stage) && Str::isEmpty($message)) {
             return false;
         }

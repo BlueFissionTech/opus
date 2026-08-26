@@ -39,8 +39,8 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
             'ok' => false,
             'action' => 'install',
             'stage' => 'migrations',
-            'error' => '',
-            'migrations' => ['ok' => false, 'error' => ''],
+            'error' => '   ',
+            'migrations' => ['ok' => false, 'error' => " \t "],
             'population' => ['ok' => true],
             'hooks' => [],
         ]);
