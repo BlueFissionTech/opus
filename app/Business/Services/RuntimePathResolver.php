@@ -105,6 +105,9 @@ final class RuntimePathResolver
                 dirname($this->packageInstallRoot) . DIRECTORY_SEPARATOR . 'vendor'
             );
         }
+        $searchRoots[] = self::normalizeLexical(
+            $this->packageInstallRoot . DIRECTORY_SEPARATOR . 'vendor'
+        );
         $searchRoots[] = $this->packageInstallRoot;
         $searchRoots[] = dirname($autoloadPath);
         $configuredHost = self::configuredVendorHost(

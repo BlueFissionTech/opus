@@ -369,6 +369,25 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
+    public function testSourceRootWithASymlinkedPackageVendorRetainsLexicalHostOwnership(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {
+            $this->markTestSkipped('Directory symlinks are unavailable in this environment.');
+        }
+
+        $sharedVendor = $this->workspace . '/shared-source/vendor';
+        $this->autoload($sharedVendor . '/autoload.php');
+        $package = $this->package($this->workspace . '/source/opus');
+        if (!@symlink($sharedVendor, $package . '/vendor')) {
+            $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
+        }
+
+        $resolver = RuntimePathResolver::discover($package);
+
+        $this->assertSame(realpath($sharedVendor . '/autoload.php'), $resolver->autoloadPath());
+        $this->assertSame(realpath($package), $resolver->hostRoot());
+    }
+
     public function testComposerProxyEntrypointRetainsItsLexicalAutoloaderPath(): void
     {
         $vendor = $this->workspace . '/proxy/deps';
