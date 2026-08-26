@@ -31,7 +31,7 @@ final class MySQLAgentRuntimeStateSynchronizer implements IAgentRuntimeStateSync
             ? (array) $result->fetch_assoc()
             : [];
         if ((int) Arr::getPath($row, 'acquired', 0) !== 1) {
-            throw new RuntimeException('Distributed agent runtime state lock is unavailable.');
+            throw new RuntimeException('agent_runtime_state_lock_unavailable');
         }
 
         try {

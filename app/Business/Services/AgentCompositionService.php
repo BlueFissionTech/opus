@@ -771,6 +771,43 @@ final class AgentCompositionService extends Service
         AgentRuntimeContext $context,
         string $state
     ): AgentRuntimeResult {
+        try {
+            return $this->states->synchronized(
+                $this->claimScope('lifecycle', $agentId, $context->tenantId()),
+                fn (): AgentRuntimeResult => $this->stableIdempotentSynchronized(
+                    $action,
+                    $agentId,
+                    $context,
+                    $state
+                )
+            );
+        } catch (Throwable $exception) {
+            if ($this->claimGuardUnavailable($exception)) {
+                return AgentRuntimeResult::denied(
+                    $action,
+                    $agentId,
+                    $context->tenantId(),
+                    $this->state($agentId, $context),
+                    'agent_transition_in_progress'
+                );
+            }
+
+            return AgentRuntimeResult::failed(
+                $action,
+                $agentId,
+                $context->tenantId(),
+                $this->state($agentId, $context),
+                $exception->getMessage()
+            );
+        }
+    }
+
+    private function stableIdempotentSynchronized(
+        string $action,
+        string $agentId,
+        AgentRuntimeContext $context,
+        string $state
+    ): AgentRuntimeResult {
         $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
         $transitionId = Arr::getPath($persisted, 'transition_id');
         if (Str::isNotEmpty((string) $transitionId)) {

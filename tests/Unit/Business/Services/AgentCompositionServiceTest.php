@@ -846,9 +846,9 @@ final class AgentCompositionServiceTest extends TestCase
                 $states->get('opus.central', null) ?? [],
                 ['transition_expires_at' => time() - 1]
             ));
-            $concurrent = $otherHost->stop(
+            $concurrent = $otherHost->start(
                 'opus.central',
-                new AgentRuntimeContext(correlationId: 'stop-b')
+                new AgentRuntimeContext(correlationId: 'start-b')
             );
         };
 
@@ -931,6 +931,36 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertCount(2, $link->queries);
         $this->assertStringContainsString('GET_LOCK', $link->queries[0]);
         $this->assertStringContainsString('RELEASE_LOCK', $link->queries[1]);
+    }
+
+    public function testMySQLStateSynchronizerUsesTheCanonicalContentionCode(): void
+    {
+        $link = new class extends MySQLLink {
+            public function open(): IObj
+            {
+                return $this;
+            }
+
+            public function query($query = null): IObj
+            {
+                $this->_result = new class {
+                    public function fetch_assoc(): array
+                    {
+                        return ['acquired' => 0];
+                    }
+                };
+
+                return $this;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('agent_runtime_state_lock_unavailable');
+
+        (new MySQLAgentRuntimeStateSynchronizer($link))->synchronized(
+            'tenant-a::opus.central',
+            fn (): string => 'unreachable'
+        );
     }
 
     public function testApplicationScopeDoesNotCollideWithTenantNamedApplication(): void
