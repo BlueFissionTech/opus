@@ -119,6 +119,13 @@ Acceptance criteria:
 - Opus selects permitted participants and context. Automata owns hierarchical
   and peer orchestration execution; Opus does not reimplement orchestration
   patterns.
+- Delegation admits only the application coordinator and explicitly selected
+  specialist or generated add-on agents. The coordinator receives participant
+  identifiers instead of specialist tool maps, while each specialist executes
+  through its own capability, tenant, lifecycle, and runtime boundary.
+- Automata hierarchical orchestration receives normalized, provider-neutral
+  worker outcomes. Specialist workers do not inherit peer results unless a
+  later collaboration contract explicitly grants that exchange.
 
 ### Templates And Generation
 
