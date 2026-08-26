@@ -33,7 +33,13 @@ final class DeclarativeArrayParser
 
             $duplicates = Arr::make([]);
             $value = $this->consumeValue($tokens, $duplicates, '$');
-            if ($tokens->shift() !== ';' || !$tokens->isEmpty()) {
+            if ($tokens->shift() !== ';') {
+                throw new UnexpectedValueException('Mapping may not contain executable statements.');
+            }
+            if ($this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
+                $tokens->shift();
+            }
+            if (!$tokens->isEmpty()) {
                 throw new UnexpectedValueException('Mapping may not contain executable statements.');
             }
             if (!Arr::is($value)) {

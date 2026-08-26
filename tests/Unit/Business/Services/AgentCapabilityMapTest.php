@@ -82,6 +82,17 @@ PHP
         $this->assertSame('mapping_declarative', $result['errors'][0]['code']);
     }
 
+    public function testDeclarativeParserAcceptsAnOptionalClosingTag(): void
+    {
+        $path = $this->workspace . '/closing-tag.php';
+        file_put_contents($path, "<?php\nreturn ['resources' => ['sample' => ['list']]];\n?>");
+
+        $result = (new DeclarativeArrayParser())->parseFile($path);
+
+        $this->assertTrue($result['valid']);
+        $this->assertSame(['sample' => ['list']], $result['value']['resources']);
+    }
+
     public function testDeclarativeParserRejectsKeysThatPhpNormalizesToTheSameOffset(): void
     {
         $path = $this->workspace . '/normalized-duplicates.php';
@@ -784,6 +795,10 @@ PHP
             $continuations
         );
         $scope = [
+            'actor' => 'operator-a',
+            'tenant_id' => 'tenant-a',
+        ];
+        $refreshedScope = [
             'actor' => ['id' => 'operator-a'],
             'tenant_id' => 'tenant-a',
         ];
@@ -805,7 +820,7 @@ PHP
             new AgentCapabilityMapResolver($root),
             $continuations
         );
-        $completed = $nextRequest->process(CommandRequest::resume('continuation-a', true, $scope));
+        $completed = $nextRequest->process(CommandRequest::resume('continuation-a', true, $refreshedScope));
 
         $this->assertSame(CommandResult::INVALID, $unscoped->status());
         $this->assertSame('actor_scope_required', $unscoped->metadata()['agent_reason']);

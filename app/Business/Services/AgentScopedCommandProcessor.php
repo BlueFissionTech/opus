@@ -135,7 +135,8 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             || !$this->hasActorScope($context->get('actor'))
             || $continuation->get('agent_id') !== $resolved->agentId()
             || $continuation->get('tenant_id') !== $resolved->tenantId()
-            || $continuation->get('actor') !== $context->get('actor')
+            || $this->actorIdentity($continuation->get('actor'))
+                !== $this->actorIdentity($context->get('actor'))
             || !Str::is($tool)
             || !$resolved->allows((string) $tool)
         ) {
@@ -165,14 +166,16 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
 
     private function hasActorScope(mixed $actor): bool
     {
-        if (Str::is($actor)) {
-            return Str::make((string) $actor)->trim()->isNotEmpty();
-        }
-        if (!Arr::is($actor)) {
-            return false;
-        }
+        return Str::isNotEmpty((string) $this->actorIdentity($actor));
+    }
 
-        return Str::make((string) Arr::getPath((array) $actor, 'id'))->trim()->isNotEmpty();
+    private function actorIdentity(mixed $actor): ?string
+    {
+        $identity = Str::is($actor)
+            ? Str::make((string) $actor)->trim()->val()
+            : Str::make((string) Arr::getPath((array) $actor, 'id'))->trim()->val();
+
+        return Str::isNotEmpty($identity) ? $identity : null;
     }
 
     private function resolve(Arr $context): ResolvedAgentToolMap
