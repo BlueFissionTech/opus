@@ -1074,6 +1074,62 @@ final class AgentCompositionServiceTest extends TestCase
         );
     }
 
+    public function testMySQLStateSynchronizerRejectsSameSessionReentrancy(): void
+    {
+        $link = new class extends MySQLLink {
+            public array $queries = [];
+
+            public function open(): IObj
+            {
+                return $this;
+            }
+
+            public function query($query = null): IObj
+            {
+                $this->queries[] = (string) $query;
+                $acquired = Str::make((string) $query)->contains('GET_LOCK') ? 1 : null;
+                $this->_result = new class($acquired) {
+                    public function __construct(private ?int $acquired)
+                    {
+                    }
+
+                    public function fetch_assoc(): array
+                    {
+                        return ['acquired' => $this->acquired];
+                    }
+                };
+
+                return $this;
+            }
+        };
+        $synchronizer = new MySQLAgentRuntimeStateSynchronizer($link);
+        $nestedError = null;
+
+        $synchronizer->synchronized('tenant-a::opus.central', function () use (
+            $synchronizer,
+            &$nestedError
+        ): void {
+            try {
+                $synchronizer->synchronized(
+                    'tenant-a::opus.central',
+                    fn (): string => 'unreachable'
+                );
+            } catch (\RuntimeException $exception) {
+                $nestedError = $exception->getMessage();
+            }
+        });
+        $this->assertSame('agent_runtime_state_lock_unavailable', $nestedError);
+
+        $this->assertSame(
+            'available',
+            $synchronizer->synchronized(
+                'tenant-a::opus.central',
+                fn (): string => 'available'
+            )
+        );
+        $this->assertCount(4, $link->queries);
+    }
+
     public function testApplicationScopeDoesNotCollideWithTenantNamedApplication(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
