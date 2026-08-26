@@ -491,6 +491,43 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame('abandoned-execution', $factory->runtimes[0]->cancelledExecutions[0]);
     }
 
+    public function testSuccessfulStopReleasesAnAbandonedActiveExecutionClaim(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $states->put('opus.central', null, Arr::merge(
+            $states->get('opus.central', null) ?? [],
+            [
+                'execution_id' => 'abandoned-execution',
+                'active_execution_id' => 'abandoned-execution',
+            ]
+        ));
+
+        $stopped = $service->stop(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'stop-abandoned')
+        );
+        $restarted = $service->start(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'restart-after-stop')
+        );
+        $next = $service->execute(
+            'opus.central',
+            ['intent' => 'next'],
+            new AgentRuntimeContext(correlationId: 'execute-after-stop')
+        );
+
+        $this->assertTrue($stopped->ok());
+        $this->assertNull($states->get('opus.central', null)['active_execution_id']);
+        $this->assertTrue($restarted->ok());
+        $this->assertTrue($next->ok());
+        $this->assertSame(1, $factory->runtimes[0]->calls['execute']);
+    }
+
     public function testCancellationGuardOutlivesAnExpiredRecoveryLease(): void
     {
         $root = $this->map('application', 'opus.central', 'central');

@@ -528,6 +528,7 @@ final class AgentCompositionService extends Service
     ): AgentRuntimeResult {
         $transitionId = $this->operationId();
         $persisted = $this->states->get($agentId, $context->tenantId());
+        $activeExecutionId = Arr::getPath((array) $persisted, 'active_execution_id');
         $existingTransition = Arr::getPath((array) $persisted, 'transition_id');
         $existingTransitionExpiresAt = (int) Arr::getPath(
             (array) $persisted,
@@ -582,9 +583,10 @@ final class AgentCompositionService extends Service
         $state = $result->ok()
             ? $target
             : ($result->status() === AgentRuntimeResult::UNAVAILABLE ? $source : self::FAILED);
-        $updated = $this->states->compareAndPut($agentId, $context->tenantId(), [
+        $completionExpected = [
             'transition_id' => $transitionId,
-        ], [
+        ];
+        $completion = [
             'state' => $state,
             'status' => $result->status(),
             'diagnostics' => $result->diagnostics(),
@@ -593,7 +595,20 @@ final class AgentCompositionService extends Service
             'transition_action' => null,
             'transition_correlation_id' => null,
             'transition_expires_at' => null,
-        ]);
+        ];
+        if ($action === 'stop'
+            && $result->ok()
+            && Str::isNotEmpty((string) $activeExecutionId)
+        ) {
+            $completionExpected['active_execution_id'] = $activeExecutionId;
+            $completion['active_execution_id'] = null;
+        }
+        $updated = $this->states->compareAndPut(
+            $agentId,
+            $context->tenantId(),
+            $completionExpected,
+            $completion
+        );
         if (!$updated) {
             return $result
                 ->withMetadata(['transition_superseded' => true])
