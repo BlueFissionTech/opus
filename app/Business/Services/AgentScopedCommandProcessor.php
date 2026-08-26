@@ -130,16 +130,18 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
         $token = (string) $request->continuationToken();
         $continuation = Arr::make((array) $this->continuations->get($token));
         $tool = $continuation->get('tool');
-        if ($continuation->isEmpty()
+        $scopeMismatch = $continuation->isEmpty()
             || !$this->hasActorScope($continuation->get('actor'))
             || !$this->hasActorScope($context->get('actor'))
             || $continuation->get('agent_id') !== $resolved->agentId()
             || $continuation->get('tenant_id') !== $resolved->tenantId()
             || $this->actorIdentity($continuation->get('actor'))
                 !== $this->actorIdentity($context->get('actor'))
-            || !Str::is($tool)
-            || !$resolved->allows((string) $tool)
-        ) {
+            || !Str::is($tool);
+        $capabilityRevoked = $request->approved() !== false
+            && Str::is($tool)
+            && !$resolved->allows((string) $tool);
+        if ($scopeMismatch || $capabilityRevoked) {
             return CommandResult::invalid(
                 'Command continuation is unavailable to this agent.',
                 ['agent_continuation_denied'],
@@ -155,11 +157,12 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
         $this->continuations->delete($token);
 
         $result = $this->processor->process($request);
+        $rejected = $request->approved() === false;
 
         return $this->withMetadata($result, Arr::merge($metadata, [
             'agent_tool' => $tool,
-            'agent_decision' => 'allow',
-            'agent_reason' => 'continuation_granted',
+            'agent_decision' => $rejected ? 'deny' : 'allow',
+            'agent_reason' => $rejected ? 'continuation_rejected' : 'continuation_granted',
             'agent_result_status' => $result->status(),
         ]));
     }

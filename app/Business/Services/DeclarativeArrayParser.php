@@ -93,8 +93,18 @@ final class DeclarativeArrayParser
             $found = false;
             $value = null;
             while (!$tokens->isEmpty() && $tokens->get(0) !== $closing) {
-                $candidate = $this->consumeValue($tokens, $duplicates, '$');
-                if ($this->tokenIs($tokens->get(0), T_DOUBLE_ARROW)) {
+                $probe = Arr::make($tokens->toArray());
+                $candidate = null;
+                $keyed = false;
+                try {
+                    $candidate = $this->consumeValue($probe, Arr::make([]), '$');
+                    $keyed = $this->tokenIs($probe->get(0), T_DOUBLE_ARROW);
+                } catch (UnexpectedValueException) {
+                    // Safe non-literal values are skipped without executing the mapping.
+                }
+
+                if ($keyed) {
+                    $tokens = $probe;
                     $tokens->shift();
                     if ((string) $candidate === $key) {
                         if ($found) {
@@ -105,6 +115,8 @@ final class DeclarativeArrayParser
                     } else {
                         $this->skipValue($tokens, $closing);
                     }
+                } else {
+                    $this->skipValue($tokens, $closing);
                 }
 
                 if ($tokens->get(0) === ',') {

@@ -150,6 +150,25 @@ PHP
         $this->assertSame(['sample.list', 'sample.show'], $tools);
     }
 
+    public function testDeclarativeConsoleToolsRemainAvailableAfterAnUnkeyedSafeValue(): void
+    {
+        $path = $this->workspace . '/console-unkeyed-runtime-value.php';
+        file_put_contents($path, <<<'PHP'
+<?php
+return [
+    static fn (): bool => true,
+    'resources' => [
+        'sample' => ['list'],
+    ],
+];
+PHP
+        );
+
+        $tools = (new AddOnContractValidator())->knownToolsFromConsoleFile($path);
+
+        $this->assertSame(['sample.list'], $tools);
+    }
+
     public function testKnownConsoleToolsDiscardInvalidIdentifiers(): void
     {
         $tools = (new AgentCapabilityMapValidator())->knownToolsFromConsole([
@@ -862,6 +881,60 @@ PHP
         $this->assertSame(CommandResult::COMPLETED, $completed->status());
         $this->assertSame(1, $processor->resumes);
         $this->assertSame('opus.central', $completed->metadata()['agent_id']);
+    }
+
+    public function testRejectedContinuationIsConsumedAfterCapabilityRevocation(): void
+    {
+        if (!interface_exists(ICommandProcessor::class)
+            || !class_exists(CommandRequest::class)
+            || !class_exists(CommandResult::class)
+        ) {
+            $this->markTestSkipped('The installed Wise checkout predates the typed command processor contract.');
+        }
+
+        $processor = new class implements ICommandProcessor {
+            public ?bool $approved = null;
+
+            public function process(CommandRequest|Command|array|string $request): CommandResult
+            {
+                $request = $request instanceof CommandRequest ? $request : new CommandRequest($request);
+                $this->approved = $request->approved();
+
+                return CommandResult::completed(['rejected' => true]);
+            }
+        };
+        $root = $this->map(
+            $this->mapping('application', 'opus.central', 'central', []),
+            []
+        );
+        $continuations = $this->continuationStore();
+        $continuations->put('continuation-revoked', [
+            'agent_id' => 'opus.central',
+            'tenant_id' => 'tenant-a',
+            'actor' => ['id' => 'operator-a'],
+            'tool' => 'command.list',
+        ]);
+        $scoped = new AgentScopedCommandProcessor(
+            $processor,
+            new AgentCapabilityMapResolver($root),
+            $continuations
+        );
+
+        $result = $scoped->process(CommandRequest::resume(
+            'continuation-revoked',
+            false,
+            [
+                'agent_id' => 'opus.central',
+                'tenant_id' => 'tenant-a',
+                'actor' => ['id' => 'operator-a'],
+            ]
+        ));
+
+        $this->assertSame(CommandResult::COMPLETED, $result->status());
+        $this->assertFalse($processor->approved);
+        $this->assertNull($continuations->get('continuation-revoked'));
+        $this->assertSame('deny', $result->metadata()['agent_decision']);
+        $this->assertSame('continuation_rejected', $result->metadata()['agent_reason']);
     }
 
     public function testBotMiddlewareResumesWiseContinuationWithTheAuthenticatedContext(): void
