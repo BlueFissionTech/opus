@@ -947,6 +947,17 @@ PHP
         }
     }
 
+    public function testContinuationRefreshPreservesAStringActorIdentity(): void
+    {
+        $context = (new AgentCommandContextProvider())->forContinuation([
+            'actor' => 'operator-a',
+            'tenant_id' => 'tenant-a',
+        ]);
+
+        $this->assertSame('operator-a', $context['actor']['id']);
+        $this->assertSame('tenant-a', $context['tenant_id']);
+    }
+
     private function continuationStore(): IAgentContinuationScopeStore
     {
         return new class implements IAgentContinuationScopeStore {
