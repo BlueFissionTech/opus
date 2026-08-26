@@ -53,6 +53,18 @@ class TerminalBootstrapOrderTest extends TestCase
         $this->assertTrue(Str::make($source)->contains('isPackageInstallRoot'));
     }
 
+    public function testWebSocketWorkerRestoresUnlimitedExecutionTimeAfterSettings(): void
+    {
+        $source = FileSystem::fileContents(dirname(__DIR__, 2) . '/websocket-server.php');
+
+        $this->assertIsString($source);
+        $settings = Str::pos($source, '/common/helpers/settings.php');
+        $unlimited = Str::pos($source, 'set_time_limit(0)');
+        $this->assertNotFalse($settings);
+        $this->assertNotFalse($unlimited);
+        $this->assertGreaterThan($settings, $unlimited);
+    }
+
     /**
      * @dataProvider loaderEntrypoints
      */

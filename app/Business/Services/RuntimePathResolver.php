@@ -110,6 +110,10 @@ final class RuntimePathResolver
         );
         $searchRoots[] = $this->packageInstallRoot;
         $searchRoots[] = dirname($autoloadPath);
+        $packageAutoloader = self::join($this->packageInstallRoot, 'vendor/autoload.php');
+        if (is_file($packageAutoloader) && self::pathsMatch($packageAutoloader, $autoloadPath)) {
+            return self::normalize($this->packageInstallRoot);
+        }
         $configuredHost = self::configuredVendorHost(
             $searchRoots,
             $autoloadPath
@@ -354,6 +358,20 @@ final class RuntimePathResolver
             $configuredAutoloader = self::configuredVendorAutoloader($candidate);
             if ($configuredAutoloader !== null && self::pathsMatch($configuredAutoloader, $autoloadPath)) {
                 return self::normalize($candidate);
+            }
+        }
+        foreach ($candidates as $candidate) {
+            if (!is_file(self::join($candidate, 'composer.json'))) {
+                continue;
+            }
+            foreach ($searchRoots as $searchRoot) {
+                $searchRoot = self::normalizeLexical((string) $searchRoot);
+                if (
+                    ($searchRoot === $candidate || self::pathStartsWith($searchRoot, $candidate))
+                    && self::pathsMatch(self::join($searchRoot, 'autoload.php'), $autoloadPath)
+                ) {
+                    return self::normalize($candidate);
+                }
             }
         }
         foreach ($candidates as $candidate) {

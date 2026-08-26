@@ -2,6 +2,7 @@
 $runtimePaths = require __DIR__ . '/common/bootstrap/runtime.php';
 require $runtimePaths->packageRoot() . '/common/helpers/functions.php';
 require $runtimePaths->packageRoot() . '/common/helpers/settings.php';
+set_time_limit(0);
 
 use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;

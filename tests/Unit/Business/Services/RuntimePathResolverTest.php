@@ -271,6 +271,20 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
+    public function testNestedEnvironmentSelectedVendorDirectoryResolvesByItsOwningManifest(): void
+    {
+        $host = $this->workspace . '/nested-environment-vendor-host';
+        $package = $this->package($host . '/build/deps/bluefission/opus');
+        file_put_contents($host . '/composer.json', '{}');
+        $autoload = $host . '/build/deps/autoload.php';
+        $this->autoload($autoload);
+
+        $resolver = RuntimePathResolver::discover($package);
+
+        $this->assertSame(realpath($autoload), $resolver->autoloadPath());
+        $this->assertSame(realpath($host), $resolver->hostRoot());
+    }
+
     public function testConfiguredVendorDirectoryNormalizesDotSegmentsWithoutLosingItsHost(): void
     {
         $host = $this->workspace . '/dot-segment-vendor-host';
