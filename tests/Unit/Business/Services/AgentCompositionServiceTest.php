@@ -459,6 +459,76 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertNull($states->get('opus.central', null)['cancellation_id']);
     }
 
+    public function testSuccessfulCancellationReleasesTheMatchingActiveExecutionClaim(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $states->put('opus.central', null, Arr::merge(
+            $states->get('opus.central', null) ?? [],
+            [
+                'execution_id' => 'abandoned-execution',
+                'active_execution_id' => 'abandoned-execution',
+            ]
+        ));
+
+        $cancelled = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-abandoned')
+        );
+        $next = $service->execute(
+            'opus.central',
+            ['intent' => 'next'],
+            new AgentRuntimeContext(correlationId: 'execute-next')
+        );
+
+        $this->assertTrue($cancelled->ok());
+        $this->assertNull($states->get('opus.central', null)['active_execution_id']);
+        $this->assertTrue($next->ok());
+        $this->assertSame('abandoned-execution', $factory->runtimes[0]->cancelledExecutions[0]);
+    }
+
+    public function testCancellationGuardOutlivesAnExpiredRecoveryLease(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $otherHost = new AgentCompositionService(
+            new AgentCapabilityMapResolver($root),
+            $factory,
+            $states
+        );
+        $otherHost->registerMap($root);
+        $concurrent = null;
+        $factory->onCancel = function () use ($states, $otherHost, &$concurrent): void {
+            $states->put('opus.central', null, Arr::merge(
+                $states->get('opus.central', null) ?? [],
+                ['cancellation_expires_at' => time() - 1]
+            ));
+            $concurrent = $otherHost->cancel(
+                'opus.central',
+                new AgentRuntimeContext(correlationId: 'cancel-b')
+            );
+        };
+
+        $cancelled = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-a')
+        );
+
+        $this->assertTrue($cancelled->ok());
+        $this->assertInstanceOf(AgentRuntimeResult::class, $concurrent);
+        $this->assertSame(AgentRuntimeResult::DENIED, $concurrent->status());
+        $this->assertSame(['agent_cancellation_in_progress'], $concurrent->diagnostics());
+        $this->assertSame(1, $factory->runtimes[0]->calls['cancel']);
+    }
+
     public function testRuntimeCreationFailureDoesNotClearCancellationEvidence(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -756,6 +826,44 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(['agent_transition_in_progress'], $result->diagnostics());
     }
 
+    public function testLifecycleGuardOutlivesAnExpiredRecoveryLease(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $otherHost = new AgentCompositionService(
+            new AgentCapabilityMapResolver($root),
+            $factory,
+            $states
+        );
+        $otherHost->registerMap($root);
+        $concurrent = null;
+        $factory->onStop = function () use ($states, $otherHost, &$concurrent): void {
+            $states->put('opus.central', null, Arr::merge(
+                $states->get('opus.central', null) ?? [],
+                ['transition_expires_at' => time() - 1]
+            ));
+            $concurrent = $otherHost->stop(
+                'opus.central',
+                new AgentRuntimeContext(correlationId: 'stop-b')
+            );
+        };
+
+        $stopped = $service->stop(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'stop-a')
+        );
+
+        $this->assertTrue($stopped->ok());
+        $this->assertInstanceOf(AgentRuntimeResult::class, $concurrent);
+        $this->assertSame(AgentRuntimeResult::DENIED, $concurrent->status());
+        $this->assertSame(['agent_transition_in_progress'], $concurrent->diagnostics());
+        $this->assertSame(1, $factory->runtimes[0]->calls['stop']);
+    }
+
     public function testStorageCompareAndPutUsesTheInjectedSharedLockBoundary(): void
     {
         $storage = new Storage();
@@ -846,8 +954,23 @@ final class AgentCompositionServiceTest extends TestCase
     {
         $states = new class implements IAgentRuntimeStateStore {
             public array $states = [];
+            public array $operationScopes = [];
             public mixed $onGet = null;
             public bool $rejectPut = false;
+
+            public function synchronized(string $scope, callable $operation): mixed
+            {
+                if ($this->operationScopes[$scope] ?? false) {
+                    throw new \RuntimeException('agent_runtime_operation_in_progress');
+                }
+
+                $this->operationScopes[$scope] = true;
+                try {
+                    return $operation();
+                } finally {
+                    unset($this->operationScopes[$scope]);
+                }
+            }
 
             public function get(string $agentId, ?string $tenantId): ?array
             {

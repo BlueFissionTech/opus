@@ -24,7 +24,7 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
 
     public function get(string $agentId, ?string $tenantId): ?array
     {
-        $state = $this->synchronized(
+        $state = $this->synchronizedState(
             fn () => $this->states()->get($this->key($agentId, $tenantId))
         );
 
@@ -33,7 +33,7 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
 
     public function put(string $agentId, ?string $tenantId, array $state): void
     {
-        $this->synchronized(function () use ($agentId, $tenantId, $state): void {
+        $this->synchronizedState(function () use ($agentId, $tenantId, $state): void {
             $states = $this->states();
             $states->set($this->key($agentId, $tenantId), $state);
             $this->persist($states);
@@ -46,7 +46,7 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
         array $expected,
         array $state
     ): bool {
-        return $this->synchronized(function () use ($agentId, $tenantId, $expected, $state): bool {
+        return $this->synchronizedState(function () use ($agentId, $tenantId, $expected, $state): bool {
             $states = $this->states();
             $key = $this->key($agentId, $tenantId);
             $current = (array) $states->get($key);
@@ -67,7 +67,7 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
 
     public function delete(string $agentId, ?string $tenantId): void
     {
-        $this->synchronized(function () use ($agentId, $tenantId): void {
+        $this->synchronizedState(function () use ($agentId, $tenantId): void {
             $states = $this->states();
             $states->delete($this->key($agentId, $tenantId));
             $this->persist($states);
@@ -95,7 +95,17 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
             ->val();
     }
 
-    private function synchronized(callable $operation): mixed
+    public function synchronized(string $scope, callable $operation): mixed
+    {
+        $operationScope = Str::make(self::LOCK_SCOPE)
+            ->append(':operation:')
+            ->append(Str::make($scope)->encrypt('sha256')->val())
+            ->val();
+
+        return $this->synchronizer->synchronized($operationScope, $operation);
+    }
+
+    private function synchronizedState(callable $operation): mixed
     {
         return $this->synchronizer->synchronized(self::LOCK_SCOPE, $operation);
     }

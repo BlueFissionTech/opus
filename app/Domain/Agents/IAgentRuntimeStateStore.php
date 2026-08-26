@@ -6,6 +6,8 @@ namespace App\Domain\Agents;
 
 interface IAgentRuntimeStateStore
 {
+    public function synchronized(string $scope, callable $operation): mixed;
+
     public function get(string $agentId, ?string $tenantId): ?array;
 
     public function put(string $agentId, ?string $tenantId, array $state): void;

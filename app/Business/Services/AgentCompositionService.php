@@ -137,6 +137,34 @@ final class AgentCompositionService extends Service
             return $authorized;
         }
 
+        try {
+            return $this->states->synchronized(
+                $this->claimScope('cancellation', $agentId, $context->tenantId()),
+                fn (): AgentRuntimeResult => $this->cancelSynchronized($agentId, $context)
+            );
+        } catch (Throwable $exception) {
+            if ($this->claimGuardUnavailable($exception)) {
+                return AgentRuntimeResult::denied(
+                    'cancel',
+                    $agentId,
+                    $context->tenantId(),
+                    $this->state($agentId, $context),
+                    'agent_cancellation_in_progress'
+                );
+            }
+
+            return AgentRuntimeResult::failed(
+                'cancel',
+                $agentId,
+                $context->tenantId(),
+                $this->state($agentId, $context),
+                $exception->getMessage()
+            );
+        }
+    }
+
+    private function cancelSynchronized(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
+    {
         $current = $this->state($agentId, $context);
         $persisted = $this->states->get($agentId, $context->tenantId()) ?? [];
         $coveredExecution = Arr::getPath($persisted, 'active_execution_id')
@@ -213,9 +241,10 @@ final class AgentCompositionService extends Service
                         ->withMetadata(['cancellation_superseded' => true])
                         ->forScope('cancel', $agentId, $context->tenantId(), $latestState);
                 }
-                $this->states->compareAndPut($agentId, $context->tenantId(), [
+                $completionExpected = [
                     'cancellation_id' => $cancellationId,
-                ], [
+                ];
+                $completion = [
                     'status' => $result->status(),
                     'cancelled' => true,
                     'cancellation_correlation_id' => $context->correlationId(),
@@ -223,7 +252,19 @@ final class AgentCompositionService extends Service
                     'cancellation_execution_id' => null,
                     'cancellation_expires_at' => null,
                     'diagnostics' => $result->diagnostics(),
-                ]);
+                ];
+                if (Str::isNotEmpty((string) $coveredExecution)
+                    && Arr::getPath($latest, 'active_execution_id') === $coveredExecution
+                ) {
+                    $completionExpected['active_execution_id'] = $coveredExecution;
+                    $completion['active_execution_id'] = null;
+                }
+                $this->states->compareAndPut(
+                    $agentId,
+                    $context->tenantId(),
+                    $completionExpected,
+                    $completion
+                );
 
                 return $result->forScope('cancel', $agentId, $context->tenantId(), $latestState);
             }
@@ -440,6 +481,45 @@ final class AgentCompositionService extends Service
     }
 
     private function invokeLifecycle(
+        string $action,
+        string $agentId,
+        AgentRuntimeContext $context,
+        string $source,
+        string $target
+    ): AgentRuntimeResult {
+        try {
+            return $this->states->synchronized(
+                $this->claimScope('lifecycle', $agentId, $context->tenantId()),
+                fn (): AgentRuntimeResult => $this->invokeLifecycleSynchronized(
+                    $action,
+                    $agentId,
+                    $context,
+                    $source,
+                    $target
+                )
+            );
+        } catch (Throwable $exception) {
+            if ($this->claimGuardUnavailable($exception)) {
+                return AgentRuntimeResult::denied(
+                    $action,
+                    $agentId,
+                    $context->tenantId(),
+                    $this->state($agentId, $context),
+                    'agent_transition_in_progress'
+                );
+            }
+
+            return AgentRuntimeResult::failed(
+                $action,
+                $agentId,
+                $context->tenantId(),
+                $this->state($agentId, $context),
+                $exception->getMessage()
+            );
+        }
+    }
+
+    private function invokeLifecycleSynchronized(
         string $action,
         string $agentId,
         AgentRuntimeContext $context,
@@ -749,6 +829,22 @@ final class AgentCompositionService extends Service
             ->append('::')
             ->append($agentId)
             ->val();
+    }
+
+    private function claimScope(string $operation, string $agentId, ?string $tenantId): string
+    {
+        return Str::make($operation)
+            ->append('::')
+            ->append($this->key($agentId, $tenantId))
+            ->val();
+    }
+
+    private function claimGuardUnavailable(Throwable $exception): bool
+    {
+        return Arr::make([
+            'agent_runtime_state_lock_unavailable',
+            'agent_runtime_operation_in_progress',
+        ])->contains($exception->getMessage());
     }
 
     private function correlate(AgentRuntimeResult $result, AgentRuntimeContext $context): AgentRuntimeResult
