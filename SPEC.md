@@ -75,6 +75,13 @@ or virtual filesystem responsibilities.
 Acceptance criteria:
 
 - Opus command surfaces resolve through Wise-owned command contracts.
+- CLI, chat, and programmatic callers invoke the registered
+  `ICommandProcessor` through one Opus host adapter.
+- Each request or continuation produces one `CommandResult`; callers render
+  its output, diagnostics, exit status, and confirmation state without
+  executing the result again.
+- Terminal input, prompting, ANSI output, transport replies, and process
+  termination remain host concerns outside Wise.
 - Console managers expose small, testable operations that Wise can call.
 - Script execution routes through Wise bridges rather than bespoke Opus
   interpreters.
