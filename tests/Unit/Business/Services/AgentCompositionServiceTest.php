@@ -528,6 +528,80 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(1, $factory->runtimes[0]->calls['execute']);
     }
 
+    public function testSuccessfulStopCompletesWhenTheActiveExecutionFinishesConcurrently(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $states->put('opus.central', null, Arr::merge(
+            $states->get('opus.central', null) ?? [],
+            [
+                'execution_id' => 'finishing-execution',
+                'active_execution_id' => 'finishing-execution',
+            ]
+        ));
+        $factory->onStop = function () use ($states): void {
+            $states->put('opus.central', null, Arr::merge(
+                $states->get('opus.central', null) ?? [],
+                ['active_execution_id' => null]
+            ));
+        };
+
+        $stopped = $service->stop(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'stop-during-completion')
+        );
+
+        $persisted = $states->get('opus.central', null);
+        $this->assertTrue($stopped->ok());
+        $this->assertSame(AgentCompositionService::STOPPED, $persisted['state']);
+        $this->assertNull($persisted['transition_id']);
+        $this->assertNull($persisted['active_execution_id']);
+    }
+
+    public function testCancellationPersistsWhenExecutionCompletionWinsTheCleanupRace(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $states->put('opus.central', null, Arr::merge(
+            $states->get('opus.central', null) ?? [],
+            [
+                'execution_id' => 'finishing-execution',
+                'active_execution_id' => 'finishing-execution',
+            ]
+        ));
+        $states->onCompareAndPut = function ($store, string $key, array $expected, array $state): void {
+            if (($state['cancelled'] ?? false) !== true) {
+                return;
+            }
+            $store->onCompareAndPut = null;
+            $store->states[$key]['active_execution_id'] = null;
+        };
+
+        $cancelled = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-during-completion')
+        );
+        $retried = $service->cancel(
+            'opus.central',
+            new AgentRuntimeContext(correlationId: 'cancel-retry')
+        );
+
+        $persisted = $states->get('opus.central', null);
+        $this->assertTrue($cancelled->ok());
+        $this->assertTrue($persisted['cancelled']);
+        $this->assertNull($persisted['cancellation_id']);
+        $this->assertNull($persisted['active_execution_id']);
+        $this->assertTrue($retried->toArray()['metadata']['idempotent']);
+    }
+
     public function testCancellationGuardOutlivesAnExpiredRecoveryLease(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -1023,6 +1097,7 @@ final class AgentCompositionServiceTest extends TestCase
             public array $states = [];
             public array $operationScopes = [];
             public mixed $onGet = null;
+            public mixed $onCompareAndPut = null;
             public bool $rejectPut = false;
 
             public function synchronized(string $scope, callable $operation): mixed
@@ -1064,6 +1139,9 @@ final class AgentCompositionServiceTest extends TestCase
                 array $state
             ): bool {
                 $key = $this->key($agentId, $tenantId);
+                if (is_callable($this->onCompareAndPut)) {
+                    ($this->onCompareAndPut)($this, $key, $expected, $state);
+                }
                 $current = $this->states[$key] ?? [];
                 foreach ($expected as $path => $value) {
                     $actual = $current[$path] ?? null;

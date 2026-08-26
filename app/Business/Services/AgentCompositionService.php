@@ -253,18 +253,20 @@ final class AgentCompositionService extends Service
                     'cancellation_expires_at' => null,
                     'diagnostics' => $result->diagnostics(),
                 ];
-                if (Str::isNotEmpty((string) $coveredExecution)
-                    && Arr::getPath($latest, 'active_execution_id') === $coveredExecution
-                ) {
-                    $completionExpected['active_execution_id'] = $coveredExecution;
-                    $completion['active_execution_id'] = null;
-                }
                 $this->states->compareAndPut(
                     $agentId,
                     $context->tenantId(),
                     $completionExpected,
                     $completion
                 );
+                if (Str::isNotEmpty((string) $coveredExecution)) {
+                    $this->states->compareAndPut(
+                        $agentId,
+                        $context->tenantId(),
+                        ['active_execution_id' => $coveredExecution],
+                        ['active_execution_id' => null]
+                    );
+                }
 
                 return $result->forScope('cancel', $agentId, $context->tenantId(), $latestState);
             }
@@ -583,9 +585,6 @@ final class AgentCompositionService extends Service
         $state = $result->ok()
             ? $target
             : ($result->status() === AgentRuntimeResult::UNAVAILABLE ? $source : self::FAILED);
-        $completionExpected = [
-            'transition_id' => $transitionId,
-        ];
         $completion = [
             'state' => $state,
             'status' => $result->status(),
@@ -596,23 +595,27 @@ final class AgentCompositionService extends Service
             'transition_correlation_id' => null,
             'transition_expires_at' => null,
         ];
-        if ($action === 'stop'
-            && $result->ok()
-            && Str::isNotEmpty((string) $activeExecutionId)
-        ) {
-            $completionExpected['active_execution_id'] = $activeExecutionId;
-            $completion['active_execution_id'] = null;
-        }
         $updated = $this->states->compareAndPut(
             $agentId,
             $context->tenantId(),
-            $completionExpected,
+            ['transition_id' => $transitionId],
             $completion
         );
         if (!$updated) {
             return $result
                 ->withMetadata(['transition_superseded' => true])
                 ->forScope($action, $agentId, $context->tenantId(), $this->state($agentId, $context));
+        }
+        if ($action === 'stop'
+            && $result->ok()
+            && Str::isNotEmpty((string) $activeExecutionId)
+        ) {
+            $this->states->compareAndPut(
+                $agentId,
+                $context->tenantId(),
+                ['active_execution_id' => $activeExecutionId],
+                ['active_execution_id' => null]
+            );
         }
 
         return $result->forScope($action, $agentId, $context->tenantId(), $state);
