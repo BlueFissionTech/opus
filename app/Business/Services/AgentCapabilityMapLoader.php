@@ -6,6 +6,9 @@ namespace App\Business\Services;
 
 use App\Domain\Agents\AgentCapabilityMap;
 use BlueFission\Arr;
+use BlueFission\Data\FileSystem;
+use BlueFission\Net\HTTP;
+use BlueFission\Str;
 
 final class AgentCapabilityMapLoader
 {
@@ -24,7 +27,7 @@ final class AgentCapabilityMapLoader
 
     public function load(string $path, string $owner): AgentCapabilityMap
     {
-        if ($owner === 'application') {
+        if ($owner === 'application' || !$this->manifestDeclaresAgentMap($path)) {
             return $this->empty($owner);
         }
 
@@ -78,6 +81,24 @@ final class AgentCapabilityMapLoader
         });
 
         return $knownTools->unique()->toArray();
+    }
+
+    private function manifestDeclaresAgentMap(string $path): bool
+    {
+        $definitionPath = dirname(dirname($path)) . DIRECTORY_SEPARATOR . 'definition.json';
+        if (!FileSystem::fileExists($definitionPath)) {
+            return false;
+        }
+
+        $contents = FileSystem::fileContents($definitionPath);
+        if (!Str::is($contents)) {
+            return false;
+        }
+
+        $definition = HTTP::jsonDecode($contents, true);
+
+        return Arr::is($definition)
+            && Arr::getPath($definition, 'agent_mapping') === 'mapping/agents.php';
     }
 
     private function empty(string $owner): AgentCapabilityMap
