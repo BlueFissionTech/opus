@@ -151,6 +151,14 @@ final class DeclarativeArrayParser
     private function consumeValue(Arr $tokens, Arr $duplicates, string $path): mixed
     {
         $token = $tokens->shift();
+        if ($token === '(') {
+            $value = $this->consumeValue($tokens, $duplicates, $path);
+            if ($tokens->shift() !== ')') {
+                throw new UnexpectedValueException("Unclosed parenthesized value at {$path}.");
+            }
+
+            return $value;
+        }
         if ($token === '[') {
             return $this->consumeArray($tokens, $duplicates, $path, ']');
         }
