@@ -13,11 +13,14 @@ use RuntimeException;
 
 final class MySQLAgentRuntimeStateSynchronizer implements IAgentRuntimeStateSynchronizer
 {
-    private Arr $heldLocks;
+    private static ?\WeakMap $heldLocks = null;
 
     public function __construct(private MySQLLink $link, private int $timeoutSeconds = 5)
     {
-        $this->heldLocks = Arr::make([]);
+        self::$heldLocks ??= new \WeakMap();
+        if (!isset(self::$heldLocks[$this->link])) {
+            self::$heldLocks[$this->link] = Arr::make([]);
+        }
     }
 
     public function synchronized(string $scope, callable $operation): mixed
@@ -25,7 +28,8 @@ final class MySQLAgentRuntimeStateSynchronizer implements IAgentRuntimeStateSync
         $lockName = Str::make('opus_agent_state_')
             ->append(Hash::value($scope))
             ->sub(0, 64);
-        if ($this->heldLocks->hasKey($lockName)) {
+        $heldLocks = self::$heldLocks[$this->link];
+        if ($heldLocks->hasKey($lockName)) {
             throw new RuntimeException('agent_runtime_state_lock_unavailable');
         }
 
@@ -40,13 +44,13 @@ final class MySQLAgentRuntimeStateSynchronizer implements IAgentRuntimeStateSync
         if ((int) Arr::getPath($row, 'acquired', 0) !== 1) {
             throw new RuntimeException('agent_runtime_state_lock_unavailable');
         }
-        $this->heldLocks->set($lockName, true);
+        $heldLocks->set($lockName, true);
 
         try {
             return $operation();
         } finally {
             $this->link->query("SELECT RELEASE_LOCK('{$lockName}')");
-            $this->heldLocks->delete($lockName);
+            $heldLocks->delete($lockName);
         }
     }
 }

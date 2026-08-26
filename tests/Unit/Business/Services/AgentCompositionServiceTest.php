@@ -1103,14 +1103,15 @@ final class AgentCompositionServiceTest extends TestCase
             }
         };
         $synchronizer = new MySQLAgentRuntimeStateSynchronizer($link);
+        $sameSession = new MySQLAgentRuntimeStateSynchronizer($link);
         $nestedError = null;
 
         $synchronizer->synchronized('tenant-a::opus.central', function () use (
-            $synchronizer,
+            $sameSession,
             &$nestedError
         ): void {
             try {
-                $synchronizer->synchronized(
+                $sameSession->synchronized(
                     'tenant-a::opus.central',
                     fn (): string => 'unreachable'
                 );
@@ -1122,7 +1123,7 @@ final class AgentCompositionServiceTest extends TestCase
 
         $this->assertSame(
             'available',
-            $synchronizer->synchronized(
+            $sameSession->synchronized(
                 'tenant-a::opus.central',
                 fn (): string => 'available'
             )
