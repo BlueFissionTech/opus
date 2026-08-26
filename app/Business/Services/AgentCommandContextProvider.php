@@ -67,7 +67,10 @@ final class AgentCommandContextProvider
     public function forContinuation(array $priorContext): array
     {
         $context = Arr::make($priorContext);
-        $actorId = (string) Arr::getPath((array) $context->get('actor'), 'id', '');
+        $actor = $context->get('actor');
+        $actorId = Str::is($actor)
+            ? Str::make((string) $actor)->trim()->val()
+            : Str::make((string) Arr::getPath((array) $actor, 'id', ''))->trim()->val();
         $tenantId = $context->get('tenant_id');
         $refreshed = Arr::make($this->forActor($actorId, Str::is($tenantId) ? $tenantId : null));
 
