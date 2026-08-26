@@ -88,6 +88,22 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertDirectoryDoesNotExist($package . '/.git');
     }
 
+    public function testWindowsLegacyCoreInstallNameIsCaseInsensitive(): void
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $this->markTestSkipped('Windows legacy path comparison is platform-specific.');
+        }
+
+        $host = $this->workspace . '/case-host';
+        $package = $this->package($host . '/CORE');
+        $this->autoload($host . '/vendor/autoload.php');
+
+        $resolver = RuntimePathResolver::discover($package);
+
+        $this->assertSame(realpath($host . '/vendor/autoload.php'), $resolver->autoloadPath());
+        $this->assertSame(realpath($host), $resolver->hostRoot());
+    }
+
     public function testSymlinkedCoreInstallPreservesHostAutoloaderDiscovery(): void
     {
         if (PHP_OS_FAMILY === 'Windows' || !function_exists('symlink')) {

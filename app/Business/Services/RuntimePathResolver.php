@@ -94,7 +94,7 @@ final class RuntimePathResolver
         if ($this->hostRoot !== null) {
             return $this->hostRoot;
         }
-        if (basename($this->packageInstallRoot) === 'core') {
+        if (self::isLegacyCoreInstall($this->packageInstallRoot)) {
             return self::normalize(dirname($this->packageInstallRoot));
         }
 
@@ -120,7 +120,7 @@ final class RuntimePathResolver
             $candidates[] = $this->activeAutoloader;
         }
         $candidateHostRoot = $this->hostRoot;
-        if ($candidateHostRoot === null && basename($this->packageInstallRoot) === 'core') {
+        if ($candidateHostRoot === null && self::isLegacyCoreInstall($this->packageInstallRoot)) {
             $candidateHostRoot = dirname($this->packageInstallRoot);
         }
         if ($candidateHostRoot !== null) {
@@ -130,7 +130,7 @@ final class RuntimePathResolver
             }
             $candidates[] = self::join($candidateHostRoot, 'vendor/autoload.php');
         }
-        if (basename($this->packageInstallRoot) === 'core') {
+        if (self::isLegacyCoreInstall($this->packageInstallRoot)) {
             $candidates[] = self::join(dirname($this->packageInstallRoot), 'vendor/autoload.php');
         }
 
@@ -270,6 +270,13 @@ final class RuntimePathResolver
         $second = self::normalizeLexical($second);
 
         return PHP_OS_FAMILY === 'Windows' ? strcasecmp($first, $second) === 0 : $first === $second;
+    }
+
+    private static function isLegacyCoreInstall(string $root): bool
+    {
+        $name = basename(self::normalizeLexical($root));
+
+        return PHP_OS_FAMILY === 'Windows' ? strcasecmp($name, 'core') === 0 : $name === 'core';
     }
 
     private static function pathEndsWith(string $path, string $suffix): bool

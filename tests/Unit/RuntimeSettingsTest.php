@@ -13,6 +13,36 @@ final class RuntimeSettingsTest extends TestCase
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
+    public function testFilesystemRootReceivesExactlyOneTrailingSeparator(): void
+    {
+        $GLOBALS['OPUS_RUNTIME_PATHS'] = new class {
+            public function hostRoot(): string
+            {
+                return DIRECTORY_SEPARATOR;
+            }
+
+            public function packageRoot(): string
+            {
+                return DIRECTORY_SEPARATOR;
+            }
+
+            public function packageResourceRoot(): string
+            {
+                return DIRECTORY_SEPARATOR;
+            }
+        };
+
+        require_once dirname(__DIR__, 2) . '/common/helpers/functions.php';
+        require dirname(__DIR__, 2) . '/common/helpers/settings.php';
+
+        $this->assertSame(DIRECTORY_SEPARATOR, APP_ROOT);
+        $this->assertSame(DIRECTORY_SEPARATOR . 'public', SITE_ROOT);
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function testInstalledPackageAndHostRootsRemainDistinct(): void
     {
         $workspace = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opus-settings-' . bin2hex(random_bytes(6));

@@ -11,14 +11,16 @@ $runtimePaths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover(
 // TODO: set this in a config file
 date_default_timezone_set('America/New_York');
 
+$withTrailingSeparator = static fn (string $path): string => rtrim($path, '/\\') . DIRECTORY_SEPARATOR;
+
 if (!defined("APP_ROOT") ){
-	define('APP_ROOT', $runtimePaths->hostRoot() . DIRECTORY_SEPARATOR);
+	define('APP_ROOT', $withTrailingSeparator($runtimePaths->hostRoot()));
 }
 if (!defined("OPUS_ROOT") ){
-	define('OPUS_ROOT', $runtimePaths->packageRoot() . DIRECTORY_SEPARATOR);
+	define('OPUS_ROOT', $withTrailingSeparator($runtimePaths->packageRoot()));
 }
 if (!defined("OPUS_RESOURCE_ROOT") ){
-	define('OPUS_RESOURCE_ROOT', $runtimePaths->packageResourceRoot() . DIRECTORY_SEPARATOR);
+	define('OPUS_RESOURCE_ROOT', $withTrailingSeparator($runtimePaths->packageResourceRoot()));
 }
 if (!defined("PROJECT_ROOT") ){
 	define('PROJECT_ROOT', OPUS_ROOT);
