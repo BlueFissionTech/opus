@@ -162,9 +162,19 @@ final class AddOnLifecycleReadinessService extends Service
             ->filter(fn ($hook): bool => Flag::isFalse(Arr::getPath((array) $hook, 'ok')))
             ->values();
         $stage = Str::make((string) $outcome->get('stage'))->trim()->lower()->val();
+        $error = Str::make((string) $outcome->get('error'))->trim()->val();
+        $failedMessages = $failed
+            ->map(fn ($hook): string => Str::make(
+                (string) Arr::getPath((array) $hook, 'error')
+            )->trim()->val())
+            ->filter(fn (string $message): bool => Str::isNotEmpty($message))
+            ->unique()
+            ->values();
+        $aggregateErrorIsOptional = Str::isEmpty($error)
+            || ($failedMessages->count() === 1 && $failedMessages->get(0) === $error);
 
         return $failed->isNotEmpty()
-            && Str::make((string) $outcome->get('error'))->trim()->isEmpty()
+            && $aggregateErrorIsOptional
             && Arr::make(['', 'complete', 'hook'])->contains($stage)
             && $failed->filter(fn ($hook): bool => Str::make(
                 (string) Arr::getPath((array) $hook, 'status')

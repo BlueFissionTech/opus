@@ -155,6 +155,33 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertNull($result['error']);
     }
 
+    public function testCopiedOptionalHookErrorIsRecovered(): void
+    {
+        $message = 'No compatible lifecycle hook callable was found.';
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'addon' => 'sample',
+            'changed' => true,
+            'stage' => 'hook',
+            'error' => $message,
+            'nextAction' => 'retry_lifecycle',
+            'hooks' => [[
+                'ok' => false,
+                'hook' => 'install',
+                'status' => 'missing_callable',
+                'error' => $message,
+            ]],
+            'migrations' => ['ok' => true],
+            'population' => ['ok' => true],
+        ]);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame('complete', $result['stage']);
+        $this->assertNull($result['error']);
+        $this->assertSame('ready', $result['readiness']['state']);
+    }
+
     public function testMultipleRequiredFailuresKeepTheSelectedStageAndErrorAligned(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([
