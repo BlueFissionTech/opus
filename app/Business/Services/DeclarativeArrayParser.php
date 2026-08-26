@@ -61,6 +61,81 @@ final class DeclarativeArrayParser
         }
     }
 
+    public function parseTopLevelKey(string $path, string $key): array
+    {
+        $source = FileSystem::fileContents($path);
+        if (!Str::is($source)) {
+            return $this->failure('mapping_unreadable', 'Mapping file could not be read.');
+        }
+
+        try {
+            $tokens = $this->tokens(token_get_all($source, TOKEN_PARSE));
+            if (!$this->tokenIs($tokens->shift(), T_OPEN_TAG)) {
+                throw new UnexpectedValueException('Mapping must begin with a PHP opening tag.');
+            }
+            if ($this->tokenIs($tokens->get(0), T_DECLARE)) {
+                $this->consumeStrictTypes($tokens);
+            }
+            if (!$this->tokenIs($tokens->shift(), T_RETURN)) {
+                throw new UnexpectedValueException('Mapping must contain one return statement.');
+            }
+
+            $opening = $tokens->shift();
+            if ($opening === '[') {
+                $closing = ']';
+            } elseif ($this->tokenIs($opening, T_ARRAY) && $tokens->shift() === '(') {
+                $closing = ')';
+            } else {
+                throw new UnexpectedValueException('Mapping root must be an array.');
+            }
+
+            $duplicates = Arr::make([]);
+            $found = false;
+            $value = null;
+            while (!$tokens->isEmpty() && $tokens->get(0) !== $closing) {
+                $candidate = $this->consumeValue($tokens, $duplicates, '$');
+                if ($this->tokenIs($tokens->get(0), T_DOUBLE_ARROW)) {
+                    $tokens->shift();
+                    if ((string) $candidate === $key) {
+                        if ($found) {
+                            throw new UnexpectedValueException("Duplicate mapping key $.{$key} is not allowed.");
+                        }
+                        $value = $this->consumeValue($tokens, $duplicates, '$.' . $key);
+                        $found = true;
+                    } else {
+                        $this->skipValue($tokens, $closing);
+                    }
+                }
+
+                if ($tokens->get(0) === ',') {
+                    $tokens->shift();
+                    continue;
+                }
+                if ($tokens->get(0) !== $closing) {
+                    throw new UnexpectedValueException('Expected a comma or closing array delimiter at $.');
+                }
+            }
+
+            if ($tokens->shift() !== $closing || $tokens->shift() !== ';') {
+                throw new UnexpectedValueException('Mapping may not contain executable statements.');
+            }
+            if ($this->tokenIs($tokens->get(0), T_CLOSE_TAG)) {
+                $tokens->shift();
+            }
+            if (!$tokens->isEmpty()) {
+                throw new UnexpectedValueException('Mapping may not contain executable statements.');
+            }
+
+            return [
+                'valid' => $duplicates->isEmpty(),
+                'value' => $value,
+                'errors' => [],
+            ];
+        } catch (ParseError|UnexpectedValueException $exception) {
+            return $this->failure('mapping_declarative', $exception->getMessage());
+        }
+    }
+
     private function consumeValue(Arr $tokens, Arr $duplicates, string $path): mixed
     {
         $token = $tokens->shift();
@@ -140,6 +215,39 @@ final class DeclarativeArrayParser
         }
 
         return $value;
+    }
+
+    private function skipValue(Arr $tokens, string $rootClosing): void
+    {
+        $delimiters = Arr::make([]);
+        $pairs = Arr::make(['(' => ')', '[' => ']', '{' => '}']);
+        $closing = Arr::make([')' => true, ']' => true, '}' => true]);
+
+        while (!$tokens->isEmpty()) {
+            $token = $tokens->get(0);
+            if ($delimiters->isEmpty() && ($token === ',' || $token === $rootClosing)) {
+                return;
+            }
+
+            $token = $tokens->shift();
+            if (Arr::is($token)
+                && Arr::make([T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES])->has($token[0], true)
+            ) {
+                $delimiters->push('}');
+                continue;
+            }
+            if (Str::is($token) && $pairs->hasKey($token)) {
+                $delimiters->push($pairs->get($token));
+                continue;
+            }
+            if (Str::is($token) && $closing->hasKey($token)) {
+                if ($delimiters->isEmpty() || $token !== $delimiters->pop()) {
+                    throw new UnexpectedValueException('Unsupported value has unbalanced delimiters.');
+                }
+            }
+        }
+
+        throw new UnexpectedValueException('Unsupported value is incomplete.');
     }
 
     private function arrayKeyIdentity(int|string $key): string

@@ -130,6 +130,38 @@ PHP
         $this->assertSame(['sample.list', 'sample.show'], $tools);
     }
 
+    public function testDeclarativeConsoleToolsRemainAvailableAlongsideSafeRuntimeValues(): void
+    {
+        $path = $this->workspace . '/console-runtime-values.php';
+        file_put_contents($path, <<<'PHP'
+<?php
+return [
+    'resources' => [
+        ' Sample ' => [' List ', 'SHOW'],
+    ],
+    'root' => __DIR__,
+    'guard' => static fn (): bool => true,
+];
+PHP
+        );
+
+        $tools = (new AddOnContractValidator())->knownToolsFromConsoleFile($path);
+
+        $this->assertSame(['sample.list', 'sample.show'], $tools);
+    }
+
+    public function testKnownConsoleToolsDiscardInvalidIdentifiers(): void
+    {
+        $tools = (new AgentCapabilityMapValidator())->knownToolsFromConsole([
+            'resources' => [
+                ' Valid_Resource ' => [' List-Items ', 'invalid action'],
+                'invalid resource' => ['list'],
+            ],
+        ]);
+
+        $this->assertSame(['valid_resource.list-items'], $tools);
+    }
+
     public function testRuntimeLoaderFailsClosedForMalformedMaps(): void
     {
         $valid = $this->workspace . '/valid.php';

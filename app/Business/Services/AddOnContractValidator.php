@@ -319,6 +319,13 @@ final class AddOnContractValidator extends Service
         } catch (ParseError) {
             return [];
         }
+        if ($this->isDeclarativeMapping($tokens)) {
+            $resources = Arr::make($this->declarativeParser->parseTopLevelKey($path, 'resources'));
+
+            return $resources->get('valid') && Arr::is($resources->get('value'))
+                ? $this->agentMapValidator->knownToolsFromConsole(['resources' => $resources->get('value')])
+                : [];
+        }
         if (!$this->isExecutableMapping($tokens)) {
             return [];
         }

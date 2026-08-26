@@ -121,7 +121,15 @@ final class AgentCapabilityMapValidator
             }
             Arr::make($actions)->each(function ($action) use ($tools, $resource): void {
                 if (Str::is($action)) {
-                    $tools->push(Str::make((string) $resource)->append('.')->append((string) $action)->val());
+                    $tool = Str::make((string) $resource)
+                        ->trim()
+                        ->lower()
+                        ->append('.')
+                        ->append(Str::make((string) $action)->trim()->lower()->val())
+                        ->val();
+                    if (Str::make($tool)->matches('/^[a-z][a-z0-9_-]*\.[a-z][a-z0-9_-]*$/')) {
+                        $tools->push($tool);
+                    }
                 }
             });
         });
