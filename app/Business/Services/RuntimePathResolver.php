@@ -100,6 +100,11 @@ final class RuntimePathResolver
         if ($this->activeAutoloaderInstallPath !== null) {
             $searchRoots[] = dirname($this->activeAutoloaderInstallPath);
         }
+        if (self::isLegacyCoreInstall($this->packageInstallRoot)) {
+            $searchRoots[] = self::normalizeLexical(
+                dirname($this->packageInstallRoot) . DIRECTORY_SEPARATOR . 'vendor'
+            );
+        }
         $searchRoots[] = $this->packageInstallRoot;
         $searchRoots[] = dirname($autoloadPath);
         $configuredHost = self::configuredVendorHost(
