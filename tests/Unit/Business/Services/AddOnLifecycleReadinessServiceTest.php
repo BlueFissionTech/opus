@@ -148,6 +148,27 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('addon_hook_failed', $result['readiness']['reasons'][1]['code']);
     }
 
+    public function testWhitespaceOnlyRequiredHookErrorUsesTheStableFallback(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install',
+            'stage' => 'hook',
+            'hooks' => [[
+                'ok' => false,
+                'status' => 'failed',
+                'error' => " \t ",
+            ]],
+        ]);
+
+        $this->assertSame('hook', $result['stage']);
+        $this->assertSame('Add-on lifecycle hook failed.', $result['error']);
+        $this->assertSame(
+            'Add-on lifecycle hook failed.',
+            $result['readiness']['reasons'][0]['message']
+        );
+    }
+
     public function testRecoveredSingleHookClearsFailureMetadata(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([
@@ -361,6 +382,26 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
             'ok' => false,
             'action' => 'install_all',
             'stage' => 'migrations',
+            'results' => [[
+                'ok' => false,
+                'action' => 'install',
+                'stage' => 'migrations',
+                'migrations' => ['ok' => false, 'error' => 'Schema failed.'],
+            ]],
+        ]);
+
+        $this->assertSame('migrations', $result['stage']);
+        $this->assertSame('Schema failed.', $result['error']);
+        $this->assertCount(1, $result['readiness']['reasons']);
+    }
+
+    public function testWhitespaceOnlyBatchErrorUsesTheActionableChildFailure(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'install_all',
+            'stage' => 'migrations',
+            'error' => " \n ",
             'results' => [[
                 'ok' => false,
                 'action' => 'install',

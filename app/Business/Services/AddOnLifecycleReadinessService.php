@@ -148,10 +148,11 @@ final class AddOnLifecycleReadinessService extends Service
         }
 
         if (Flag::isFalse($hook->get('ok'))) {
+            $error = Str::make((string) $hook->get('error'))->trim()->val();
             $reasons->push($this->reason(
                 'addon_hook_failed',
                 'hook',
-                (string) ($hook->get('error') ?: 'Add-on lifecycle hook failed.')
+                Str::isNotEmpty($error) ? $error : 'Add-on lifecycle hook failed.'
             ));
         }
 
@@ -215,7 +216,7 @@ final class AddOnLifecycleReadinessService extends Service
     {
         $aggregateFailed = Flag::isFalse($outcome->get('ok'));
         $aggregateStage = (string) $outcome->get('stage');
-        $aggregateError = (string) $outcome->get('error');
+        $aggregateError = Str::make((string) $outcome->get('error'))->trim()->val();
         $normalized = Arr::make($results)
             ->map(fn ($result): array => $this->normalizeLifecycle(Arr::make((array) $result)))
             ->values();
