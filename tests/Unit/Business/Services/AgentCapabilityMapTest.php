@@ -247,6 +247,10 @@ return [
 ];
 PHP
         );
+        file_put_contents(
+            dirname($mapping) . DIRECTORY_SEPARATOR . 'definition.json',
+            '{"agent_mapping":"mapping/agents.php"}'
+        );
 
         try {
             $application = $this->map(
@@ -270,6 +274,7 @@ PHP
         } finally {
             unlink($mapping . DIRECTORY_SEPARATOR . 'agents.php');
             unlink($mapping . DIRECTORY_SEPARATOR . 'console.php');
+            unlink(dirname($mapping) . DIRECTORY_SEPARATOR . 'definition.json');
             rmdir($mapping);
             rmdir(dirname($mapping));
             rmdir($root);
@@ -306,6 +311,10 @@ PHP
 return ['resources' => ['shared' => ['status']]];
 PHP
         );
+        file_put_contents(
+            dirname($mapping) . DIRECTORY_SEPARATOR . 'definition.json',
+            '{"agent_mapping":"mapping/agents.php"}'
+        );
 
         try {
             $application = $this->map(
@@ -339,6 +348,7 @@ PHP
         } finally {
             unlink($mapping . DIRECTORY_SEPARATOR . 'agents.php');
             unlink($mapping . DIRECTORY_SEPARATOR . 'console.php');
+            unlink(dirname($mapping) . DIRECTORY_SEPARATOR . 'definition.json');
             rmdir($mapping);
             rmdir(dirname($mapping));
             rmdir($root);
@@ -374,6 +384,10 @@ return [
 ];
 PHP
         );
+        file_put_contents(
+            $this->workspace . DIRECTORY_SEPARATOR . 'definition.json',
+            '{"agent_mapping":"mapping/agents.php"}'
+        );
 
         $map = (new AgentCapabilityMapLoader())->load(
             $mapping . DIRECTORY_SEPARATOR . 'agents.php',
@@ -381,6 +395,54 @@ PHP
         );
 
         $this->assertSame([], $map->agents());
+        unlink($mapping . DIRECTORY_SEPARATOR . 'agents.php');
+        unlink($mapping . DIRECTORY_SEPARATOR . 'console.php');
+        unlink($this->workspace . DIRECTORY_SEPARATOR . 'definition.json');
+        rmdir($mapping);
+    }
+
+    public function testRuntimeLoaderRequiresTheDeclaredAgentMapManifest(): void
+    {
+        $mapping = $this->workspace . DIRECTORY_SEPARATOR . 'mapping';
+        mkdir($mapping, 0777, true);
+        file_put_contents($mapping . DIRECTORY_SEPARATOR . 'console.php', "<?php\nreturn ['resources' => ['sample' => ['list']]];\n");
+        file_put_contents($mapping . DIRECTORY_SEPARATOR . 'agents.php', <<<'PHP'
+<?php
+return [
+    'version' => 1,
+    'owner' => 'sample',
+    'agents' => [
+        'addon.sample' => [
+            'mode' => 'specialist',
+            'description' => 'Sample specialist.',
+            'profile' => 'sample.profile',
+            'tools' => ['sample.list'],
+            'imports' => [],
+            'exports' => [],
+            'permissions' => [],
+            'lifecycle' => ['states' => ['active']],
+        ],
+    ],
+];
+PHP
+        );
+
+        $loader = new AgentCapabilityMapLoader();
+        $path = $mapping . DIRECTORY_SEPARATOR . 'agents.php';
+
+        $this->assertSame([], $loader->load($path, 'sample')->agents());
+        file_put_contents(
+            $this->workspace . DIRECTORY_SEPARATOR . 'definition.json',
+            '{"agent_mapping":"mapping/default.php"}'
+        );
+        $this->assertSame([], $loader->load($path, 'sample')->agents());
+        file_put_contents(
+            $this->workspace . DIRECTORY_SEPARATOR . 'definition.json',
+            '{"agent_mapping":"mapping/agents.php"}'
+        );
+        $this->assertSame(['sample.list'], $loader->load($path, 'sample')->agent('addon.sample')?->tools());
+
+        unlink($this->workspace . DIRECTORY_SEPARATOR . 'definition.json');
         unlink($mapping . DIRECTORY_SEPARATOR . 'agents.php');
         unlink($mapping . DIRECTORY_SEPARATOR . 'console.php');
         rmdir($mapping);
