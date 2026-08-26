@@ -303,7 +303,11 @@ final class RuntimePathResolver
         }
 
         $composer = \json_decode($contents, true);
-        $vendorDirectory = \is_array($composer) ? ($composer['config']['vendor-dir'] ?? null) : null;
+        $environmentVendorDirectory = \getenv('COMPOSER_VENDOR_DIR');
+        $vendorDirectory = \is_string($environmentVendorDirectory)
+            && $environmentVendorDirectory !== ''
+                ? $environmentVendorDirectory
+                : (\is_array($composer) ? ($composer['config']['vendor-dir'] ?? null) : null);
         if (!is_string($vendorDirectory) || $vendorDirectory === '') {
             return null;
         }

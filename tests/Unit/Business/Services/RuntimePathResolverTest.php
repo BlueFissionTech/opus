@@ -165,6 +165,28 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertSame(realpath($host), $resolver->hostRoot());
     }
 
+    public function testCoreLayoutUsesTheEnvironmentSelectedVendorDirectory(): void
+    {
+        $host = $this->workspace . '/environment-core-host';
+        $package = $this->package($host . '/core');
+        file_put_contents($host . '/composer.json', '{}');
+        $autoload = $host . '/deps/autoload.php';
+        $this->autoload($autoload);
+        $previous = getenv('COMPOSER_VENDOR_DIR');
+        putenv('COMPOSER_VENDOR_DIR=deps');
+
+        try {
+            $resolver = RuntimePathResolver::discover($package);
+
+            $this->assertSame(realpath($autoload), $resolver->autoloadPath());
+            $this->assertSame(realpath($host), $resolver->hostRoot());
+        } finally {
+            $previous === false
+                ? putenv('COMPOSER_VENDOR_DIR')
+                : putenv('COMPOSER_VENDOR_DIR=' . $previous);
+        }
+    }
+
     public function testNestedComposerVendorDirectoryRetainsTheInferredHostRoot(): void
     {
         $host = $this->workspace . '/nested-vendor-host';
