@@ -93,7 +93,7 @@ final class AddOnLifecycleReadinessService extends Service
             $first = $this->selectedReason($outcome, $reasons);
             $outcome->set('ok', false);
             $outcome->set('stage', $first->get('stage'));
-            $outcome->set('nextAction', 'retry_lifecycle');
+            $outcome->set('nextAction', $this->failedNextAction((string) $outcome->get('action')));
             $outcome->set('error', $first->get('message'));
         } elseif ($optionalHookFailureOnly) {
             $outcome->set('ok', true);
@@ -267,7 +267,7 @@ final class AddOnLifecycleReadinessService extends Service
             $first = $this->selectedReason($outcome, $reasons);
             $outcome->set('stage', $first->get('stage') ?: 'lifecycle');
             $outcome->set('error', $first->get('message') ?: 'Add-on lifecycle action failed.');
-            $outcome->set('nextAction', 'retry_lifecycle');
+            $outcome->set('nextAction', $this->failedNextAction((string) $outcome->get('action')));
         } else {
             $outcome->set('stage', 'complete');
             $outcome->set('error', null);
@@ -291,6 +291,15 @@ final class AddOnLifecycleReadinessService extends Service
         }
 
         return $action === 'install_all' ? 'activate_all' : null;
+    }
+
+    private function failedNextAction(string $action): string
+    {
+        $action = Str::make($action)->trim()->lower()->val();
+
+        return Arr::make(['uninstall', 'uninstall_all'])->contains($action)
+            ? 'reconcile_lifecycle'
+            : 'retry_lifecycle';
     }
 
     private function hasMatchingReason(Arr $reasons, string $stage, string $message): bool

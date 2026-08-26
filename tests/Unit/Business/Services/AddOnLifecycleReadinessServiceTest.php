@@ -148,6 +148,20 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('addon_hook_failed', $result['readiness']['reasons'][1]['code']);
     }
 
+    public function testFailedUninstallRequiresLifecycleReconciliation(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'uninstall',
+            'stage' => 'dependencies',
+            'error' => 'Dependency removal failed.',
+            'hooks' => [],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('reconcile_lifecycle', $result['nextAction']);
+    }
+
     public function testWhitespaceOnlyRequiredHookErrorUsesTheStableFallback(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([
@@ -331,6 +345,20 @@ final class AddOnLifecycleReadinessServiceTest extends TestCase
         $this->assertSame('Add-on discovery failed.', $result['error']);
         $this->assertSame('blocked', $result['readiness']['state']);
         $this->assertSame('addon_lifecycle_failed', $result['readiness']['reasons'][0]['code']);
+    }
+
+    public function testFailedBulkUninstallRequiresLifecycleReconciliation(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => false,
+            'action' => 'uninstall_all',
+            'stage' => 'dependencies',
+            'error' => 'Dependency removal failed.',
+            'results' => [],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('reconcile_lifecycle', $result['nextAction']);
     }
 
     public function testAggregateFailureWithSharedMessageAndDifferentStageRemainsIndependent(): void
