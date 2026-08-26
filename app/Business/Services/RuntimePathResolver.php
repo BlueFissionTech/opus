@@ -94,9 +94,6 @@ final class RuntimePathResolver
         if ($this->hostRoot !== null) {
             return $this->hostRoot;
         }
-        if (self::isLegacyCoreInstall($this->packageInstallRoot)) {
-            return self::normalize(dirname($this->packageInstallRoot));
-        }
 
         $autoloadPath = $this->autoloadPath();
         $searchRoots = [];

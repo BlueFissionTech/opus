@@ -88,6 +88,19 @@ final class RuntimePathResolverTest extends TestCase
         $this->assertDirectoryDoesNotExist($package . '/.git');
     }
 
+    public function testActiveComposerProxyOwnsASeparatedSourceDirectoryNamedCore(): void
+    {
+        $package = $this->package($this->workspace . '/source/core');
+        $host = $this->workspace . '/proxy-host';
+        $autoloader = $host . '/vendor/autoload.php';
+        $this->autoload($autoloader);
+
+        $resolver = RuntimePathResolver::discover($package, null, $autoloader);
+
+        $this->assertSame(realpath($autoloader), $resolver->autoloadPath());
+        $this->assertSame(realpath($host), $resolver->hostRoot());
+    }
+
     public function testWindowsLegacyCoreInstallNameIsCaseInsensitive(): void
     {
         if (PHP_OS_FAMILY !== 'Windows') {
