@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 class CodeManagerTest extends TestCase
 {
-    public function testGenerateReturnsResultAndPrintsRenderedOutput(): void
+    public function testGenerateReturnsAHostNeutralCompletedResult(): void
     {
         $service = new class extends VibeGenerationService {
             public function renderSource(
@@ -34,12 +34,14 @@ class CodeManagerTest extends TestCase
         $output = (string) ob_get_clean();
 
         $this->assertTrue($result['valid']);
+        $this->assertSame('generate', $result['operation']);
+        $this->assertSame('completed', $result['status']);
+        $this->assertSame(0, $result['exit_code']);
         $this->assertSame('Generated service Example', $result['output']);
-        $this->assertStringContainsString('Generated service Example', $output);
-        $this->assertStringContainsString('Generation completed.', $output);
+        $this->assertSame('', $output);
     }
 
-    public function testGeneratePrintsStructuredValidationErrors(): void
+    public function testGenerateReturnsAHostNeutralFailureResult(): void
     {
         $service = new class extends VibeGenerationService {
             public function renderSource(
@@ -65,7 +67,37 @@ class CodeManagerTest extends TestCase
         $output = (string) ob_get_clean();
 
         $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('Generation failed:', $output);
-        $this->assertStringContainsString('- Template is invalid.', $output);
+        $this->assertSame('generate', $result['operation']);
+        $this->assertSame('failed', $result['status']);
+        $this->assertSame(1, $result['exit_code']);
+        $this->assertSame([['message' => 'Template is invalid.']], $result['errors']);
+        $this->assertSame('', $output);
+    }
+
+    public function testRenderUsesTheSameOperationResultContract(): void
+    {
+        $service = new class extends VibeGenerationService {
+            public function renderSource(
+                string $source,
+                array $variables = [],
+                array $includePaths = [],
+                array $options = []
+            ): array {
+                return [
+                    'valid' => true,
+                    'errors' => [],
+                    'output' => $source,
+                    'variables' => $variables,
+                ];
+            }
+        };
+
+        $result = (new CodeManager($service))->render('ready', ['scope' => 'test']);
+
+        $this->assertSame('render', $result['operation']);
+        $this->assertSame('completed', $result['status']);
+        $this->assertSame(0, $result['exit_code']);
+        $this->assertSame('ready', $result['output']);
+        $this->assertSame(['scope' => 'test'], $result['variables']);
     }
 }
