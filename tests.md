@@ -44,6 +44,25 @@ installs. The entrypoint tests verify Composer binary metadata, active host
 autoload precedence, distinct host/package constants, package-owned themes,
 and clean login/administration template rendering.
 
+## Environment Bootstrap
+
+Process environment values take precedence over entries in the root `.env`
+file. An absent or empty process value may be populated from `.env`. Web, CLI,
+and worker entrypoints load this policy through the shared application settings
+bootstrap.
+
+`EnvironmentLoader::import()` returns an `Arr` report containing counts and a
+per-key `process` or `dotenv` source. The report intentionally excludes all
+configuration values so it can be used in startup diagnostics without exposing
+secrets.
+
+Run the focused environment and entrypoint coverage with:
+
+```powershell
+vendor\bin\phpunit --do-not-cache-result tests\Unit\Business\Services\EnvironmentLoaderTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\TerminalBootstrapOrderTest.php
+```
+
 ## Runtime Contract Validation
 
 The default PHPUnit suite checks that the runtime contract files are present and

@@ -179,6 +179,20 @@ declare(strict_types=1);
 
 use {{NAMESPACE}}\Registration\AddOnRegistration;
 
+require_once __DIR__ . '/logic/Lifecycle.php';
+
+return static fn (): AddOnRegistration => new AddOnRegistration();
+PHP
+        )
+            ->replace('{{NAMESPACE}}', $namespace)
+            ->val();
+        $lifecycle = Str::make(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace {{NAMESPACE}};
+
 function {{NAME}}_install(): void
 {
 }
@@ -186,8 +200,6 @@ function {{NAME}}_install(): void
 function {{NAME}}_uninstall(): void
 {
 }
-
-return static fn (): AddOnRegistration => new AddOnRegistration();
 PHP
         )
             ->replace('{{NAME}}', $name)
@@ -198,6 +210,7 @@ PHP
             'composer.json' => $this->json($composer),
             'definition.json' => $this->json($definition),
             'main.php' => $main . "\n",
+            'logic/Lifecycle.php' => $lifecycle . "\n",
             'README.md' => "# {$className}\n\n{$className} is an Opus add-on.\n",
             'logic/Registration/AddOnRegistration.php' => $registration . "\n",
             'mapping/api.php' => $this->mapping(),
