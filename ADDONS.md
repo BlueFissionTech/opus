@@ -195,6 +195,20 @@ The current manager scans each immediate directory under `addons/`. A discoverab
 
 The primary file is required for runtime loading, registration, and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Keep `main.php` repeatable: it must load `logic/Lifecycle.php` with `require_once` and return the registration factory without declaring functions or performing other work. Declare optional `<name>_install()` and `<name>_uninstall()` hooks in `logic/Lifecycle.php` beneath the namespace from `definition.json`. The lifecycle manager resolves namespaced hooks first and retains global hook lookup only for legacy packages. This split allows the runtime to load hooks and later evaluate the primary file for its factory without redeclaring symbols.
 
+Lifecycle commands and administrative endpoints return structured readiness
+outcomes. Single outcomes include `ok`, `action`, `changed`, `stage`,
+`nextAction`, per-step results, and stable readiness reason codes. Batch
+outcomes recompute `total`, `succeeded`, and `failed` from their normalized
+children instead of trusting optimistic aggregate counters.
+
+Structured migration and population failures block install readiness even when
+an underlying manager reports optimistic top-level success. A missing lifecycle
+callable is an optional, skipped hook; missing or unsafe primary files and
+failed declared hooks remain blocking. Human-readable output is diagnostic and
+is never parsed to infer success. Migration, generator, registration, and hook
+implementations must return or throw a structured failure at their ownership
+boundary.
+
 Installation configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/` unconditionally, so both directories must exist. Each structure file must expose a global-namespace class with `change()` and `revert()` methods. Each generator file must expose a global-namespace class with `populate()`. A global-namespace `RootSeeder.php` class may instead provide `seeders()` to select and order the remaining generator classes. The locked loader resolves extracted short class names without their declared namespace. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
 
 The `libraries` list executes root-level Composer require commands during installation and remove commands during uninstallation. Because root requirements are shared by every add-on, removal must be coordinated so one package does not remove a dependency still owned by another.
