@@ -48,6 +48,14 @@ class ComposerMetadataTest extends TestCase
         $this->assertContains('bluefission/wise', $developmentPackages);
     }
 
+    public function testAddOnCommandIsPublishedAsAComposerBinary(): void
+    {
+        $composer = $this->readJson(__DIR__ . '/../../composer.json');
+
+        $this->assertContains('bin/opus-addon.php', $composer['bin'] ?? []);
+        $this->assertFileExists(__DIR__ . '/../../bin/opus-addon.php');
+    }
+
     /** @return array<string, mixed> */
     private function readJson(string $path): array
     {

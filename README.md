@@ -67,6 +67,28 @@ metadata in the lock.
 Opus maintainers can verify that the template still covers the complete locked
 Blue Fission dependency graph with `composer audit:composer-vcs`.
 
+### Runtime Roots
+
+Opus distinguishes the host application from the installed package. The active
+Composer binary autoloader is preferred, followed by an explicit host root,
+an ancestor host autoloader, and finally the package-local autoloader used by a
+source checkout. Set `OPUS_HOST_ROOT` in the process environment only when the
+host root cannot be inferred before dotenv is available.
+
+`APP_ROOT` and `SITE_ROOT` identify the host application. `OPUS_ROOT` and
+`OPUS_RESOURCE_ROOT` identify the installed package and its shipped resources.
+Built-in themes always render from `OPUS_RESOURCE_ROOT`. A host theme override
+must be selected explicitly as a path below the host `resource` directory; an
+existing relative host directory does not silently replace a package theme.
+
+Composer publishes the add-on contract command at
+`vendor/bin/opus-addon.php`, and the same package entrypoint works from source
+and distribution installs:
+
+```bash
+php vendor/bin/opus-addon.php validate <addon-root>
+```
+
 ## Usage
 
 ### Event Management

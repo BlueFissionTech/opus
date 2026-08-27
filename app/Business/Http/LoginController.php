@@ -1,6 +1,7 @@
 <?php
 namespace App\Business\Http;
 
+use App\Business\Presentation\VibeValue;
 use BlueFission\Services\Service;
 class LoginController extends Service {
 
@@ -11,7 +12,7 @@ class LoginController extends Service {
 
     public function login( )
     {
-        return template('default', 'login.vibe', ['url' => '/login']);
+        return template('default', 'login.vibe', ['url' => VibeValue::url('/login')]);
     }
 
     public function registration( )
