@@ -106,6 +106,21 @@ Server-rendered templates use `.vibe`, canonical `{$value}` variables,
 executable `.vibe` includes, and named regions. Client-side Reactor bindings
 remain separate from the server template contract.
 
+Values used outside ordinary text or attribute contexts must carry an explicit
+host policy. Use `VibeValue::url()` for links, form actions, and media sources;
+`VibeValue::script()` for JSON literals embedded in scripts; and
+`VibeValue::trustedMarkup()` only for markup composed by a trusted renderer.
+Untrusted strings remain recursively HTML-encoded by default. URL values allow
+relative targets plus `http`, `https`, `mailto`, and `tel`; other schemes,
+protocol-relative targets, and control characters are rejected. Keep template
+execution configured with `run_backend=false`. These host policies can delegate
+to equivalent parser contexts when Vibe exposes them without changing add-on
+call sites.
+
+The renderer retains its positional trusted-variable list for compatibility,
+but it accepts strings only. New code should use the narrowly named
+`VibeValue::trustedMarkup()` boundary instead.
+
 Existing add-ons that map `AddOns\\<PackageName>\\` to the package root should
 migrate the mapping to `logic/` while correcting file namespaces. Run
 `composer dump-autoload -o` and the Opus validator before publishing that
