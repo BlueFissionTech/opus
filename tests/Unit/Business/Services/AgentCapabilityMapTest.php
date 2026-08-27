@@ -14,11 +14,13 @@ use App\Business\Services\AddOnContractValidator;
 use App\Business\Services\DeclarativeArrayParser;
 use App\Business\Middleware\ProcessesCommandMiddleware;
 use App\Domain\Agents\AgentCapabilityMap;
+use App\Domain\Agents\AgentDescriptor;
 use App\Domain\Agents\IAgentContinuationScopeStore;
 use BlueFission\Arr;
 use BlueFission\BlueCore\Business\Managers\CommandManager;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\DevElation;
+use BlueFission\Obj;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
@@ -41,6 +43,18 @@ final class AgentCapabilityMapTest extends TestCase
             unlink($file);
         }
         rmdir($this->workspace);
+    }
+
+    public function testAgentDescriptorsParticipateInTheDevelationObjectLifecycle(): void
+    {
+        $descriptor = new AgentDescriptor('addon.sample', 'sample', [
+            'mode' => 'specialist',
+            'tools' => ['sample.run'],
+        ]);
+
+        $this->assertInstanceOf(Obj::class, $descriptor);
+        $this->assertSame('addon.sample', $descriptor->id());
+        $this->assertSame(['sample.run'], $descriptor->tools());
     }
 
     public function testDeclarativeParserRejectsExecutionAndDuplicateAgentIdentifiers(): void

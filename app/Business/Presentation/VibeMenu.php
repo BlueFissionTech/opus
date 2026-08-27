@@ -70,9 +70,9 @@ final class VibeMenu extends Menu
             [
                 'id' => $this->_id,
                 'label' => $this->_label,
-                'children' => Str::concat('', ...$children),
+                'children' => VibeValue::trustedMarkup(Str::concat('', ...$children)),
             ],
-            ['children'],
+            [],
             ['id', 'label', 'children']
         );
     }

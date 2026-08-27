@@ -2,7 +2,7 @@
 
 if(!function_exists('import_env_vars')) {
 	function import_env_vars( $file ) {
-		\App\Business\Services\EnvironmentLoader::import($file);
+		return \App\Business\Services\EnvironmentLoader::import($file);
 	}
 }
 

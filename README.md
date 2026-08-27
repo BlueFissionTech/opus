@@ -51,6 +51,14 @@ running package scripts:
 composer update --no-install --no-scripts
 ```
 
+The default application profile requires Wise explicitly and uses
+`WISE_INTEGRATION=required`. Applications that do not expose the intelligent
+shell or command resources can start from
+[`templates/composer/opus-root-optional-wise.json`](templates/composer/opus-root-optional-wise.json)
+and set `WISE_INTEGRATION=optional`. Optional mode skips the complete Wise
+resource mapping when its runtime types are unavailable. Required mode fails
+with the missing types and installation guidance.
+
 Keep `config.use-github-api` set to `false` from the template. Composer then
 uses the declared Git repositories directly when GitHub API metadata is
 unavailable, while still retaining canonical GitHub source and distribution
@@ -58,6 +66,28 @@ metadata in the lock.
 
 Opus maintainers can verify that the template still covers the complete locked
 Blue Fission dependency graph with `composer audit:composer-vcs`.
+
+### Runtime Roots
+
+Opus distinguishes the host application from the installed package. The active
+Composer binary autoloader is preferred, followed by an explicit host root,
+an ancestor host autoloader, and finally the package-local autoloader used by a
+source checkout. Set `OPUS_HOST_ROOT` in the process environment only when the
+host root cannot be inferred before dotenv is available.
+
+`APP_ROOT` and `SITE_ROOT` identify the host application. `OPUS_ROOT` and
+`OPUS_RESOURCE_ROOT` identify the installed package and its shipped resources.
+Built-in themes always render from `OPUS_RESOURCE_ROOT`. A host theme override
+must be selected explicitly as a path below the host `resource` directory; an
+existing relative host directory does not silently replace a package theme.
+
+Composer publishes the add-on contract command at
+`vendor/bin/opus-addon.php`, and the same package entrypoint works from source
+and distribution installs:
+
+```bash
+php vendor/bin/opus-addon.php validate <addon-root>
+```
 
 ## Usage
 
@@ -83,7 +113,9 @@ human operators and agents share the same backend contract.
 
 - [Specification](SPEC.md)
 - [Roadmap](ROADMAP.md)
+- [Arkheion capability catalog](ARKHEION.md)
 - [Testing](tests.md)
+- [Asset build contract](ASSETS.md)
 
 ## Core Components
 

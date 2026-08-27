@@ -457,9 +457,11 @@ final class ComposerVcsAudit
         $locked = $this->lockedPackageMap($lock);
 
         $queue = [];
-        foreach (array_keys($composer['require'] ?? []) as $package) {
-            if (is_string($package) && str_starts_with(strtolower($package), 'bluefission/')) {
-                $queue[] = strtolower($package);
+        foreach (['require', 'require-dev'] as $section) {
+            foreach (array_keys($composer[$section] ?? []) as $package) {
+                if (is_string($package) && str_starts_with(strtolower($package), 'bluefission/')) {
+                    $queue[] = strtolower($package);
+                }
             }
         }
 

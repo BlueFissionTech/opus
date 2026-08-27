@@ -151,6 +151,21 @@ Server-rendered templates use `.vibe`, canonical `{$value}` variables,
 executable `.vibe` includes, and named regions. Client-side Reactor bindings
 remain separate from the server template contract.
 
+Values used outside ordinary text or attribute contexts must carry an explicit
+host policy. Use `VibeValue::url()` for links, form actions, and media sources;
+`VibeValue::script()` for JSON literals embedded in scripts; and
+`VibeValue::trustedMarkup()` only for markup composed by a trusted renderer.
+Untrusted strings remain recursively HTML-encoded by default. URL values allow
+relative targets plus `http`, `https`, `mailto`, and `tel`; other schemes,
+protocol-relative targets, and control characters are rejected. Keep template
+execution configured with `run_backend=false`. These host policies can delegate
+to equivalent parser contexts when Vibe exposes them without changing add-on
+call sites.
+
+The renderer retains its positional trusted-variable list for compatibility,
+but it accepts strings only. New code should use the narrowly named
+`VibeValue::trustedMarkup()` boundary instead.
+
 Existing add-ons that map `AddOns\\<PackageName>\\` to the package root should
 migrate the mapping to `logic/` while correcting file namespaces. Run
 `composer dump-autoload -o` and the Opus validator before publishing that
@@ -178,7 +193,7 @@ The current manager scans each immediate directory under `addons/`. A discoverab
 - an optional `libraries` array of Composer package names installed into or removed from the application root; and
 - a nonempty `primary_file`, normally `main.php`.
 
-The primary file is required for runtime loading and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Installation and uninstallation load that same file and call `<name>_install()` or `<name>_uninstall()` when the corresponding function exists. Declare both hook functions in the global namespace; the current manager performs an unqualified lookup and does not resolve namespaced functions.
+The primary file is required for runtime loading, registration, and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Keep `main.php` repeatable: it must load `logic/Lifecycle.php` with `require_once` and return the registration factory without declaring functions or performing other work. Declare optional `<name>_install()` and `<name>_uninstall()` hooks in `logic/Lifecycle.php` beneath the namespace from `definition.json`. The lifecycle manager resolves namespaced hooks first and retains global hook lookup only for legacy packages. This split allows the runtime to load hooks and later evaluate the primary file for its factory without redeclaring symbols.
 
 Installation configures datasource migrations from `datasources/structure/` and datasource generators from `datasources/generator/` unconditionally, so both directories must exist. Each structure file must expose a global-namespace class with `change()` and `revert()` methods. Each generator file must expose a global-namespace class with `populate()`. A global-namespace `RootSeeder.php` class may instead provide `seeders()` to select and order the remaining generator classes. The locked loader resolves extracted short class names without their declared namespace. Keep those resources inside the add-on directory and make their work safe to repeat. Activation and deactivation persist add-on state; activation does not replace installation or dependency setup.
 
