@@ -62,8 +62,35 @@ final class AddOnScaffoldServiceTest extends TestCase
 
         require $this->workspace . '/sample_tools/logic/Registration/AddOnRegistration.php';
         $factory = require $this->workspace . '/sample_tools/main.php';
+        $secondFactory = require $this->workspace . '/sample_tools/main.php';
         $registration = $factory();
         $this->assertCount(5, $registration->contributions());
+        $this->assertInstanceOf($registration::class, $secondFactory());
+        $this->assertTrue(function_exists('AddOns\\SampleTools\\sample_tools_install'));
+        $this->assertFalse(function_exists('sample_tools_install'));
+    }
+
+    public function testValidatorRejectsLifecycleFunctionsDeclaredInTheRepeatableFactory(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('unsafe_hooks', 'unsafe_hooks');
+        $main = $this->workspace . '/unsafe_hooks/main.php';
+        file_put_contents(
+            $main,
+            Str::make((string) FileSystem::fileContents($main))
+                ->replace(
+                    "require_once __DIR__ . '/logic/Lifecycle.php';",
+                    "function unsafe_hooks_install(): void\n{\n}"
+                )
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/unsafe_hooks');
+        $codes = Arr::make($result['errors'])
+            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
+            ->val();
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('registration_factory', $codes);
     }
 
     public function testItRejectsUnsafeNamesWithoutWritingOutput(): void
@@ -669,52 +696,18 @@ PHP
         $this->assertContains('registration_factory', $codes);
     }
 
-    public function testRegistrationFactoryIgnoresTraitUseStatementsWhenResolvingImports(): void
-    {
-        (new AddOnScaffoldService($this->workspace))->generate('trait_import', 'trait_import');
-        $main = $this->workspace . '/trait_import/main.php';
-        file_put_contents(
-            $main,
-            Str::make((string) FileSystem::fileContents($main))
-                ->replace('use AddOns\\TraitImport\\Registration\\AddOnRegistration;', '')
-                ->replace(
-                    'function trait_import_install(): void',
-                    <<<'PHP'
-function trait_import_decoy(): void
-{
-    class Decoy
-    {
-        use AddOns\TraitImport\Registration\AddOnRegistration;
-    }
-}
-
-function trait_import_install(): void
-PHP
-                )
-                ->val()
-        );
-
-        $result = (new AddOnContractValidator())->validate($this->workspace . '/trait_import');
-        $codes = Arr::make($result['errors'])
-            ->map(fn (array $error): string => (string) Arr::make($error)->get('code'))
-            ->val();
-
-        $this->assertFalse($result['valid']);
-        $this->assertContains('registration_factory', $codes);
-    }
-
-    public function testRegistrationFactoryAcceptsInterpolationInsideLifecycleHooks(): void
+    public function testLifecycleHooksAcceptInterpolation(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('hook_interpolation', 'hook_interpolation');
-        $main = $this->workspace . '/hook_interpolation/main.php';
-        $source = Str::make((string) FileSystem::fileContents($main))
+        $lifecycle = $this->workspace . '/hook_interpolation/logic/Lifecycle.php';
+        $source = Str::make((string) FileSystem::fileContents($lifecycle))
             ->replace(
-                'use AddOns\\HookInterpolation\\Registration\\AddOnRegistration;',
+                'namespace AddOns\\HookInterpolation;',
                 <<<'PHP'
+namespace AddOns\HookInterpolation;
+
 use function Vendor\Package\prepare;
 use const Vendor\Package\STATUS;
-
-use AddOns\HookInterpolation\Registration\AddOnRegistration;
 PHP
             )
             ->replace(
@@ -729,7 +722,7 @@ PHP
             )
             ->val();
         file_put_contents(
-            $main,
+            $lifecycle,
             $source
         );
 
