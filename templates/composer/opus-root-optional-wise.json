@@ -1,15 +1,11 @@
 {
     "name": "bluefission/opus-application",
-    "description": "Root Composer template for an Opus application.",
+    "description": "Root Composer template for an Opus application with optional Wise integration.",
     "type": "project",
     "repositories": {
         "bluefission/opus": {
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/opus"
-        },
-        "bluefission/wise": {
-            "type": "vcs",
-            "url": "https://github.com/BlueFissionTech/wise"
         },
         "bluefission/vibrato": {
             "type": "vcs",
@@ -42,8 +38,7 @@
     },
     "require": {
         "php": "^8.2",
-        "bluefission/opus": "dev-main",
-        "bluefission/wise": "dev-main"
+        "bluefission/opus": "dev-main"
     },
     "config": {
         "use-github-api": false,
