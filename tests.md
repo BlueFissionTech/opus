@@ -85,17 +85,23 @@ php examples\jenss\validate.php --strict
 
 ## Frontend Build Checks
 
-The current frontend scripts are:
+Install the locked frontend graph and validate the Opus-owned manifest before
+building:
 
 ```powershell
+npm ci
+npm run assets:validate
+npm run test:assets
 npm run build
 npm run watch
 npm run start
 ```
 
-Webpack cleanup is tracked as roadmap work. Until that work lands, build
-validation should report missing asset paths, legacy asset assumptions, or
-template metadata drift instead of hiding them.
+Set `OPUS_ASSET_THEME` to compile a theme other than `default`. The selected
+theme must provide `src/index.js` and `assets/` beneath its markup directory.
+Add-on entries are discovered from the package-owned paths documented in
+`ASSETS.md`. Validation reports missing sources and entry collisions before
+Webpack starts.
 
 ## Optional Services
 

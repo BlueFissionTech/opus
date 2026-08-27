@@ -1,71 +1,25 @@
 const Webpack = require("webpack");
 const Path = require("path");
-const fs = require("fs");
 const TerserPlugin = require("terser-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
-const FileManagerPlugin = require("filemanager-webpack-plugin");
 const RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts');
+const { createAssetManifest } = require('./tools/asset-pipeline.cjs');
 
-const activeTheme = getActiveThemeFromDatabase();
-
-function getActiveThemeFromDatabase() {
-  return 'default';
-}
-
-const opts = {
-  rootDir: process.cwd(),
-  devBuild: process.env.NODE_ENV !== "production"
-};
-
-// get a list of all possible addons
-const addonsDir = Path.join(__dirname, "addons");
-
-let addonsModules = {};
-let addonsEntries = {};
-
-if (fs.existsSync(addonsDir)) {
-  const addonNames = fs.readdirSync(addonsDir);
-
-  addonNames.forEach((addonName) => {
-    const addonEntryPath1 = Path.join(addonsDir, addonName, `resource/src/module-${addonName}.js`);
-    const addonEntryPath2 = Path.join(addonsDir, addonName, `resource/src/${addonName}.js`);
-
-    if (fs.existsSync(addonEntryPath1)) {
-      addonsModules[`module-${addonName}`] = addonEntryPath1;
-    }
-    if (fs.existsSync(addonEntryPath2)) {
-      addonsEntries[`${addonName}`] = addonEntryPath2;
-    }
-  });
-}
+const manifest = createAssetManifest(__dirname, process.env);
+const devBuild = process.env.NODE_ENV !== "production";
 
 module.exports = {
-  entry: {
-    app: "./resource/src/js/app.js",
-    // settings: "./resource/src/js/settings/index.js",
-    // light: "./resource/src/scss/light.scss",
-    // dark: "./resource/src/scss/dark.scss",
-    main: "./resource/src/js/pages/admin/main.js",
-    'login-page': "./resource/src/js/modules/app/login-page.js",
-    'module-dashboard': "./resource/src/js/modules/app/module-dashboard.js",
-    // 'module-dashboard': "./resource/src/js/modules/app/module-dashboard.js",
-    'module-user': "./resource/src/js/modules/app/module-user.js",
-    'module-addons': "./resource/src/js/modules/app/module-addons.js",
-    'module-terminal': "./resource/src/js/modules/app/module-terminal.js",
-    'module-content': "./resource/src/js/modules/app/module-content.js",
-    'module-media': "./resource/src/js/modules/app/module-media.js",
-    ... (activeTheme ? {[`theme-${activeTheme}`]: `./resource/markup/${activeTheme}/src/index.js`} : {}),
-    ...addonsModules, // include the addon entries here
-    ...addonsEntries // include the addon entries here
-  },
+  entry: manifest.entries,
   mode: process.env.NODE_ENV === "production" ? "production" : "development",
   devtool: process.env.NODE_ENV === "production" ? false : "inline-source-map",
   output: {
     filename: "js/[name].js",
-    path: Path.join(opts.rootDir, "public/assets"),
-    pathinfo: opts.devBuild
+    path: manifest.outputRoot,
+    pathinfo: devBuild,
+    publicPath: "/assets/",
+    clean: true
   },
   performance: { hints: false },
   optimization: {
@@ -80,14 +34,14 @@ module.exports = {
     ]
   },
   plugins: [
-    // Remove empty js files from /dist
+    // Remove JavaScript files emitted for style-only entries.
     new RemoveEmptyScriptsPlugin(),
-    // Extract css files to seperate bundle
+    // Extract styles into independently cacheable bundles.
     new MiniCssExtractPlugin({
       filename: "css/[name].css",
       chunkFilename: "css/[id].css"
     }),
-    // jQuery
+    // Preserve globals required by the remaining legacy modules.
     new Webpack.ProvidePlugin({
       $: "jquery",
       jQuery: "jquery",
@@ -95,36 +49,11 @@ module.exports = {
       app: ["app", 'default'],
       Popper: ['popper.js', 'default']
     }),
-    // Copy fonts and images to dist
+    // Publish validated static sources from the asset manifest.
     new CopyWebpackPlugin({
-      patterns: [
-        { from: "resource/src/img", to: "img" },
-        {
-          from: 'node_modules/xterm/css/xterm.css',
-          to: 'css/xterm.css',
-        },
-        {
-          from: 'resource/src/css/custom.css',
-          to: 'css/custom.css',
-        },
-        {
-          from: 'resource/src/css/admin.css',
-          to: 'css/admin.css',
-        },
-        ...(activeTheme ? [{ from: `./resource/markup/${activeTheme}/assets`, to: '.' }] : [])
-      ]
+      patterns: manifest.copyPatterns
     }),
-    // Copy dist folder to docs/dist
-    // new FileManagerPlugin({
-    //   events: {
-    //     onEnd: {
-    //       copy: [
-    //         { source: "./dist/", destination: "./docs" }
-    //       ]
-    //     }
-    //   }
-    // }),
-    // Ignore momentjs locales
+    // Exclude unused Moment.js locales from application bundles.
     new Webpack.IgnorePlugin({
       resourceRegExp: /^\.\/locale$/,
       contextRegExp: /moment$/
@@ -132,7 +61,7 @@ module.exports = {
   ],
   module: {
     rules: [
-      // Babel-loader
+      // Compile authored JavaScript while leaving package code intact.
       {
         test: /\.js$/,
         exclude: /(node_modules)/,
@@ -143,7 +72,7 @@ module.exports = {
           }
         }
       },
-      // Css-loader & sass-loader
+      // Compile authored CSS and Sass into extracted bundles.
       {
         test: /\.(sa|sc|c)ss$/,
         use: [
@@ -153,7 +82,7 @@ module.exports = {
           "sass-loader"
         ]
       },
-      // Load fonts
+      // Publish fonts referenced by compiled styles.
       {
         test: /\.(woff(2)?|ttf|eot|svg)(\?v=\d+\.\d+\.\d+)?$/,
         type: "asset/resource",
@@ -161,7 +90,7 @@ module.exports = {
           filename: "fonts/[name][ext]"
         }
       },
-      // Load images
+      // Publish images referenced by compiled modules.
       {
         test: /\.(png|jpg|jpeg|gif)(\?v=\d+\.\d+\.\d+)?$/,
         type: "asset/resource",
@@ -169,7 +98,7 @@ module.exports = {
           filename: "img/[name][ext]"
         }
       },
-      // Expose loader
+      // Preserve globals required by the remaining legacy modules.
       {
         test: require.resolve("jquery"),
         loader: "expose-loader",
@@ -195,12 +124,5 @@ module.exports = {
       request$: "xhr",
       app: Path.resolve(__dirname, './resource/src/js/app')
     }
-  },
-  devServer: {
-    static: {
-      directory: Path.join(__dirname, "docs"),
-    },
-    port: 8080,
-    open: true
   }
 };
