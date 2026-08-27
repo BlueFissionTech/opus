@@ -38,6 +38,7 @@ final class AddOnScaffoldServiceTest extends TestCase
 
         $this->assertTrue($result['created'], Arr::make($result['errors'])->toJson());
         $this->assertFileExists($this->workspace . '/sample_tools/resource/markup/default.vibe');
+        $this->assertFileExists($this->workspace . '/sample_tools/mapping/agents.php');
         $this->assertFileExists($this->workspace . '/sample_tools/datasources/structure/.gitkeep');
         $composer = Arr::make($this->readJson($this->workspace . '/sample_tools/composer.json'));
         $definition = Arr::make($this->readJson($this->workspace . '/sample_tools/definition.json'));
@@ -57,14 +58,16 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertTrue($validation['valid'], Arr::make($validation['errors'])->toJson());
 
         $menus = require $this->workspace . '/sample_tools/mapping/menus.php';
+        $agents = require $this->workspace . '/sample_tools/mapping/agents.php';
         $this->assertIsArray($menus);
         $this->assertSame([], $menus['register']());
+        $this->assertSame('generated', $agents['agents']['addon.sample_tools']['mode']);
 
         require $this->workspace . '/sample_tools/logic/Registration/AddOnRegistration.php';
         $factory = require $this->workspace . '/sample_tools/main.php';
         $secondFactory = require $this->workspace . '/sample_tools/main.php';
         $registration = $factory();
-        $this->assertCount(5, $registration->contributions());
+        $this->assertCount(6, $registration->contributions());
         $this->assertInstanceOf($registration::class, $secondFactory());
         $this->assertTrue(function_exists('AddOns\\SampleTools\\sample_tools_install'));
         $this->assertFalse(function_exists('sample_tools_install'));
@@ -100,6 +103,15 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertFalse($result['created']);
         $this->assertSame('name_invalid', $result['errors'][0]['code']);
         $this->assertDirectoryDoesNotExist($this->workspace . '/unsafe');
+    }
+
+    public function testItRejectsTheReservedApplicationOwnerBeforeWritingOutput(): void
+    {
+        $result = (new AddOnScaffoldService($this->workspace))->generate('application', 'application');
+
+        $this->assertFalse($result['created']);
+        $this->assertSame('name_reserved', $result['errors'][0]['code']);
+        $this->assertDirectoryDoesNotExist($this->workspace . '/application');
     }
 
     public function testItRejectsNamesThatCannotProduceValidComposerSlugs(): void
@@ -422,6 +434,55 @@ PHP
 
         $this->assertFalse($result['valid']);
         $this->assertContains('mapping_contract', $codes);
+    }
+
+    public function testLegacyAddOnWithoutAgentMapRemainsValidAndDisabled(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('legacy', 'legacy');
+        $definitionPath = $this->workspace . '/legacy/definition.json';
+        $definition = Arr::make($this->readJson($definitionPath));
+        $definition->delete('agent_mapping');
+        file_put_contents(
+            $definitionPath,
+            Str::make($definition->toJson())->append(PHP_EOL)->val()
+        );
+        unlink($this->workspace . '/legacy/mapping/agents.php');
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/legacy');
+        $warningCodes = Arr::make($result['warnings'])
+            ->map(fn (array $warning): string => (string) Arr::make($warning)->get('code'))
+            ->toArray();
+
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
+        $this->assertContains('agent_mapping_missing', $warningCodes);
+    }
+
+    public function testAgentToolsCanBeDerivedFromExecutableConsoleMappings(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('executable_agent', 'executable_agent');
+        file_put_contents(
+            $this->workspace . '/executable_agent/mapping/console.php',
+            <<<'PHP'
+<?php
+
+use BlueFission\Services\Mapping;
+
+Mapping::add('/sample/run', ['SampleController', 'run'], 'sample.run', 'post');
+Mapping::add('/sample/status', ['SampleController', 'status'], 'health', 'get');
+Mapping::crud('/admin', 'users', 'UserController', 'id');
+PHP
+        );
+        $agentPath = $this->workspace . '/executable_agent/mapping/agents.php';
+        file_put_contents(
+            $agentPath,
+            Str::make((string) FileSystem::fileContents($agentPath))
+                ->replace("'tools' => [],", "'tools' => ['sample.run', 'sample.status', 'admin_users.list'],")
+                ->val()
+        );
+
+        $result = (new AddOnContractValidator())->validate($this->workspace . '/executable_agent');
+
+        $this->assertTrue($result['valid'], Arr::make($result['errors'])->toJson());
     }
 
     public function testRegistrationFactoryMustBeTheCompleteReturnExpression(): void

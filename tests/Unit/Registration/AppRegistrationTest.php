@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Registration;
 
 use App\Business\Services\VibeThemeRenderer;
+use App\Business\Services\AgentScopedCommandProcessor;
 use App\Registration\AppRegistration;
 use BlueFission\BlueCore\Theme;
 use BlueFission\Str;
+use BlueFission\Wise\Cmd\ICommandProcessor;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -33,6 +35,29 @@ final class AppRegistrationTest extends TestCase
 
         $this->assertInstanceOf(VibeThemeRenderer::class, $app->delegates['template']);
         $this->assertSame($app->delegates['template'], $app->delegates['vibe.theme']);
+    }
+
+    public function testItBindsWiseCommandsThroughTheAgentScopedProcessor(): void
+    {
+        $app = new class {
+            /** @var array<string, string> */
+            public array $bindings = [];
+
+            public function bind(string $abstract, string $concrete): void
+            {
+                $this->bindings[$abstract] = $concrete;
+            }
+        };
+        $reflection = new ReflectionClass(AppRegistration::class);
+        $registration = $reflection->newInstanceWithoutConstructor();
+        $reflection->getProperty('_app')->setValue($registration, $app);
+
+        $registration->bindings();
+
+        $this->assertSame(
+            AgentScopedCommandProcessor::class,
+            $app->bindings[ICommandProcessor::class]
+        );
     }
 
     public function testBuiltInThemesRenderFromPackageOwnedResources(): void

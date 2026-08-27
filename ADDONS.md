@@ -68,6 +68,7 @@ logic/
         Values/
     Registration/
 mapping/
+    agents.php
     api.php
     app.php
     console.php
@@ -93,6 +94,50 @@ invalid. In particular, `menus.php` returns an empty result when no navigation
 service is supplied so isolated contract validation does not invent a global
 navigation dependency. Invalid menu declarations remain a validation failure;
 optional capability handling is not an error-suppression boundary.
+
+### Agent command boundaries
+
+`mapping/agents.php` is a versioned, data-only capability map. It does not
+construct agents, connect to inference providers, register commands, or perform
+IO. The root application owns `opus.central`; each add-on owns its exact
+`addon.<name>` boundary. A generated add-on defaults to `generated` mode with an
+empty tool list, so installation never grants ambient command access.
+
+Agent maps use exact `resource.action` tool identifiers declared by the
+package's `mapping/console.php` resource catalog. The supported modes are:
+
+- `specialist`: use the package's declared specialist profile and local tools;
+- `generated`: create a reviewable default specialist from package metadata;
+- `central`: decline a specialist and request narrowly reciprocal imports into
+  the root agent; and
+- `disabled`: expose no package commands to agents.
+
+Existing add-ons may omit both the manifest entry and agent map while they are
+migrated. They remain valid but expose no agent commands. Declaring an agent map
+makes the file and its closed schema mandatory. For supported executable
+console mappings, stable dotted `Mapping::add()` names (or two-segment paths)
+and deterministic `Mapping::crud()` resources are extracted statically; the
+mapping file is never executed during validation.
+
+Local tools, imports, exports, permissions, and active lifecycle states must be
+explicit. Missing maps, inactive packages, missing permissions, malformed
+identifiers, and one-sided cross-agent grants resolve to no tools. Grants are
+non-transitive. Specialist tools are never copied into the central map; the
+central agent reaches those capabilities through explicit delegation. Add-on
+agents receive no root or peer tools unless both maps name the exact reciprocal
+grant.
+
+The application binds Wise's `ICommandProcessor` to the scoped processor, which
+parses a command before execution, derives its exact tool identifier, and checks
+the same resolved map used for discovery. The already-authorized `Command`
+object is passed to Wise for execution so free-form input is not parsed twice. Denied
+commands and continuations return structured diagnostics before handler
+execution. Continuations are bound to their originating agent, tenant, and
+actor, then reauthorized against current lifecycle and permission state.
+Request context should include actor, agent, tenant, correlation,
+active add-ons, lifecycle states, and granted capabilities. Returned command
+results include the resolved map versions and decision metadata and must be
+consumed once rather than treated as another command.
 
 `definition.json` declares registration behavior through a package-owned class
 and a primary-file factory. The validator derives the registration file from
