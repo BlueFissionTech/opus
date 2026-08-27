@@ -96,6 +96,9 @@
             "Tests\\": "tests/"
         }
     },
+    "bin": [
+        "bin/opus-addon.php"
+    ],
     "archive": {
       "exclude": [
         ".babelrc"

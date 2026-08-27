@@ -1,16 +1,29 @@
 <?php
 
+use App\Business\Services\RuntimePathResolver;
+
+$configuredHostRoot = getenv('OPUS_HOST_ROOT');
+$runtimePaths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover(
+	null,
+	$configuredHostRoot !== false && $configuredHostRoot !== '' ? $configuredHostRoot : null
+);
+
 // TODO: set this in a config file
 date_default_timezone_set('America/New_York');
 
+$withTrailingSeparator = static fn (string $path): string => rtrim($path, '/\\') . DIRECTORY_SEPARATOR;
+
 if (!defined("APP_ROOT") ){
-	define('APP_ROOT', dirname(dirname(dirname(__FILE__))).'/');	
+	define('APP_ROOT', $withTrailingSeparator($runtimePaths->hostRoot()));
 }
 if (!defined("OPUS_ROOT") ){
-	define('OPUS_ROOT', APP_ROOT);
+	define('OPUS_ROOT', $withTrailingSeparator($runtimePaths->packageRoot()));
+}
+if (!defined("OPUS_RESOURCE_ROOT") ){
+	define('OPUS_RESOURCE_ROOT', $withTrailingSeparator($runtimePaths->packageResourceRoot()));
 }
 if (!defined("PROJECT_ROOT") ){
-	define('PROJECT_ROOT', APP_ROOT . 'core');
+	define('PROJECT_ROOT', OPUS_ROOT);
 }
 if (!defined("SITE_ROOT") ){
 	define('SITE_ROOT', APP_ROOT.'public');	
