@@ -139,6 +139,33 @@ active add-ons, lifecycle states, and granted capabilities. Returned command
 results include the resolved map versions and decision metadata and must be
 consumed once rather than treated as another command.
 
+Agent runtime composition is separate from command-map declaration. Opus
+registers central and add-on descriptors without constructing an inference
+client. An injected runtime factory resolves the opaque profile reference and
+owns provider selection, including hosted and self-hosted providers, while the
+Opus composition service owns lifecycle policy and tenant isolation. Persisted
+runtime state is keyed by tenant and agent; process-local runtime adapters may
+be reconstructed by the factory for a later request. Factories must therefore
+rehydrate their own provider/session context from the bounded descriptor and
+runtime context instead of relying on ambient globals.
+Provider adapters receive an immutable identifier for every execution and must
+scope cancellation to the requested identifier. They must not interpret a
+cancellation request as permission to terminate a newer execution generation.
+Opus serializes active execution per tenant-and-agent scope so every admitted
+generation retains a deterministic cancellation path across application hosts.
+Runtime state stores require a shared synchronizer. The MySQL implementation
+uses connection-scoped advisory locks, while persisted lifecycle and cancellation
+leases prevent a dead worker from blocking the scope indefinitely. An execution
+never replaces a nonempty lifecycle transition claim.
+
+Specialist agents require an active package lifecycle state and explicit
+tenant. They do not inherit central or peer command surfaces. The central
+agent delegates a bounded task to a specialist runtime; it does not absorb the
+specialist's tool map. Task output, diagnostics, traces, cancellation, and
+failure recovery remain structured and provider-neutral so Automata can own
+hierarchical or peer orchestration without moving provider semantics into the
+application.
+
 `definition.json` declares registration behavior through a package-owned class
 and a primary-file factory. The validator derives the registration file from
 the declared class instead of requiring a fixed filename. Theme entries declare

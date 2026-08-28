@@ -94,6 +94,34 @@ Acceptance criteria:
 - Central orchestration can inspect add-on readiness without taking ownership
   of add-on internals.
 - Agent outputs are represented as stable command or service results.
+- Agent descriptors register without constructing provider clients or runtime
+  sessions.
+- Runtime factories remain provider-neutral and may resolve hosted,
+  self-hosted, or fallback providers from the descriptor's opaque profile
+  reference.
+- Central and specialist runtime instances are isolated by agent and tenant;
+  specialist startup requires an explicit tenant, active add-on state, and
+  current capability grant.
+- Start, suspend, resume, stop, and cancel transitions are idempotent and
+  persist structured state independently from process-local runtime objects.
+- Each runtime operation receives the current tenant, actor, capability, and
+  correlation context even when a provider adapter is reused across requests.
+- Successful cancellation is persisted and deduplicated until a subsequent
+  task execution begins for that agent scope.
+- Every provider execution receives an immutable execution identifier, and
+  cancellation targets that exact generation so an older cancellation cannot
+  affect a replacement execution on another host.
+- Each tenant-and-agent scope admits one active provider execution at a time;
+  overlapping requests fail closed until that generation completes.
+- Shared runtime state uses an injected atomic synchronization boundary. MySQL
+  hosts use connection-scoped advisory locks; lifecycle and cancellation claims
+  carry bounded leases so dead workers can be recovered without host-local lock
+  assumptions.
+- Task execution revalidates lifecycle and permission policy and returns
+  provider-neutral output, diagnostics, trace, and correlation metadata.
+- Opus selects permitted participants and context. Automata owns hierarchical
+  and peer orchestration execution; Opus does not reimplement orchestration
+  patterns.
 
 ### Templates And Generation
 

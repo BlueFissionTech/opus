@@ -31,6 +31,16 @@ final class AgentCapabilityMapResolver
         });
     }
 
+    public function register(AgentCapabilityMap $map): void
+    {
+        if ($map->owner() === 'application') {
+            $this->application = $map;
+            return;
+        }
+
+        $this->maps->set($map->owner(), $map);
+    }
+
     public function resolve(
         string $agentId,
         array $activeAddOns = [],
