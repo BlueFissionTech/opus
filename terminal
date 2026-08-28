@@ -3,29 +3,26 @@
 use BlueFission\Utils\Loader;
 use BlueFission\BlueCore\Engine as App;
 
+$runtimePaths = require __DIR__ . '/common/bootstrap/runtime.php';
+
 session_start();
 
 /**
  * Load the helper functions first.
  */
-require 'common/helpers/functions.php';
-
-/**
- * Include the autoloader for the dependencies.
- */
-require 'vendor/autoload.php';
+require $runtimePaths->packageRoot() . '/common/helpers/functions.php';
 
 /**
  * Load application settings after Composer can resolve shared helpers.
  */
-require 'common/helpers/settings.php';
+require $runtimePaths->packageRoot() . '/common/helpers/settings.php';
 
 // Loader utility for non-composer compatible scripts
 $loader = Loader::instance();
-$loader->addPath(getcwd());
-$loader->addPath(getcwd().DIRECTORY_SEPARATOR."core");
-$loader->addPath(getcwd().DIRECTORY_SEPARATOR."mod");
-$loader->addPath(getcwd().DIRECTORY_SEPARATOR."app");
+$loader->addPath($runtimePaths->hostRoot());
+$loader->addPath($runtimePaths->packageRoot());
+$loader->addPath($runtimePaths->hostRoot() . DIRECTORY_SEPARATOR . "mod");
+$loader->addPath($runtimePaths->hostRoot() . DIRECTORY_SEPARATOR . "app");
 
 /**
  * Create a new instance of the BlueFission App Engine.

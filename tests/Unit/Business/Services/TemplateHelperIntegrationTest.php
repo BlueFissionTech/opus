@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Business\Services;
 
+use App\Business\Presentation\VibeValue;
 use App\Business\Services\VibeThemeRenderer;
 use BlueFission\BlueCore\Engine;
 use BlueFission\Services\Application;
@@ -39,7 +40,9 @@ final class TemplateHelperIntegrationTest extends TestCase
         $engine = new Engine();
         $engine->delegate('template', $renderer);
 
-        $output = template('default', 'login.vibe', ['url' => '/login?from=helper']);
+        $output = template('default', 'login.vibe', [
+            'url' => VibeValue::url('/login?from=helper'),
+        ]);
 
         $this->assertStringContainsString('/login?from=helper', $output);
         $this->assertStringNotContainsString('@include(', $output);

@@ -22,51 +22,37 @@ class CodeManager extends Service
 
     public function generate(string $type, string $name, string $prompt): array
     {
-        print "Please wait...\n";
-        $result = Arr::make($this->generationService->renderSource($prompt, [
+        return $this->result('generate', $this->generationService->renderSource($prompt, [
             'type' => $type,
             'name' => $name,
         ]));
-
-        if ($result->get('valid')) {
-            if ($result->get('output') !== '') {
-                print $result->get('output') . "\n";
-            }
-            print "Generation completed.\n";
-        } else {
-            print $this->formatErrors(Arr::make($result->get('errors'))->val());
-        }
-
-        return $result->val();
     }
 
     public function render(string $source, array $variables = []): array
     {
-        return $this->generationService->renderSource($source, $variables);
+        return $this->result('render', $this->generationService->renderSource($source, $variables));
     }
 
     public function renderFile(string $sourcePath, ?string $outputPath = null, array $variables = []): array
     {
         if (Str::isNotEmpty($outputPath)) {
-            return $this->generationService->writeRenderedFile($sourcePath, $outputPath, $variables);
+            return $this->result(
+                'render_file',
+                $this->generationService->writeRenderedFile($sourcePath, $outputPath, $variables)
+            );
         }
 
-        return $this->generationService->renderFile($sourcePath, $variables);
+        return $this->result('render_file', $this->generationService->renderFile($sourcePath, $variables));
     }
 
-    private function formatErrors(array $errors): string
+    private function result(string $operation, array $result): array
     {
-        $errors = Arr::make($errors);
-        if ($errors->isEmpty()) {
-            return "Generation failed.\n";
-        }
+        $result = Arr::make($result);
+        $valid = (bool) $result->get('valid');
+        $result->set('operation', $operation);
+        $result->set('status', $valid ? 'completed' : 'failed');
+        $result->set('exit_code', $valid ? 0 : 1);
 
-        $lines = Arr::make(["Generation failed:"]);
-        foreach ($errors as $error) {
-            $error = Arr::make($error);
-            $lines->push('- ' . ($error->get('message') ?? 'Unknown error'));
-        }
-
-        return $lines->join("\n")->append("\n")->val();
+        return $result->toArray();
     }
 }

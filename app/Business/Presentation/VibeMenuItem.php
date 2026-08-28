@@ -50,7 +50,7 @@ final class VibeMenuItem extends MenuItem
         return $renderer->render($this->themeName, $this->vibeTemplate, [
             'id' => $this->_id,
             'label' => $this->_label,
-            'action' => $this->_action,
+            'action' => VibeValue::url((string) $this->_action),
         ], [], ['id', 'label', 'action']);
     }
 }

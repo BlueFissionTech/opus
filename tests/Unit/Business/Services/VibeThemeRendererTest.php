@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Business\Services;
 
+use App\Business\Presentation\VibeValue;
 use App\Business\Services\VibeThemeRenderer;
 use BlueFission\Vibrato\Reader;
 use PHPUnit\Framework\TestCase;
@@ -27,7 +28,8 @@ final class VibeThemeRendererTest extends TestCase
         $output = $renderer->render('default', 'default.vibe', [
             'name' => 'Opus <script>alert(1)</script>',
             'title' => 'Build & coordinate',
-            'url' => 'https://example.com/?a=1&b=2',
+            'chatTitle' => VibeValue::script("Opus </script><script>alert('x')</script>"),
+            'url' => VibeValue::url('https://example.com/?a=1&b=2'),
             'csrfToken' => 'token"value',
         ]);
 
@@ -35,6 +37,8 @@ final class VibeThemeRendererTest extends TestCase
         $this->assertStringContainsString('aria-label="Primary"', $output);
         $this->assertStringContainsString('Opus &lt;script&gt;alert(1)&lt;/script&gt;', $output);
         $this->assertStringContainsString('Build &amp; coordinate', $output);
+        $this->assertStringContainsString('\\u003C\\/script\\u003E', $output);
+        $this->assertStringNotContainsString("</script><script>alert('x')</script>", $output);
         $this->assertStringNotContainsString('@template(', $output);
         $this->assertStringNotContainsString('@output(', $output);
         $this->assertSame(false, $reader->runConfig['run_backend'] ?? null);
@@ -52,11 +56,10 @@ final class VibeThemeRendererTest extends TestCase
             [
                 'appName' => 'Opus & Company',
                 'title' => '<Admin>',
-                'url' => '/admin',
+                'url' => VibeValue::url('/admin'),
                 'csrfToken' => 'token',
-                'sideNav' => $navigation,
-            ],
-            ['sideNav']
+                'sideNav' => VibeValue::trustedMarkup($navigation),
+            ]
         );
 
         $this->assertStringContainsString($navigation, $output);
@@ -86,8 +89,8 @@ final class VibeThemeRendererTest extends TestCase
 
         $output = $renderer->render('admin', 'modules/menu.vibe', [
             'menuItems' => [
-                ['label' => 'Users <admin>', 'action' => '/users?a=1&b=2'],
-                ['label' => 'Add-ons', 'action' => '/addons'],
+                ['label' => 'Users <admin>', 'action' => VibeValue::url('/users?a=1&b=2')],
+                ['label' => 'Add-ons', 'action' => VibeValue::url('/addons')],
             ],
         ], [], ['menuItems']);
 
@@ -111,14 +114,40 @@ final class VibeThemeRendererTest extends TestCase
         $renderer = $this->renderer('default');
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('must be converted to arrays or marked as trusted');
+        $this->expectExceptionMessage('require an explicit supported Vibe value context');
 
         $renderer->render('default', 'default.vibe', [
             'name' => (object) ['value' => '<script>alert(1)</script>'],
             'title' => 'Welcome',
-            'url' => '/',
+            'url' => VibeValue::url('/'),
             'csrfToken' => 'token',
         ]);
+    }
+
+    public function testItRejectsUnsafeStructuredNavigationUrls(): void
+    {
+        $renderer = $this->renderer('admin');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("scheme 'javascript' is not allowed");
+
+        $renderer->render('admin', 'modules/menu.vibe', [
+            'menuItems' => [
+                ['label' => 'Unsafe', 'action' => VibeValue::url('javascript:alert(1)')],
+            ],
+        ]);
+    }
+
+    public function testLegacyTrustedVariablesOnlyAcceptMarkupStrings(): void
+    {
+        $renderer = $this->renderer('admin');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Trusted Vibe markup must be a string');
+
+        $renderer->render('admin', 'default.vibe', [
+            'sideNav' => (object) ['html' => '<nav>Unsafe</nav>'],
+        ], ['sideNav']);
     }
 
     private function renderer(string $themeName, ?Reader $reader = null): VibeThemeRenderer

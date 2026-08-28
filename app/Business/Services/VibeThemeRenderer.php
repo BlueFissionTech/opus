@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Business\Services;
 
+use App\Business\Presentation\VibeValue;
 use BlueFission\Arr;
 use BlueFission\Str;
 use BlueFission\Val;
@@ -17,7 +18,13 @@ final class VibeThemeRenderer
 
     private \Closure $readerFactory;
 
-    public function __construct(?callable $themeResolver = null, ?callable $readerFactory = null)
+    private VibeContextPolicy $contextPolicy;
+
+    public function __construct(
+        ?callable $themeResolver = null,
+        ?callable $readerFactory = null,
+        ?VibeContextPolicy $contextPolicy = null
+    )
     {
         $this->themeResolver = $themeResolver instanceof \Closure
             ? $themeResolver
@@ -25,6 +32,7 @@ final class VibeThemeRenderer
         $this->readerFactory = $readerFactory instanceof \Closure
             ? $readerFactory
             : \Closure::fromCallable($readerFactory ?? static fn (): Reader => new Reader(null));
+        $this->contextPolicy = $contextPolicy ?? new VibeContextPolicy();
     }
 
     /**
@@ -113,29 +121,17 @@ final class VibeThemeRenderer
 
         return Arr::toArray(Arr::make($variables)->map(
             fn (mixed $value, string|int $name): mixed => $trusted->contains((string) $name)
-                ? $value
-                : $this->escapeValue($value)
+                ? $this->protectLegacyTrustedMarkup($value)
+                : $this->contextPolicy->protect($value)
         ), true);
     }
 
-    private function escapeValue(mixed $value): mixed
+    private function protectLegacyTrustedMarkup(mixed $value): string
     {
-        if (Arr::is($value)) {
-            return Arr::toArray(Arr::make($value)->map(
-                fn (mixed $item): mixed => $this->escapeValue($item)
-            ), true);
+        if (!Str::is($value)) {
+            throw new \InvalidArgumentException('Trusted Vibe markup must be a string.');
         }
 
-        if (Str::is($value)) {
-            return htmlspecialchars((string) Str::make($value), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
-        }
-
-        if (is_object($value) || is_resource($value)) {
-            throw new \InvalidArgumentException(
-                'Object and resource template values must be converted to arrays or marked as trusted.'
-            );
-        }
-
-        return $value;
+        return $this->contextPolicy->protect(VibeValue::trustedMarkup((string) $value));
     }
 }

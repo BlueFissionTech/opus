@@ -1,4 +1,5 @@
 <?php
+use App\Business\Presentation\VibeValue;
 use BlueFission\Services\Mapping;
 use BlueFission\Net\HTTP;
 
@@ -9,7 +10,8 @@ Mapping::add('/', function() {
 		[
 			'title' => "Welcome",
 			'name' => env('APP_NAME'),
-			'url' => '/',
+			'chatTitle' => VibeValue::script(env('APP_NAME')),
+			'url' => VibeValue::url('/'),
 			'csrfToken' => HTTP::session('_token'),
 		]
 	);

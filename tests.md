@@ -29,6 +29,40 @@ release aliases in the consumer template. All other discovered
 `bluefission/*` packages must have canonical GitHub VCS routes in both the Opus
 root and the consumer template.
 
+Run Composer-installed root and entrypoint coverage with:
+
+```powershell
+vendor\bin\phpunit --do-not-cache-result tests\Unit\Business\Services\RuntimePathResolverTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\RuntimeSettingsTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\InstalledAddOnEntrypointTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\TerminalBootstrapOrderTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\Registration\AppRegistrationTest.php
+```
+
+The resolver fixtures model source checkouts and Composer source/distribution
+installs. The entrypoint tests verify Composer binary metadata, active host
+autoload precedence, distinct host/package constants, package-owned themes,
+and clean login/administration template rendering.
+
+## Environment Bootstrap
+
+Process environment values take precedence over entries in the root `.env`
+file. An absent or empty process value may be populated from `.env`. Web, CLI,
+and worker entrypoints load this policy through the shared application settings
+bootstrap.
+
+`EnvironmentLoader::import()` returns an `Arr` report containing counts and a
+per-key `process` or `dotenv` source. The report intentionally excludes all
+configuration values so it can be used in startup diagnostics without exposing
+secrets.
+
+Run the focused environment and entrypoint coverage with:
+
+```powershell
+vendor\bin\phpunit --do-not-cache-result tests\Unit\Business\Services\EnvironmentLoaderTest.php
+vendor\bin\phpunit --do-not-cache-result tests\Unit\TerminalBootstrapOrderTest.php
+```
+
 ## Runtime Contract Validation
 
 The default PHPUnit suite checks that the runtime contract files are present and
@@ -51,17 +85,23 @@ php examples\jenss\validate.php --strict
 
 ## Frontend Build Checks
 
-The current frontend scripts are:
+Install the locked frontend graph and validate the Opus-owned manifest before
+building:
 
 ```powershell
+npm ci
+npm run assets:validate
+npm run test:assets
 npm run build
 npm run watch
 npm run start
 ```
 
-Webpack cleanup is tracked as roadmap work. Until that work lands, build
-validation should report missing asset paths, legacy asset assumptions, or
-template metadata drift instead of hiding them.
+Set `OPUS_ASSET_THEME` to compile a theme other than `default`. The selected
+theme must provide `src/index.js` and `assets/` beneath its markup directory.
+Add-on entries are discovered from the package-owned paths documented in
+`ASSETS.md`. Validation reports missing sources and entry collisions before
+Webpack starts.
 
 ## Optional Services
 

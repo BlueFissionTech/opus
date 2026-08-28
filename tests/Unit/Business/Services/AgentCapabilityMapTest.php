@@ -10,15 +10,20 @@ use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentCommandContextProvider;
 use App\Business\Services\AgentScopedCommandProcessor;
+use App\Business\Services\WiseCommandHost;
 use App\Business\Services\AddOnContractValidator;
 use App\Business\Services\DeclarativeArrayParser;
+use App\Business\Presentation\CommandResultPresenter;
 use App\Business\Middleware\ProcessesCommandMiddleware;
 use App\Domain\Agents\AgentCapabilityMap;
+use App\Domain\Agents\AgentDescriptor;
 use App\Domain\Agents\IAgentContinuationScopeStore;
+use App\Domain\Console\CommandPresentation;
 use BlueFission\Arr;
 use BlueFission\BlueCore\Business\Managers\CommandManager;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\DevElation;
+use BlueFission\Obj;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
@@ -41,6 +46,18 @@ final class AgentCapabilityMapTest extends TestCase
             unlink($file);
         }
         rmdir($this->workspace);
+    }
+
+    public function testAgentDescriptorsParticipateInTheDevelationObjectLifecycle(): void
+    {
+        $descriptor = new AgentDescriptor('addon.sample', 'sample', [
+            'mode' => 'specialist',
+            'tools' => ['sample.run'],
+        ]);
+
+        $this->assertInstanceOf(Obj::class, $descriptor);
+        $this->assertSame('addon.sample', $descriptor->id());
+        $this->assertSame(['sample.run'], $descriptor->tools());
     }
 
     public function testDeclarativeParserRejectsExecutionAndDuplicateAgentIdentifiers(): void
@@ -1043,18 +1060,18 @@ PHP
         };
         $middleware = new class(
             $this->createMock(CommandManager::class),
-            $processor,
+            new WiseCommandHost($processor, new CommandResultPresenter()),
             new AgentCommandContextProvider($query)
         )
             extends ProcessesCommandMiddleware {
-                public function resume(string $token, bool $approved, array $context): CommandResult
+                public function resume(string $token, bool $approved, array $context): CommandPresentation
                 {
                     return $this->resumeCommand($token, $approved, $context);
                 }
 
-                public function description(CommandResult $result): string
+                public function description(CommandPresentation $presentation): string
                 {
-                    return $this->confirmationDescription($result);
+                    return $this->confirmationDescription($presentation);
                 }
             };
         $context = [
@@ -1070,6 +1087,7 @@ PHP
         $pendingCommand->verb = 'list';
         $pendingCommand->resources = ['command'];
         $pending = CommandResult::pending('Confirm command.', $pendingCommand, 'continuation-b');
+        $pendingPresentation = (new CommandResultPresenter())->present($pending);
 
         $result = $middleware->resume('continuation-a', true, $context);
 
@@ -1082,7 +1100,7 @@ PHP
         $this->assertSame([], $processor->request?->context()['active_addons']);
         $this->assertSame([], $processor->request?->context()['addon_states']);
         $this->assertSame([], $processor->request?->context()['capabilities']);
-        $this->assertSame('list command', $middleware->description($pending));
+        $this->assertSame('list command', $middleware->description($pendingPresentation));
     }
 
     public function testProductionContextIncludesTrustedActivatedAddOnState(): void

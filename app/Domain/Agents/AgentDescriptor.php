@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Agents;
 
 use BlueFission\Arr;
+use BlueFission\Obj;
 use BlueFission\Str;
 
-final class AgentDescriptor
+final class AgentDescriptor extends Obj
 {
     private Str $id;
     private Str $owner;
@@ -22,6 +23,8 @@ final class AgentDescriptor
 
     public function __construct(string $id, string $owner, array $data)
     {
+        parent::__construct();
+
         $data = Arr::make($data);
 
         $this->id = Str::make($id);

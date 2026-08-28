@@ -27,6 +27,46 @@ class ComposerVcsAuditTest extends TestCase
         $this->assertContains('bluefission/simpleclients', $result['packages']);
     }
 
+    public function testDevelopmentRequirementsRemainAuditedAsConsumerSources(): void
+    {
+        $repository = [
+            'type' => 'vcs',
+            'url' => 'https://github.com/BlueFissionTech/wise',
+        ];
+        $composer = [
+            'name' => 'bluefission/opus',
+            'config' => ['use-github-api' => false],
+            'repositories' => ['bluefission/wise' => $repository],
+            'require-dev' => ['bluefission/wise' => 'dev-main'],
+        ];
+        $lock = [
+            'packages-dev' => [[
+                'name' => 'bluefission/wise',
+                'version' => 'dev-main',
+                'source' => [
+                    'type' => 'git',
+                    'url' => 'https://github.com/BlueFissionTech/wise.git',
+                ],
+            ]],
+        ];
+        $template = [
+            'config' => ['use-github-api' => false],
+            'repositories' => [
+                'bluefission/opus' => [
+                    'type' => 'vcs',
+                    'url' => 'https://github.com/BlueFissionTech/opus',
+                ],
+                'bluefission/wise' => $repository,
+            ],
+            'require' => ['bluefission/wise' => 'dev-main'],
+        ];
+
+        $result = (new ComposerVcsAudit())->audit($composer, $lock, $template);
+
+        $this->assertSame([], $result['errors']);
+        $this->assertContains('bluefission/wise', $result['packages']);
+    }
+
     public function testConsumerTemplateRepeatsRootOnlyReleaseAliases(): void
     {
         $composer = [
