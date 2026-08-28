@@ -113,6 +113,9 @@ class AppRegistration implements IExtension {
 	public function arguments() {
 		$commandStorage = new Session(['location' => 'cache', 'name' => 'system']);
 		$agentMapLoader = new AgentCapabilityMapLoader();
+		$contextProvider = new AgentCommandContextProvider(
+			\App::makeInstance(IActivatedAddOnsQuery::class)
+		);
 
 		$this->bindArgs( ['session'=>new Session()], 'App\Business\Http\AdminController');
 		$this->bindArgs( ['session'=>new Session()], 'BlueFission\BlueCore\Auth');
@@ -133,11 +136,8 @@ class AppRegistration implements IExtension {
 			),
 			'continuations' => new AgentContinuationScopeStore($commandStorage),
 		], AgentScopedCommandProcessor::class);
-		$this->bindArgs([
-			'contextProvider' => new AgentCommandContextProvider(
-				\App::makeInstance(IActivatedAddOnsQuery::class)
-			),
-		], ProcessesCommandMiddleware::class);
+		$this->bindArgs(['contextProvider' => $contextProvider], ProcessesCommandMiddleware::class);
+		$this->bindArgs(['contextProvider' => $contextProvider], \App\Business\Console\CliManager::class);
 	}
 
 	public function addons()
