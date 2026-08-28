@@ -673,7 +673,7 @@ final class AgentCompositionService extends Service
             return $runtime;
         }
 
-        $descriptor = $this->descriptor($agentId);
+        $descriptor = $this->descriptorFor($agentId);
         if (!$descriptor instanceof AgentDescriptor || !$this->factory->available($descriptor, $context)) {
             throw new \RuntimeException('agent_runtime_unavailable');
         }
@@ -690,7 +690,7 @@ final class AgentCompositionService extends Service
             return true;
         }
 
-        $descriptor = $this->descriptor($agentId);
+        $descriptor = $this->descriptorFor($agentId);
 
         return $descriptor instanceof AgentDescriptor && $this->factory->available($descriptor, $context);
     }
@@ -700,7 +700,7 @@ final class AgentCompositionService extends Service
         string $agentId,
         AgentRuntimeContext $context
     ): ?AgentRuntimeResult {
-        $descriptor = $this->descriptor($agentId);
+        $descriptor = $this->descriptorFor($agentId);
         $state = $this->state($agentId, $context);
         if (!$descriptor instanceof AgentDescriptor) {
             return AgentRuntimeResult::denied($action, $agentId, $context->tenantId(), $state, 'agent_not_registered');
@@ -752,7 +752,7 @@ final class AgentCompositionService extends Service
         return null;
     }
 
-    private function descriptor(string $agentId): ?AgentDescriptor
+    public function descriptorFor(string $agentId): ?AgentDescriptor
     {
         $descriptor = $this->descriptors->get($agentId);
 
