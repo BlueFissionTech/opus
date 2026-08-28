@@ -7,6 +7,8 @@ use BlueFission\BlueCore\Business\Managers\NavMenuManager;
 use BlueFission\BlueCore\Business\Managers\DatasourceManager;
 use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use App\Business\MysqlConnector;
+use App\Business\Presentation\PackageTheme;
+use App\Business\Services\RuntimePathResolver;
 use App\Business\Services\VibeThemeRenderer;
 use App\Business\Services\AgentCapabilityMapCatalog;
 use App\Business\Services\AgentCapabilityMapLoader;
@@ -15,7 +17,6 @@ use App\Business\Services\AgentContinuationScopeStore;
 use App\Business\Services\AgentScopedCommandProcessor;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
-use BlueFission\BlueCore\Theme;
 use BlueFission\BlueCore\IExtension;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\Wise\Cmd\CommandProcessor;
@@ -147,8 +148,9 @@ class AppRegistration implements IExtension {
 
 	public function themes()
 	{
-		$this->theme(new Theme('app/default', 'default'));
-		$this->theme(new Theme('app/admin', 'admin'));
+		$paths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover();
+		$this->theme(new PackageTheme('app/default', $paths->themeRoot('default')));
+		$this->theme(new PackageTheme('app/admin', $paths->themeRoot('admin')));
 	}
 
 	// Helpers

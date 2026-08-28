@@ -24,6 +24,7 @@ final class AddOnContractValidator extends Service
         'composer.json',
         'definition.json',
         'main.php',
+        'logic/Lifecycle.php',
         'README.md',
         'mapping/api.php',
         'mapping/app.php',
@@ -910,10 +911,8 @@ final class AddOnContractValidator extends Service
                 return false;
             }
         }
-        while ($this->tokenIs($tokens->get(0), T_FUNCTION)) {
-            if (!$this->consumeDeferredNamedFunction($tokens)) {
-                return false;
-            }
+        if (!$this->consumeLifecycleInclude($tokens)) {
+            return false;
         }
         if (!$this->tokenIs($tokens->shift(), T_RETURN)) {
             return false;
@@ -931,6 +930,18 @@ final class AddOnContractValidator extends Service
         }
 
         return false;
+    }
+
+    private function consumeLifecycleInclude(Arr $tokens): bool
+    {
+        $path = $tokens->get(3);
+
+        return $this->tokenIs($tokens->shift(), T_REQUIRE_ONCE)
+            && $this->tokenIs($tokens->shift(), T_DIR)
+            && $tokens->shift() === '.'
+            && $this->tokenIs($tokens->shift(), T_CONSTANT_ENCAPSED_STRING)
+            && Arr::make($path)->get(1) === "'/logic/Lifecycle.php'"
+            && $tokens->shift() === ';';
     }
 
     private function consumeFactoryImport(Arr $tokens): bool
@@ -954,63 +965,6 @@ final class AddOnContractValidator extends Service
         }
 
         return $tokens->shift() === ';';
-    }
-
-    private function consumeDeferredNamedFunction(Arr $tokens): bool
-    {
-        if (!$this->tokenIs($tokens->shift(), T_FUNCTION)
-            || !$this->tokenIs($tokens->shift(), T_STRING)
-        ) {
-            return false;
-        }
-
-        $signatureDepth = 0;
-        while (!$tokens->isEmpty()) {
-            $token = $tokens->shift();
-            if ($token === '(' || $token === '[') {
-                $signatureDepth++;
-                continue;
-            }
-            if ($token === ')' || $token === ']') {
-                $signatureDepth--;
-                if ($signatureDepth < 0) {
-                    return false;
-                }
-                continue;
-            }
-            if ($token === '{' && $signatureDepth === 0) {
-                break;
-            }
-            if ($token === ';' && $signatureDepth === 0) {
-                return false;
-            }
-        }
-
-        $bodyDepth = 1;
-        $interpolationDepth = 0;
-        while (!$tokens->isEmpty() && $bodyDepth > 0) {
-            $token = $tokens->shift();
-            if (Arr::is($token)) {
-                $type = Arr::make($token)->get(0);
-                if ($type === T_CURLY_OPEN || $type === T_DOLLAR_OPEN_CURLY_BRACES) {
-                    $interpolationDepth++;
-                }
-                continue;
-            }
-            if ($token === '}' && $interpolationDepth > 0) {
-                $interpolationDepth--;
-                continue;
-            }
-            if ($token === '{') {
-                $bodyDepth++;
-            } elseif ($token === '}') {
-                $bodyDepth--;
-            }
-        }
-
-        return $signatureDepth === 0
-            && $bodyDepth === 0
-            && $interpolationDepth === 0;
     }
 
     private function factoryClassImportName(Arr $tokens, string $class): ?string

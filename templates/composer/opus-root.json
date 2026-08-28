@@ -42,7 +42,8 @@
     },
     "require": {
         "php": "^8.2",
-        "bluefission/opus": "dev-main"
+        "bluefission/opus": "dev-main",
+        "bluefission/wise": "dev-main"
     },
     "config": {
         "use-github-api": false,

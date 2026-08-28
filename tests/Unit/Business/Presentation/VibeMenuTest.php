@@ -74,4 +74,26 @@ final class VibeMenuTest extends TestCase
         $this->assertStringContainsString('Users', $output);
         $this->assertStringContainsString('Manage users', $output);
     }
+
+    public function testItRejectsUnsafeMenuActions(): void
+    {
+        $themeDirectory = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'resource'
+            . DIRECTORY_SEPARATOR . 'markup' . DIRECTORY_SEPARATOR . 'admin';
+        $renderer = new VibeThemeRenderer(
+            static fn (): object => (object) ['location' => $themeDirectory]
+        );
+        $menu = new VibeMenu(
+            'Users',
+            'admin',
+            'sections/menu-top-item.vibe',
+            'sections/menu-sub-item.vibe',
+            $renderer
+        );
+        $menu->addItem(new VibeMenuItem('Unsafe', 'javascript:alert(1)'));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("scheme 'javascript' is not allowed");
+
+        $menu->render();
+    }
 }

@@ -62,16 +62,17 @@
         "bluefission/synematic": "dev-main",
         "bluefission/synthetiq": "^0.1.0@alpha",
         "bluefission/vibrato": "dev-main",
-        "bluefission/wise": "dev-main",
         "composer/installers": "^1.11",
         "fakerphp/faker": "^1.24",
         "php-http/discovery": "^1.19",
         "symfony/http-client": "^7.3"
     },
     "require-dev": {
+        "bluefission/wise": "dev-main",
         "phpunit/phpunit": "^9.5"
     },
     "suggest": {
+        "bluefission/wise": "Install to enable the intelligent shell, command processor, and resource mappings.",
         "cboden/ratchet": "Install to enable the optional terminal WebSocket transport when the host dependency graph is compatible."
     },
     "config": {
@@ -96,6 +97,9 @@
             "Tests\\": "tests/"
         }
     },
+    "bin": [
+        "bin/opus-addon.php"
+    ],
     "archive": {
       "exclude": [
         ".babelrc"

@@ -85,6 +85,9 @@ Acceptance criteria:
 - Console managers expose small, testable operations that Wise can call.
 - Script execution routes through Wise bridges rather than bespoke Opus
   interpreters.
+- Backend generation commands return structured operation, status, exit-code,
+  output, and diagnostic data without writing directly to terminal streams.
+  The invoking host owns presentation and process termination.
 
 ### Agent Orchestration
 

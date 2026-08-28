@@ -1,6 +1,7 @@
 <?php
 namespace App\Business\Http;
 
+use App\Business\Presentation\VibeValue;
 use BlueFission\Services\Service;
 use BlueFission\BlueCore\Auth as Authenticator;
 
@@ -24,12 +25,12 @@ class AdminController extends Service {
                 'default.vibe',
                 [
                     'csrfToken' => store('_token'),
-                    'sideNav' => $sideNav,
+                    'sideNav' => VibeValue::trustedMarkup($sideNav),
                     'appName' => env('APP_NAME'),
                     'title' => env('APP_NAME') . " Admin",
-                    'url' => '/admin',
+                    'url' => VibeValue::url('/admin'),
                 ],
-                ['sideNav'],
+                [],
                 ['csrfToken', 'sideNav', 'appName', 'title', 'url']
             );
         } else {
@@ -39,7 +40,7 @@ class AdminController extends Service {
                 [
                     'csrfToken' => store('_token'),
                     'appName' => env('APP_NAME'),
-                    'url' => '/admin',
+                    'url' => VibeValue::url('/admin'),
                 ]
             );
         }
