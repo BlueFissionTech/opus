@@ -44,6 +44,88 @@ final class ApplicationIntakeRepositorySqlTest extends TestCase
         $this->assertSame('resume-b', $resumed->toArray()['correlation_id']);
         $this->assertSame(2, $model->writes);
     }
+
+    public function testItRejectsAStaleRevisionWithoutOverwritingTheWinner(): void
+    {
+        $model = new InMemoryApplicationIntakeModel();
+        $repository = new ApplicationIntakeRepositorySql($model);
+        $session = ApplicationIntakeSession::start('Operations Studio', 'tenant-a');
+        $repository->save($session);
+
+        $first = $repository->find($session->sessionId());
+        $second = $repository->find($session->sessionId());
+        $this->assertNotNull($first);
+        $this->assertNotNull($second);
+
+        $repository->save($first->answer('timeline', 'discovery'));
+
+        try {
+            $repository->save($second->answer('timeline', 'production'));
+            $this->fail('A stale revision must not overwrite the committed answer.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('intake_session_stale_revision', $exception->getMessage());
+        }
+
+        $stored = $repository->find($session->sessionId());
+        $this->assertNotNull($stored);
+        $this->assertSame('discovery', $stored->answers()['timeline']);
+        $this->assertSame(2, $stored->revision());
+    }
+
+    public function testModelMutationsUseAtomicInsertAndRevisionGuards(): void
+    {
+        $storage = new RecordingMutationStorage([1, 0]);
+        $model = new RecordingApplicationIntakeModel($storage);
+        $record = [
+            'session_key' => 'session-a',
+            'status' => ApplicationIntakeSession::IN_PROGRESS,
+            'revision' => 5,
+        ];
+
+        $this->assertTrue($model->insertIfAbsent($record));
+        $this->assertFalse($model->updateIfRevision($record, 4));
+        $this->assertStringContainsString('ON DUPLICATE KEY UPDATE', $storage->queries[0]);
+        $this->assertSame('SELECT ROW_COUNT() AS affected_rows', $storage->queries[1]);
+        $this->assertStringContainsString('AND `revision` = 4', $storage->queries[2]);
+        $this->assertSame('SELECT ROW_COUNT() AS affected_rows', $storage->queries[3]);
+    }
+}
+
+final class RecordingApplicationIntakeModel extends ApplicationIntakeModel
+{
+    public function __construct(RecordingMutationStorage $storage)
+    {
+        $this->_dataObject = $storage;
+    }
+}
+
+final class RecordingMutationStorage
+{
+    /** @var list<string> */
+    public array $queries = [];
+
+    private array $affectedRows;
+    private array $contents = [];
+
+    public function __construct(array $affectedRows)
+    {
+        $this->affectedRows = $affectedRows;
+    }
+
+    public function run(string $query): self
+    {
+        $this->queries[] = $query;
+        if ($query === 'SELECT ROW_COUNT() AS affected_rows') {
+            $this->contents = ['affected_rows' => array_shift($this->affectedRows)];
+        }
+
+        return $this;
+    }
+
+    public function contents(): array
+    {
+        return $this->contents;
+    }
 }
 
 final class InMemoryApplicationIntakeModel extends ApplicationIntakeModel
@@ -96,16 +178,28 @@ final class InMemoryApplicationIntakeModel extends ApplicationIntakeModel
         return $this;
     }
 
-    public function write($values = null): Obj
+    public function insertIfAbsent(array $record): bool
     {
-        if ($values !== null) {
-            $this->working = (array) $values;
+        if ($this->record !== []) {
+            return false;
         }
 
-        $this->record = $this->working;
+        $this->record = $record;
         $this->writes++;
 
-        return $this;
+        return true;
+    }
+
+    public function updateIfRevision(array $record, int $expectedRevision): bool
+    {
+        if ((int) ($this->record['revision'] ?? 0) !== $expectedRevision) {
+            return false;
+        }
+
+        $this->record = array_merge($this->record, $record);
+        $this->writes++;
+
+        return true;
     }
 
     public function status($message = null): mixed

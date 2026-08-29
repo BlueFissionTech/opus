@@ -8,7 +8,6 @@ use App\Domain\Onboarding\ApplicationIntakeSession;
 use App\Domain\Onboarding\IApplicationIntakeRepository;
 use App\Domain\Onboarding\Models\ApplicationIntakeModel;
 use BlueFission\Arr;
-use BlueFission\Data\Storage\Storage;
 use BlueFission\Net\HTTP;
 use BlueFission\Val;
 use RuntimeException;
@@ -29,10 +28,8 @@ final class ApplicationIntakeRepositorySql implements IApplicationIntakeReposito
 
     public function save(ApplicationIntakeSession $session): ApplicationIntakeSession
     {
-        $existing = $this->findData($session->sessionId());
         $data = $session->toArray();
         $record = [
-            'application_intake_id' => $existing['application_intake_id'] ?? null,
             'session_key' => $session->sessionId(),
             'tenant_id' => $session->tenantId(),
             'application_slug' => $session->applicationSlug(),
@@ -49,12 +46,23 @@ final class ApplicationIntakeRepositorySql implements IApplicationIntakeReposito
             'completed_at' => $data['completed_at'],
         ];
 
-        $this->model->assign($record)->write();
-        if ($this->model->status() !== Storage::STATUS_SUCCESS) {
-            throw new RuntimeException('intake_session_persistence_failed');
+        if ($session->revision() === 1) {
+            if (!$this->model->insertIfAbsent($record)) {
+                throw new RuntimeException('intake_session_already_exists');
+            }
+
+            return $session;
         }
 
-        return $session;
+        if ($this->model->updateIfRevision($record, $session->revision() - 1)) {
+            return $session;
+        }
+
+        if ($this->findData($session->sessionId()) === null && $this->model->insertIfAbsent($record)) {
+            return $session;
+        }
+
+        throw new RuntimeException('intake_session_stale_revision');
     }
 
     private function findData(string $sessionId): ?array

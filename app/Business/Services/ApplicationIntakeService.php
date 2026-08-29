@@ -38,7 +38,27 @@ final class ApplicationIntakeService
             throw new RuntimeException('application_slug_conflict');
         }
 
-        return $existing ?? $this->repository->save($candidate);
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        try {
+            return $this->repository->save($candidate);
+        } catch (RuntimeException $exception) {
+            if ($exception->getMessage() !== 'intake_session_already_exists') {
+                throw $exception;
+            }
+
+            $existing = $this->repository->find($candidate->sessionId());
+            if ($existing === null) {
+                throw $exception;
+            }
+            if ($existing->answers()['project_name'] !== $candidate->answers()['project_name']) {
+                throw new RuntimeException('application_slug_conflict');
+            }
+
+            return $existing;
+        }
     }
 
     public function find(string $sessionId): ?ApplicationIntakeSession

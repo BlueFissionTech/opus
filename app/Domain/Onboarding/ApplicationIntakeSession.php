@@ -8,7 +8,6 @@ use BlueFission\Arr;
 use BlueFission\Date;
 use BlueFission\Security\Hash;
 use BlueFission\Str;
-use BlueFission\Val;
 use InvalidArgumentException;
 
 final class ApplicationIntakeSession
@@ -144,8 +143,15 @@ final class ApplicationIntakeSession
     public function answer(string $field, mixed $value, array $actor = [], ?string $correlationId = null): self
     {
         $this->guardField($field);
-        if ($field === 'project_name' && Val::isEmpty($value)) {
-            throw new InvalidArgumentException('project_name_required');
+        if ($field === 'project_name') {
+            if (!Str::is($value)) {
+                throw new InvalidArgumentException('project_name_required');
+            }
+
+            $value = Str::make($value)->trim()->val();
+            if (Str::isEmpty($value)) {
+                throw new InvalidArgumentException('project_name_required');
+            }
         }
 
         $answers = $this->answers->toArray();
@@ -327,7 +333,8 @@ final class ApplicationIntakeSession
         if (!Arr::make([self::IN_PROGRESS, self::PAUSED, self::COMPLETED])->contains($this->status())) {
             throw new InvalidArgumentException('invalid_intake_status');
         }
-        if (Val::isEmpty($this->answers->toArray()['project_name'] ?? null)) {
+        $projectName = $this->answers->toArray()['project_name'] ?? null;
+        if (!Str::is($projectName) || Str::isEmpty(Str::make($projectName)->trim()->val())) {
             throw new InvalidArgumentException('project_name_required');
         }
     }

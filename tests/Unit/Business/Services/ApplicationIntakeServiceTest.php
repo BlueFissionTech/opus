@@ -55,6 +55,33 @@ final class ApplicationIntakeServiceTest extends TestCase
         $service->start('Different Project', applicationSlug: 'service-desk');
     }
 
+    public function testConcurrentStartsReturnThePersistedSession(): void
+    {
+        $winner = ApplicationIntakeSession::start('Service Desk', 'tenant-a');
+        $repository = new class($winner) implements IApplicationIntakeRepository {
+            private bool $firstSave = true;
+
+            public function __construct(private ApplicationIntakeSession $winner)
+            {
+            }
+
+            public function find(string $sessionId): ?ApplicationIntakeSession
+            {
+                return $this->firstSave ? null : $this->winner;
+            }
+
+            public function save(ApplicationIntakeSession $session): ApplicationIntakeSession
+            {
+                $this->firstSave = false;
+                throw new RuntimeException('intake_session_already_exists');
+            }
+        };
+
+        $session = (new ApplicationIntakeService($repository))->start('Service Desk', 'tenant-a');
+
+        $this->assertSame($winner->toArray(), $session->toArray());
+    }
+
     public function testAnswersDefaultsSkipsAndUnansweredFieldsRemainDistinct(): void
     {
         $service = new ApplicationIntakeService($this->repository());
@@ -103,6 +130,24 @@ final class ApplicationIntakeServiceTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('unknown_intake_field');
         $service->answer($session->sessionId(), 'provider_api_key', 'secret');
+    }
+
+    public function testProjectNameAnswersAreTrimmedStrings(): void
+    {
+        $service = new ApplicationIntakeService($this->repository());
+        $session = $service->start('Knowledge Base');
+
+        $renamed = $service->answer($session->sessionId(), 'project_name', '  Knowledge Studio  ');
+        $this->assertSame('Knowledge Studio', $renamed->answers()['project_name']);
+
+        foreach ([[], ['invalid'], '   '] as $invalidName) {
+            try {
+                $service->answer($session->sessionId(), 'project_name', $invalidName);
+                $this->fail('Project names must be non-empty strings.');
+            } catch (InvalidArgumentException $exception) {
+                $this->assertSame('project_name_required', $exception->getMessage());
+            }
+        }
     }
 
     public function testMissingSessionsReturnAStableFailure(): void
