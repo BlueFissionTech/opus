@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Registration;
 
 use App\Business\Services\VibeThemeRenderer;
-use App\Business\Services\AgentScopedCommandProcessor;
+use App\Business\Services\LazyAgentCommandProcessor;
 use App\Registration\AppRegistration;
 use BlueFission\BlueCore\Theme;
 use BlueFission\Str;
@@ -55,7 +55,7 @@ final class AppRegistrationTest extends TestCase
         $registration->bindings();
 
         $this->assertSame(
-            AgentScopedCommandProcessor::class,
+            LazyAgentCommandProcessor::class,
             $app->bindings[ICommandProcessor::class]
         );
     }
