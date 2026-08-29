@@ -27,7 +27,7 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
     public function process(CommandRequest|Command|array|string $request): CommandResult
     {
         try {
-            return $this->processor()->process($request);
+            $processor = $this->processor();
         } catch (Throwable) {
             return CommandResult::invalid(
                 'The command runtime is unavailable.',
@@ -39,6 +39,8 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
                 ]
             );
         }
+
+        return $processor->process($request);
     }
 
     private function processor(): ICommandProcessor

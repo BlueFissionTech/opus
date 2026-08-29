@@ -67,6 +67,21 @@ final class LazyAgentCommandProcessorTest extends TestCase
         $this->assertSame('command_runtime_unavailable', $result->metadata()['agent_reason']);
     }
 
+    public function testExecutionFailuresAreNotMisreportedAsConstructionFailures(): void
+    {
+        $inner = new class implements ICommandProcessor {
+            public function process(CommandRequest|Command|array|string $request): CommandResult
+            {
+                throw new RuntimeException('execution failed');
+            }
+        };
+        $processor = new LazyAgentCommandProcessor(static fn (): ICommandProcessor => $inner);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('execution failed');
+        $processor->process('run command');
+    }
+
     public function testActivatedAddOnQueryIsResolvedOnlyWhenContextIsRequested(): void
     {
         $resolutions = 0;
