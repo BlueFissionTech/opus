@@ -72,7 +72,11 @@ final class WiseProfile
 
     public function key(): string
     {
-        return Str::make($this->tenantId() ?? 'application')
+        $scope = $this->tenantId() === null
+            ? 'application'
+            : 'tenant:' . $this->tenantId();
+
+        return Str::make($scope)
             ->prepend('scope:')
             ->append(':')
             ->append($this->type())

@@ -18,7 +18,15 @@ final class WiseProfileContextResolver
     public function resolve(string $agentId, array $context): array
     {
         $context = Arr::make($context);
-        $tenantId = Str::is($context->get('tenant_id')) ? (string) $context->get('tenant_id') : null;
+        $tenantId = null;
+        if ($context->hasKey('tenant_id')) {
+            $contextTenant = $context->get('tenant_id');
+            if (!Val::isNull($contextTenant) && !Str::is($contextTenant)) {
+                throw new InvalidArgumentException('Command tenant must be a string or null.');
+            }
+
+            $tenantId = Val::isNull($contextTenant) ? null : (string) $contextTenant;
+        }
         $actor = $this->profile(
             $context->get('wise_profile'),
             $this->agentProfile($agentId, $tenantId),

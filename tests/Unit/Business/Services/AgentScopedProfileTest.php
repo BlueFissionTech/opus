@@ -108,7 +108,7 @@ final class AgentScopedProfileTest extends TestCase
 
         $this->assertTrue($pending->confirmationRequired());
         $this->assertSame(
-            'scope:tenant-a:user:user-a',
+            'scope:tenant:tenant-a:user:user-a',
             $pending->metadata()['wise_profile_access']['target_profile']
         );
         $this->assertSame(CommandResult::INVALID, $switched->status());
@@ -141,6 +141,21 @@ final class AgentScopedProfileTest extends TestCase
         $scoped = $this->scoped($processor);
         $context = $this->userContext();
         $context['wise_profile_target']['tenant_id'] = 123;
+
+        $result = $scoped->process(new CommandRequest('list todo', CommandRequest::EXECUTE, $context));
+
+        $this->assertSame(CommandResult::INVALID, $result->status());
+        $this->assertSame('profile_context_invalid', $result->metadata()['agent_reason']);
+        $this->assertSame(0, $processor->executions);
+    }
+
+    public function testNonStringCommandTenantFailsClosed(): void
+    {
+        $this->requireWiseProcessor();
+        $processor = $this->processor();
+        $scoped = $this->scoped($processor);
+        $context = $this->userContext();
+        $context['tenant_id'] = 123;
 
         $result = $scoped->process(new CommandRequest('list todo', CommandRequest::EXECUTE, $context));
 

@@ -162,4 +162,14 @@ final class WiseProfilePolicyResolverTest extends TestCase
         $this->assertSame(WiseProfile::USER, $user['actor']->type());
         $this->assertSame('user-a', $user['target']->principalId());
     }
+
+    public function testApplicationAndLiteralApplicationTenantKeysRemainDistinct(): void
+    {
+        $application = new WiseProfile(WiseProfile::USER, 'user-a');
+        $tenant = new WiseProfile(WiseProfile::USER, 'user-a', 'application');
+
+        $this->assertSame('scope:application:user:user-a', $application->key());
+        $this->assertSame('scope:tenant:application:user:user-a', $tenant->key());
+        $this->assertNotSame($application->key(), $tenant->key());
+    }
 }
