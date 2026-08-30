@@ -23,7 +23,7 @@ final class WiseProfilePolicyResolver
 
     public function isProfileTool(string $tool): bool
     {
-        return $this->toolResources($tool)->isNotEmpty();
+        return $this->reservedToolFamily($tool);
     }
 
     public function authorizeTool(
@@ -36,6 +36,10 @@ final class WiseProfilePolicyResolver
     ): ProfileAccessDecision {
         $descriptors = $this->toolResources($tool);
         if ($descriptors->isEmpty()) {
+            if ($this->reservedToolFamily($tool)) {
+                return ProfileAccessDecision::deny('profile_action_unknown', ['tool' => $tool]);
+            }
+
             return ProfileAccessDecision::allow('not_profile_resource');
         }
 
@@ -150,6 +154,22 @@ final class WiseProfilePolicyResolver
         });
 
         return $resolved;
+    }
+
+    private function reservedToolFamily(string $tool): bool
+    {
+        $family = Str::make($tool)->trim()->lower()->split('.')->get(0);
+        if (!Str::is($family)) {
+            return false;
+        }
+
+        $reserved = false;
+        $this->resources->each(function ($descriptor) use ($family, &$reserved): void {
+            $reserved = $reserved
+                || Arr::make((array) $descriptor)->get('tool') === $family;
+        });
+
+        return $reserved;
     }
 
     private function matches(Arr $patterns, string $resource, string $operation): bool

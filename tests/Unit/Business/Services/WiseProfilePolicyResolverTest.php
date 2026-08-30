@@ -168,8 +168,26 @@ final class WiseProfilePolicyResolverTest extends TestCase
         $application = new WiseProfile(WiseProfile::USER, 'user-a');
         $tenant = new WiseProfile(WiseProfile::USER, 'user-a', 'application');
 
-        $this->assertSame('scope:application:user:user-a', $application->key());
-        $this->assertSame('scope:tenant:application:user:user-a', $tenant->key());
+        $this->assertStringStartsWith('scope:application:', $application->key());
+        $this->assertStringStartsWith('scope:tenant:', $tenant->key());
         $this->assertNotSame($application->key(), $tenant->key());
+    }
+
+    public function testProfileKeysRemainDistinctWhenIdentifiersContainDelimiters(): void
+    {
+        $first = new WiseProfile(WiseProfile::USER, 'b:user:c', 'a');
+        $second = new WiseProfile(WiseProfile::USER, 'c', 'a:user:b');
+
+        $this->assertNotSame($first->key(), $second->key());
+    }
+
+    public function testUnknownActionsInReservedFamiliesFailClosed(): void
+    {
+        $profile = new WiseProfile(WiseProfile::USER, 'user-a', 'tenant-a', ['user']);
+        $decision = $this->resolver->authorizeTool($profile, $profile, 'note.share');
+
+        $this->assertTrue($this->resolver->isProfileTool('note.share'));
+        $this->assertFalse($decision->allowed());
+        $this->assertSame('profile_action_unknown', $decision->reason());
     }
 }

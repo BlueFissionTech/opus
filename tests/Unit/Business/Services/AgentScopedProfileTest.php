@@ -108,7 +108,7 @@ final class AgentScopedProfileTest extends TestCase
 
         $this->assertTrue($pending->confirmationRequired());
         $this->assertSame(
-            'scope:tenant:tenant-a:user:user-a',
+            (new WiseProfile(WiseProfile::USER, 'user-a', 'tenant-a'))->key(),
             $pending->metadata()['wise_profile_access']['target_profile']
         );
         $this->assertSame(CommandResult::INVALID, $switched->status());

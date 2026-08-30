@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Agents;
 
 use BlueFission\Arr;
+use BlueFission\Security\Hash;
 use BlueFission\Str;
 use InvalidArgumentException;
 
@@ -72,16 +73,18 @@ final class WiseProfile
 
     public function key(): string
     {
-        $scope = $this->tenantId() === null
-            ? 'application'
-            : 'tenant:' . $this->tenantId();
+        $scope = $this->tenantId() === null ? 'application' : 'tenant';
+        $identity = Hash::value([
+            'scope' => $scope,
+            'tenant_id' => $this->tenantId(),
+            'type' => $this->type(),
+            'principal_id' => $this->principalId(),
+        ], 'sha256');
 
         return Str::make($scope)
             ->prepend('scope:')
             ->append(':')
-            ->append($this->type())
-            ->append(':')
-            ->append($this->principalId())
+            ->append($identity)
             ->val();
     }
 
