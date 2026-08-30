@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Business\Services;
 
+use App\Domain\Agents\WiseProfile;
 use BlueFission\Arr;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\DevElation;
@@ -12,6 +13,8 @@ use Throwable;
 
 final class AgentCommandContextProvider
 {
+    private const CENTRAL_AGENT = 'opus.central';
+
     public function __construct(private ?IActivatedAddOnsQuery $activatedAddOns = null)
     {
     }
@@ -39,13 +42,19 @@ final class AgentCommandContextProvider
         }
 
         $context = Arr::make([
-            'agent_id' => AgentScopedCommandProcessor::CENTRAL_AGENT,
+            'agent_id' => self::CENTRAL_AGENT,
             'active_addons' => $active->unique()->toArray(),
             'addon_states' => $states->toArray(),
             'capabilities' => [],
         ]);
         if (Str::isNotEmpty($actorId)) {
             $context->set('actor', ['id' => $actorId]);
+            $context->set('wise_profile', [
+                'type' => WiseProfile::USER,
+                'principal_id' => $actorId,
+                'tenant_id' => Str::isNotEmpty((string) $tenantId) ? $tenantId : null,
+                'roles' => ['user'],
+            ]);
         }
         if (Str::isNotEmpty((string) $tenantId)) {
             $context->set('tenant_id', $tenantId);
@@ -55,13 +64,30 @@ final class AgentCommandContextProvider
         if (!Arr::is($filtered)) {
             return $context->toArray();
         }
+        $filtered = Arr::make($filtered);
+        $filteredActor = $filtered->get('actor');
+        $filteredActorId = Str::is($filteredActor)
+            ? Str::make((string) $filteredActor)->trim()->val()
+            : Str::make((string) Arr::getPath((array) $filteredActor, 'id', ''))->trim()->val();
+        if (Str::isNotEmpty($actorId) && $filteredActorId !== $actorId) {
+            return $context->toArray();
+        }
         if (Str::isNotEmpty((string) $tenantId)
-            && Arr::getPath((array) $filtered, 'tenant_id') !== $tenantId
+            && $filtered->get('tenant_id') !== $tenantId
         ) {
             return $context->toArray();
         }
 
-        return (array) $filtered;
+        $profile = Arr::make((array) $filtered->get('wise_profile'));
+        if (Str::isNotEmpty($actorId)
+            && ($profile->get('type') !== WiseProfile::USER
+                || $profile->get('principal_id') !== $actorId
+                || $profile->get('tenant_id') !== (Str::isNotEmpty((string) $tenantId) ? $tenantId : null))
+        ) {
+            return $context->toArray();
+        }
+
+        return $filtered->toArray();
     }
 
     public function forContinuation(array $priorContext): array
@@ -73,6 +99,26 @@ final class AgentCommandContextProvider
             : Str::make((string) Arr::getPath((array) $actor, 'id', ''))->trim()->val();
         $tenantId = $context->get('tenant_id');
         $refreshed = Arr::make($this->forActor($actorId, Str::is($tenantId) ? $tenantId : null));
+
+        $agentId = $context->get('agent_id');
+        if (Str::is($agentId)
+            && Str::make((string) $agentId)->matches('/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/')
+        ) {
+            $refreshed->set('agent_id', $agentId);
+        }
+        foreach (['wise_profile', 'wise_profile_target'] as $profileKey) {
+            $profile = Arr::make((array) $context->get($profileKey));
+            $profileTenantId = $profile->get('tenant_id');
+            if ($profile->isEmpty()
+                || (!Str::isNull($tenantId) && $profileTenantId !== $tenantId)
+                || (Str::isNull($tenantId) && !Str::isNull($profileTenantId))
+            ) {
+                continue;
+            }
+
+            $profile->set('roles', []);
+            $refreshed->set($profileKey, $profile->toArray());
+        }
 
         return $refreshed->toArray();
     }

@@ -15,6 +15,9 @@ use App\Business\Services\AgentCapabilityMapLoader;
 use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentContinuationScopeStore;
 use App\Business\Services\AgentScopedCommandProcessor;
+use App\Business\Services\ConversationalLearningCatalog;
+use App\Business\Services\WiseProfileContextResolver;
+use App\Business\Services\WiseProfilePolicyResolver;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\IExtension;
@@ -77,6 +80,12 @@ class AppRegistration implements IExtension {
 	 */
 	public function registrations() {
 		$templateRenderer = new VibeThemeRenderer();
+		$profilePolicies = new WiseProfilePolicyResolver(
+			(array) require $this->applicationRoot() . 'mapping/wise_profiles.php'
+		);
+		$conversationCatalog = new ConversationalLearningCatalog(
+			(array) require $this->applicationRoot() . 'mapping/conversation.php'
+		);
 
 		// $this->delegate('core', Core::class);
 		$this->delegate('session', Session::class);
@@ -86,6 +95,8 @@ class AppRegistration implements IExtension {
 		$this->delegate('datasource', DatasourceManager::class);
 		$this->delegate('template', $templateRenderer);
 		$this->delegate('vibe.theme', $templateRenderer);
+		$this->delegate('wise.profile.policy', $profilePolicies);
+		$this->delegate('conversation.catalog', $conversationCatalog);
 
 		$this->delegate('mysql', MysqlConnector::class);
 	}
@@ -113,6 +124,9 @@ class AppRegistration implements IExtension {
 	public function arguments() {
 		$commandStorage = new Session(['location' => 'cache', 'name' => 'system']);
 		$agentMapLoader = new AgentCapabilityMapLoader();
+		$profilePolicies = new WiseProfilePolicyResolver(
+			(array) require $this->applicationRoot() . 'mapping/wise_profiles.php'
+		);
 		$contextProvider = new AgentCommandContextProvider(
 			\App::makeInstance(IActivatedAddOnsQuery::class)
 		);
@@ -131,10 +145,12 @@ class AppRegistration implements IExtension {
 		$this->bindArgs([
 			'processor' => \App::makeInstance(CommandProcessor::class),
 			'resolver' => new AgentCapabilityMapResolver(
-				$agentMapLoader->loadApplication(APP_ROOT . 'mapping/agents.php'),
-				catalog: new AgentCapabilityMapCatalog(APP_ROOT . 'addons', $agentMapLoader)
+				$agentMapLoader->loadApplication($this->applicationRoot() . 'mapping/agents.php'),
+				catalog: new AgentCapabilityMapCatalog($this->applicationRoot() . 'addons', $agentMapLoader)
 			),
 			'continuations' => new AgentContinuationScopeStore($commandStorage),
+			'profilePolicies' => $profilePolicies,
+			'profileContexts' => new WiseProfileContextResolver(),
 		], AgentScopedCommandProcessor::class);
 		$this->bindArgs(['contextProvider' => $contextProvider], ProcessesCommandMiddleware::class);
 		$this->bindArgs(['contextProvider' => $contextProvider], \App\Business\Console\CliManager::class);
@@ -168,6 +184,12 @@ class AppRegistration implements IExtension {
 
 	private function configuration($name) {
 		return $this->_app->configuration($name);
+	}
+
+	private function applicationRoot(): string {
+		return defined('APP_ROOT')
+			? (string) constant('APP_ROOT')
+			: dirname(__DIR__, 2) . DIRECTORY_SEPARATOR;
 	}
 
 	private function theme($theme) {

@@ -137,6 +137,42 @@ Acceptance criteria:
   worker outcomes. Specialist workers do not inherit peer results unless a
   later collaboration contract explicitly grants that exchange.
 
+### Scoped Wise Profiles And Conversational Defaults
+
+Every human user, central agent, and add-on specialist has a private Wise
+profile namespace. Opus owns the application and tenant composition boundary;
+Wise remains responsible for package-neutral resource behavior and Synthetiq
+remains responsible for conversational and learning semantics.
+
+Acceptance criteria:
+
+- Profile identity is explicit and combines tenant, principal type, and stable
+  principal identifier.
+- Todos, notes, functions, calendars, goals, and steps are distinct private
+  namespaces even when a current upstream adapter combines two concepts.
+- Role grants apply only within the current profile by default. Cross-profile
+  access requires a bounded delegation capability and never crosses tenants.
+- Tenant or principal denies take precedence over role grants and narrower
+  configuration cannot weaken an explicit deny.
+- Command discovery removes denied profile resources without revealing their
+  names, and command execution rechecks the same policy.
+- Confirmation continuations remain pinned to the originating actor, tenant,
+  agent, tool, and profile.
+- The built-in conversation catalog is versioned and deterministic, starts in
+  shadow mode, and contains only safe command-discovery and private-profile
+  read examples.
+- Route seeds, classifier artifacts, conversational memory, and fallback
+  review candidates remain separate lifecycles rather than one training
+  corpus.
+- Classifier cache keys are non-empty and derived from immutable dataset and
+  profile scope data; derived model artifacts use scope-isolated storage keys.
+- Unknown-intent candidates require review before promotion. Private
+  conversations and provider payloads are excluded from default capture.
+- Automatic conversational observation and generated-fallback training are
+  disabled until an approved promotion contract is available.
+- Loading profile or conversation defaults does not construct an inference
+  provider, start training, or execute a command.
+
 ### Templates And Generation
 
 Vibrato should own Vibe parsing, validation, rendering, and generation
