@@ -7,6 +7,7 @@ namespace App\Business\Services;
 use App\Domain\Agents\WiseProfile;
 use BlueFission\Arr;
 use BlueFission\Str;
+use BlueFission\Val;
 use InvalidArgumentException;
 
 final class WiseProfileContextResolver
@@ -74,9 +75,19 @@ final class WiseProfileContextResolver
             return $fallback;
         }
 
-        $profileTenantId = Str::is($profile->get('tenant_id'))
-            ? (string) $profile->get('tenant_id')
-            : $tenantId;
+        $profileTenantId = $tenantId;
+        if ($profile->hasKey('tenant_id')) {
+            $profileTenant = $profile->get('tenant_id');
+            if (!Val::isNull($profileTenant) && !Str::is($profileTenant)) {
+                if ($strict) {
+                    throw new InvalidArgumentException('Wise profile tenant must be a string or null.');
+                }
+
+                return $fallback;
+            }
+
+            $profileTenantId = Val::isNull($profileTenant) ? null : (string) $profileTenant;
+        }
         if ($requireContextTenant && $profileTenantId !== $tenantId) {
             if ($strict) {
                 throw new InvalidArgumentException('Wise profile tenant does not match the command context.');

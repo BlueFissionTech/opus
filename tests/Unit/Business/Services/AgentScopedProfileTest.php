@@ -49,6 +49,23 @@ final class AgentScopedProfileTest extends TestCase
         $this->assertSame([], $context['wise_profile']['roles']);
     }
 
+    public function testContinuationRefreshUsesCurrentUserRolesInsteadOfStaleRoles(): void
+    {
+        $context = (new AgentCommandContextProvider())->forContinuation([
+            'actor' => ['id' => 'user-a'],
+            'agent_id' => 'opus.central',
+            'tenant_id' => 'tenant-a',
+            'wise_profile' => [
+                'type' => WiseProfile::USER,
+                'principal_id' => 'user-a',
+                'tenant_id' => 'tenant-a',
+                'roles' => ['administrator'],
+            ],
+        ]);
+
+        $this->assertSame(['user'], $context['wise_profile']['roles']);
+    }
+
     public function testDiscoveryAndExecutionFailClosedForAnotherPrivateProfile(): void
     {
         $this->requireWiseProcessor();
@@ -112,6 +129,21 @@ final class AgentScopedProfileTest extends TestCase
 
         $this->assertSame([], $discovery['commands']);
         $this->assertSame(1, $discovery['metadata']['profile_commands_denied']);
+        $this->assertSame(CommandResult::INVALID, $result->status());
+        $this->assertSame('profile_context_invalid', $result->metadata()['agent_reason']);
+        $this->assertSame(0, $processor->executions);
+    }
+
+    public function testNonStringExplicitProfileTenantFailsClosed(): void
+    {
+        $this->requireWiseProcessor();
+        $processor = $this->processor();
+        $scoped = $this->scoped($processor);
+        $context = $this->userContext();
+        $context['wise_profile_target']['tenant_id'] = 123;
+
+        $result = $scoped->process(new CommandRequest('list todo', CommandRequest::EXECUTE, $context));
+
         $this->assertSame(CommandResult::INVALID, $result->status());
         $this->assertSame('profile_context_invalid', $result->metadata()['agent_reason']);
         $this->assertSame(0, $processor->executions);

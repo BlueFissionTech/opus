@@ -116,7 +116,18 @@ final class AgentCommandContextProvider
                 continue;
             }
 
-            $profile->set('roles', []);
+            $roles = [];
+            if ($profileKey === 'wise_profile') {
+                $authoritative = Arr::make((array) $refreshed->get('wise_profile'));
+                $sameProfile = $authoritative->get('type') === $profile->get('type')
+                    && $authoritative->get('principal_id') === $profile->get('principal_id')
+                    && $authoritative->get('tenant_id') === $profile->get('tenant_id');
+                if ($sameProfile) {
+                    $roles = (array) $authoritative->get('roles');
+                }
+            }
+
+            $profile->set('roles', $roles);
             $refreshed->set($profileKey, $profile->toArray());
         }
 
