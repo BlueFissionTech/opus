@@ -248,8 +248,10 @@ Unknown evidence remains unknown. It must not be inferred from adjacent package
 or deployment success.
 
 Any release that exposes Opus DevElation hooks or filters is blocked when the
-#110 catalog is absent, payload compatibility or ordering is unknown, or its
-post-filter invariant and conformance tests are missing or failing.
+#110 catalog is absent or incomplete, including when any exposed extension
+point lacks a validated catalog entry. Releases are also blocked when payload
+compatibility or ordering is unknown, or when post-filter invariant and
+conformance tests are missing or failing.
 
 ## Prioritization
 
