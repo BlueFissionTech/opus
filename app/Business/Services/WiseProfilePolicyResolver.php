@@ -141,7 +141,7 @@ final class WiseProfilePolicyResolver
 
         $this->resources->each(function ($descriptor, $resource) use ($family, $action, $resolved): void {
             $descriptor = Arr::make((array) $descriptor);
-            if ($descriptor->get('tool') !== $family) {
+            if (!$this->descriptorHasToolFamily($descriptor, $family)) {
                 return;
             }
             Arr::make((array) $descriptor->get('operations'))->each(
@@ -165,11 +165,20 @@ final class WiseProfilePolicyResolver
 
         $reserved = false;
         $this->resources->each(function ($descriptor) use ($family, &$reserved): void {
-            $reserved = $reserved
-                || Arr::make((array) $descriptor)->get('tool') === $family;
+            $reserved = $reserved || $this->descriptorHasToolFamily(
+                Arr::make((array) $descriptor),
+                $family
+            );
         });
 
         return $reserved;
+    }
+
+    private function descriptorHasToolFamily(Arr $descriptor, string $family): bool
+    {
+        return Arr::make([(string) $descriptor->get('tool')])
+            ->merge((array) $descriptor->get('aliases'))
+            ->has($family, true);
     }
 
     private function matches(Arr $patterns, string $resource, string $operation): bool

@@ -7,6 +7,7 @@ return [
     'resources' => [
         'todos' => [
             'tool' => 'todo',
+            'aliases' => ['task'],
             'adapter' => 'available',
             'operations' => [
                 'read' => ['list', 'open', 'select', 'find', 'help'],

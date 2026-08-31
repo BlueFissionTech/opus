@@ -190,4 +190,28 @@ final class WiseProfilePolicyResolverTest extends TestCase
         $this->assertFalse($decision->allowed());
         $this->assertSame('profile_action_unknown', $decision->reason());
     }
+
+    public function testTaskAliasUsesThePrivateTodoPolicy(): void
+    {
+        $owner = new WiseProfile(WiseProfile::USER, 'user-a', 'tenant-a', ['user']);
+        $other = new WiseProfile(WiseProfile::USER, 'user-b', 'tenant-a', ['user']);
+        $central = new WiseProfile(
+            WiseProfile::CENTRAL_AGENT,
+            'opus.central',
+            'tenant-a',
+            ['agent.central']
+        );
+
+        $own = $this->resolver->authorizeTool($owner, $owner, 'task.add');
+        $delegated = $this->resolver->authorizeTool($central, $other, 'task.add');
+        $unknown = $this->resolver->authorizeTool($owner, $owner, 'task.share');
+
+        $this->assertTrue($this->resolver->isProfileTool('task.add'));
+        $this->assertTrue($own->allowed());
+        $this->assertSame(['todos'], $own->metadata()['resources']);
+        $this->assertFalse($delegated->allowed());
+        $this->assertSame('profile_delegation_required', $delegated->reason());
+        $this->assertFalse($unknown->allowed());
+        $this->assertSame('profile_action_unknown', $unknown->reason());
+    }
 }
