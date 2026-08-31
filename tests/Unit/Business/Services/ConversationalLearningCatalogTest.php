@@ -113,6 +113,10 @@ final class ConversationalLearningCatalogTest extends TestCase
                 $payload['configuration']['scope'] = 'other-tenant';
                 $payload['configuration']['dataset'] = ['id' => 'replacement'];
                 $payload['configuration']['routes'] = ['status' => 'mutable'];
+                $payload['configuration']['settings']['configuration_review_queue'] = 'expedited';
+                $payload['configuration']['settings']['promotion_requires_review'] = false;
+                $payload['configuration']['settings']['capture_private_conversations'] = true;
+                $payload['configuration']['settings']['capture_provider_payloads'] = true;
                 $payload['configuration']['classifier'] = [
                     'cache_key' => 'shared',
                     'artifact_key' => 'shared.phpml',
@@ -133,6 +137,7 @@ final class ConversationalLearningCatalogTest extends TestCase
             $this->assertSame('immutable', $configuration['routes']['status']);
             $this->assertSame('active', $configuration['settings']['mode']);
             $this->assertSame('priority', $configuration['settings']['custom_review_queue']);
+            $this->assertSame('expedited', $configuration['settings']['configuration_review_queue']);
             $this->assertTrue($configuration['settings']['promotion_requires_review']);
             $this->assertFalse($configuration['settings']['capture_private_conversations']);
             $this->assertFalse($configuration['settings']['capture_provider_payloads']);
