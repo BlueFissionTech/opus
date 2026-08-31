@@ -7,6 +7,7 @@ namespace Tests\Unit\Business\Services;
 use App\Business\Services\ApplicationIntakeService;
 use App\Domain\Onboarding\ApplicationIntakeSession;
 use App\Domain\Onboarding\IApplicationIntakeRepository;
+use BlueFission\DevElation;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -150,6 +151,60 @@ final class ApplicationIntakeServiceTest extends TestCase
         }
     }
 
+    public function testDefaultsCanBeFilteredWithoutReplacingAuthoritativeIdentity(): void
+    {
+        $this->withDevElationHooks(function (): void {
+            DevElation::filter('opus.intake.defaults', static function (array $payload): array {
+                $payload['defaults']['agent_name'] = 'Atlas';
+                $payload['context']['project_name'] = 'Replaced';
+                $payload['context']['tenant_id'] = 'tenant-b';
+                $payload['context']['application_slug'] = 'replaced';
+
+                return $payload;
+            });
+
+            $session = (new ApplicationIntakeService($this->repository()))->start(
+                'Service Studio',
+                'tenant-a'
+            );
+
+            $this->assertSame('Atlas', $session->defaults()['agent_name']);
+            $this->assertSame('Service Studio', $session->answers()['project_name']);
+            $this->assertSame('tenant-a', $session->tenantId());
+            $this->assertSame('service-studio', $session->applicationSlug());
+        });
+    }
+
+    public function testPersistedTransitionsPublishOneStableActionPayload(): void
+    {
+        $this->withDevElationHooks(function (): void {
+            $transitions = [];
+            DevElation::action(
+                'opus.intake.session.transitioned',
+                static function (array $payload) use (&$transitions): void {
+                    $transitions[] = $payload;
+                }
+            );
+
+            $service = new ApplicationIntakeService($this->repository());
+            $session = $service->start('Workflow Studio', 'tenant-a');
+            $service->start('Workflow Studio', 'tenant-a');
+            $session = $service->answer($session->sessionId(), 'audience', 'operators');
+            $session = $service->skip($session->sessionId(), 'timeline');
+            $session = $service->pause($session->sessionId());
+            $session = $service->resume($session->sessionId());
+            $service->complete($session->sessionId());
+
+            $this->assertSame(
+                ['started', 'answered', 'skipped', 'paused', 'resumed', 'completed'],
+                array_column($transitions, 'transition')
+            );
+            $this->assertSame('tenant-a', $transitions[0]['session']['tenant_id']);
+            $this->assertSame('workflow-studio', $transitions[5]['session']['application_slug']);
+            $this->assertSame(ApplicationIntakeSession::COMPLETED, $transitions[5]['session']['status']);
+        });
+    }
+
     public function testMissingSessionsReturnAStableFailure(): void
     {
         $service = new ApplicationIntakeService($this->repository());
@@ -179,5 +234,25 @@ final class ApplicationIntakeServiceTest extends TestCase
                 return $session;
             }
         };
+    }
+
+    private function withDevElationHooks(callable $test): void
+    {
+        $reflection = new \ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $filters = $reflection->getProperty('_filters');
+        $actions = $reflection->getProperty('_actions');
+        $originalActive = $active->getValue();
+        $originalFilters = $filters->getValue();
+        $originalActions = $actions->getValue();
+
+        try {
+            DevElation::up();
+            $test();
+        } finally {
+            $active->setValue(null, $originalActive);
+            $filters->setValue(null, $originalFilters);
+            $actions->setValue(null, $originalActions);
+        }
     }
 }

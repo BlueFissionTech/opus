@@ -6,6 +6,8 @@ namespace App\Business\Services;
 
 use App\Domain\Onboarding\ApplicationIntakeSession;
 use App\Domain\Onboarding\IApplicationIntakeRepository;
+use BlueFission\Arr;
+use BlueFission\DevElation;
 use RuntimeException;
 
 final class ApplicationIntakeService
@@ -22,13 +24,27 @@ final class ApplicationIntakeService
         array $actor = [],
         ?string $correlationId = null
     ): ApplicationIntakeSession {
+        $filtered = DevElation::apply('opus.intake.defaults', [
+            'defaults' => ApplicationIntakeSession::defaultValues(),
+            'context' => [
+                'project_name' => $projectName,
+                'tenant_id' => $tenantId,
+                'application_slug' => $applicationSlug,
+                'prompt_version' => $promptVersion,
+            ],
+        ]);
+        $defaults = Arr::is($filtered) && Arr::is($filtered['defaults'] ?? null)
+            ? Arr::toArray($filtered['defaults'], true)
+            : ApplicationIntakeSession::defaultValues();
+
         $candidate = ApplicationIntakeSession::start(
             $projectName,
             $tenantId,
             $applicationSlug,
             $promptVersion,
             $actor,
-            $correlationId
+            $correlationId,
+            $defaults
         );
         $existing = $this->repository->find($candidate->sessionId());
         if (
@@ -43,7 +59,7 @@ final class ApplicationIntakeService
         }
 
         try {
-            return $this->repository->save($candidate);
+            return $this->persistTransition('started', $candidate);
         } catch (RuntimeException $exception) {
             if ($exception->getMessage() !== 'intake_session_already_exists') {
                 throw $exception;
@@ -73,7 +89,8 @@ final class ApplicationIntakeService
         array $actor = [],
         ?string $correlationId = null
     ): ApplicationIntakeSession {
-        return $this->repository->save(
+        return $this->persistTransition(
+            'answered',
             $this->requireSession($sessionId)->answer($field, $value, $actor, $correlationId)
         );
     }
@@ -84,7 +101,8 @@ final class ApplicationIntakeService
         array $actor = [],
         ?string $correlationId = null
     ): ApplicationIntakeSession {
-        return $this->repository->save(
+        return $this->persistTransition(
+            'skipped',
             $this->requireSession($sessionId)->skip($field, $actor, $correlationId)
         );
     }
@@ -94,7 +112,8 @@ final class ApplicationIntakeService
         array $actor = [],
         ?string $correlationId = null
     ): ApplicationIntakeSession {
-        return $this->repository->save(
+        return $this->persistTransition(
+            'paused',
             $this->requireSession($sessionId)->pause($actor, $correlationId)
         );
     }
@@ -104,7 +123,8 @@ final class ApplicationIntakeService
         array $actor = [],
         ?string $correlationId = null
     ): ApplicationIntakeSession {
-        return $this->repository->save(
+        return $this->persistTransition(
+            'resumed',
             $this->requireSession($sessionId)->resume($actor, $correlationId)
         );
     }
@@ -114,7 +134,8 @@ final class ApplicationIntakeService
         array $actor = [],
         ?string $correlationId = null
     ): ApplicationIntakeSession {
-        return $this->repository->save(
+        return $this->persistTransition(
+            'completed',
             $this->requireSession($sessionId)->complete($actor, $correlationId)
         );
     }
@@ -127,5 +148,19 @@ final class ApplicationIntakeService
         }
 
         return $session;
+    }
+
+    private function persistTransition(
+        string $transition,
+        ApplicationIntakeSession $session
+    ): ApplicationIntakeSession {
+        $saved = $this->repository->save($session);
+
+        DevElation::do('opus.intake.session.transitioned', [[
+            'transition' => $transition,
+            'session' => $saved->toArray(),
+        ]]);
+
+        return $saved;
     }
 }

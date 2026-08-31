@@ -19,6 +19,13 @@ The initial defaults describe a general technology and communications web applic
 
 Vibe prompt execution, JenSS branching, Wise commands, HTTP/admin presentation, plan generation, marketplace discovery, and workflow execution are separate capabilities. Those layers may consume this contract but must not bypass it or attach side effects to intake transitions.
 
+## Extension points
+
+- `opus.intake.defaults` filters an envelope containing `defaults` and read-only `context`. Only the filtered `defaults` array is consumed; project identity, tenant, slug, and prompt version remain authoritative inputs.
+- `opus.intake.session.transitioned` runs after a successful persistence write with a payload containing `transition` and the normalized `session`. Supported transition values are `started`, `answered`, `skipped`, `paused`, `resumed`, and `completed`.
+
+Idempotent start reads do not emit a transition action. Extensions must handle their own failures; an exception from a post-persistence action does not undo the completed write.
+
 ## Migration
 
 Run the standard database delta command before resolving the SQL repository in a fresh application. Existing applications do not receive an intake session automatically.

@@ -89,7 +89,8 @@ final class ApplicationIntakeSession
         ?string $applicationSlug = null,
         string $promptVersion = self::VERSION,
         array $actor = [],
-        ?string $correlationId = null
+        ?string $correlationId = null,
+        ?array $defaults = null
     ): self {
         $projectName = Str::make($projectName)->trim()->val();
         if (Str::isEmpty($projectName)) {
@@ -110,7 +111,7 @@ final class ApplicationIntakeSession
             $promptVersion,
             self::IN_PROGRESS,
             ['project_name' => $projectName],
-            self::defaultAnswers(),
+            $defaults ?? self::defaultValues(),
             [],
             $actor,
             $correlationId,
@@ -129,7 +130,7 @@ final class ApplicationIntakeSession
             (string) ($data['prompt_version'] ?? self::VERSION),
             (string) ($data['status'] ?? self::IN_PROGRESS),
             Arr::toArray($data['answers'] ?? [], true),
-            Arr::toArray($data['defaults'] ?? self::defaultAnswers(), true),
+            Arr::toArray($data['defaults'] ?? self::defaultValues(), true),
             Arr::toArray($data['skipped'] ?? [], true),
             Arr::toArray($data['actor'] ?? [], true),
             $data['correlation_id'] ?? null,
@@ -292,7 +293,7 @@ final class ApplicationIntakeSession
         ];
     }
 
-    private static function defaultAnswers(): array
+    public static function defaultValues(): array
     {
         return [
             'project_type' => 'general_web_application',
