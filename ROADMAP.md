@@ -65,6 +65,10 @@ It has five connected product responsibilities:
   interoperability boundaries.
 - Optional capabilities remain optional on clean installations and return
   explicit unavailable states.
+- Add-on integration uses stable, documented DevElation hooks and filters at
+  intentional application boundaries. Filters cannot bypass tenant, identity,
+  authorization, privacy, or lifecycle invariants, and stronger interfaces and
+  dependency injection remain authoritative where they already own a contract.
 - Public artifacts contain no secrets, customer data, private prompts, local
   source paths, internal-only configuration, or separately licensed assets.
 
@@ -216,6 +220,9 @@ must identify the applicable evidence:
 - backup, restore, rollout, rollback, and disaster-recovery evidence;
 - license, asset, secret, and distribution-hygiene checks;
 - documentation, support, incident, deprecation, and ownership status;
+- the versioned DevElation extension-point catalog, payload compatibility,
+  execution order, post-filter invariant tests, and deprecation evidence tracked
+  in [#110](https://github.com/BlueFissionTech/opus/issues/110);
 - explicit maturity: planned, experimental, evolving, stable, deprecated, or
   unavailable.
 
