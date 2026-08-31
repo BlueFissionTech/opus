@@ -43,6 +43,8 @@ final class WiseProfilePolicyResolverTest extends TestCase
         $this->assertTrue($decision->allowed());
         $this->assertSame('profile_access_granted', $decision->reason());
         $this->assertSame($user->key(), $decision->metadata()['target_profile']);
+        $this->assertTrue($this->resolver->authorizeTool($user, $user, 'todo.previous')->allowed());
+        $this->assertTrue($this->resolver->authorizeTool($user, $user, 'todo.next')->allowed());
     }
 
     public function testCrossProfileAccessRequiresABoundedDelegation(): void

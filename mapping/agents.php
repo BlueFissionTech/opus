@@ -33,6 +33,8 @@ return [
                 'todo.open',
                 'todo.select',
                 'todo.find',
+                'todo.previous',
+                'todo.next',
                 'todo.help',
                 'todo.make',
                 'todo.add',

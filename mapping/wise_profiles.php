@@ -10,7 +10,7 @@ return [
             'aliases' => ['task'],
             'adapter' => 'available',
             'operations' => [
-                'read' => ['list', 'open', 'select', 'find', 'help'],
+                'read' => ['list', 'open', 'select', 'find', 'previous', 'next', 'help'],
                 'write' => ['make', 'add', 'edit', 'delete'],
             ],
         ],
