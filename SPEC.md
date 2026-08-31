@@ -173,6 +173,16 @@ Acceptance criteria:
 - Loading profile or conversation defaults does not construct an inference
   provider, start training, or execute a command.
 
+DevElation extension points preserve these boundaries:
+
+- `opus.conversation.settings` filters the composed settings plus read-only
+  application, tenant, and principal layers.
+- `opus.conversation.configuration` filters the complete scoped configuration
+  plus read-only profile metadata.
+- Opus reapplies profile scope, catalog identity, immutable routes, classifier
+  cache identity, privacy exclusions, disabled automatic observation, and
+  review requirements after filters run.
+
 ### Templates And Generation
 
 Vibrato should own Vibe parsing, validation, rendering, and generation

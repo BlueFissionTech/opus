@@ -7,6 +7,7 @@ namespace Tests\Unit\Business\Services;
 use App\Business\Services\ConversationalLearningCatalog;
 use App\Domain\Agents\WiseProfile;
 use BlueFission\Arr;
+use BlueFission\DevElation;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -96,10 +97,78 @@ final class ConversationalLearningCatalogTest extends TestCase
         ]);
     }
 
+    public function testFiltersExtendScopedConfigurationWithoutWeakeningInvariants(): void
+    {
+        $this->withDevElationFilters(function (): void {
+            DevElation::filter('opus.conversation.settings', static function (array $payload): array {
+                $payload['settings']['mode'] = 'active';
+                $payload['settings']['custom_review_queue'] = 'priority';
+                $payload['settings']['promotion_requires_review'] = false;
+                $payload['settings']['capture_private_conversations'] = true;
+                $payload['settings']['capture_provider_payloads'] = true;
+
+                return $payload;
+            });
+            DevElation::filter('opus.conversation.configuration', static function (array $payload): array {
+                $payload['configuration']['scope'] = 'other-tenant';
+                $payload['configuration']['dataset'] = ['id' => 'replacement'];
+                $payload['configuration']['routes'] = ['status' => 'mutable'];
+                $payload['configuration']['classifier'] = [
+                    'cache_key' => 'shared',
+                    'artifact_key' => 'shared.phpml',
+                    'confidence_threshold' => 0.85,
+                ];
+                $payload['configuration']['learning']['automatic_observation'] = true;
+                $payload['configuration']['review']['generated_fallbacks_are_training_data'] = true;
+                $payload['configuration']['review']['promotion_requires_approval'] = false;
+
+                return $payload;
+            });
+
+            $profile = new WiseProfile(WiseProfile::CENTRAL_AGENT, 'opus.central', 'tenant-a');
+            $configuration = $this->catalog()->configurationFor($profile);
+
+            $this->assertSame($profile->key(), $configuration['scope']);
+            $this->assertSame('opus.default', $configuration['dataset']['id']);
+            $this->assertSame('immutable', $configuration['routes']['status']);
+            $this->assertSame('active', $configuration['settings']['mode']);
+            $this->assertSame('priority', $configuration['settings']['custom_review_queue']);
+            $this->assertTrue($configuration['settings']['promotion_requires_review']);
+            $this->assertFalse($configuration['settings']['capture_private_conversations']);
+            $this->assertFalse($configuration['settings']['capture_provider_payloads']);
+            $this->assertSame(0.85, $configuration['classifier']['confidence_threshold']);
+            $this->assertNotSame('shared', $configuration['classifier']['cache_key']);
+            $this->assertStringContainsString(
+                $configuration['classifier']['cache_key'],
+                $configuration['classifier']['artifact_key']
+            );
+            $this->assertFalse($configuration['learning']['automatic_observation']);
+            $this->assertFalse($configuration['review']['generated_fallbacks_are_training_data']);
+            $this->assertTrue($configuration['review']['promotion_requires_approval']);
+        });
+    }
+
     private function catalog(): ConversationalLearningCatalog
     {
         return new ConversationalLearningCatalog(
             (array) require dirname(__DIR__, 4) . '/mapping/conversation.php'
         );
+    }
+
+    private function withDevElationFilters(callable $test): void
+    {
+        $reflection = new \ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $filters = $reflection->getProperty('_filters');
+        $originalActive = $active->getValue();
+        $originalFilters = $filters->getValue();
+
+        try {
+            DevElation::up();
+            $test();
+        } finally {
+            $active->setValue(null, $originalActive);
+            $filters->setValue(null, $originalFilters);
+        }
     }
 }

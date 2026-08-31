@@ -6,6 +6,7 @@ namespace App\Business\Services;
 
 use App\Domain\Agents\WiseProfile;
 use BlueFission\Arr;
+use BlueFission\DevElation;
 use BlueFission\Security\Hash;
 use BlueFission\Str;
 use InvalidArgumentException;
@@ -61,6 +62,20 @@ final class ConversationalLearningCatalog
             ->mergeRecursive($tenant)
             ->mergeRecursive($principal);
 
+        $filtered = DevElation::apply('opus.conversation.settings', [
+            'settings' => $settings->toArray(),
+            'layers' => [
+                'application' => $application,
+                'tenant' => $tenant,
+                'principal' => $principal,
+            ],
+        ]);
+        $settings = Arr::make(
+            Arr::is($filtered) && Arr::is($filtered['settings'] ?? null)
+                ? Arr::toArray($filtered['settings'], true)
+                : $settings->toArray()
+        );
+
         if (!Arr::make(['shadow', 'review', 'active'])->has($settings->get('mode'), true)) {
             $settings->set('mode', 'shadow');
         }
@@ -88,15 +103,17 @@ final class ConversationalLearningCatalog
             'intents' => $this->intents(),
         ], 'sha1');
 
-        return [
+        $settings = $this->settingsFor($application, $tenant, $principal);
+        $routes = [
+            'status' => 'immutable',
+            'intents' => $this->intents(),
+            'fallbacks' => $this->fallbacks(),
+        ];
+        $configuration = [
             'scope' => $profile->key(),
             'dataset' => $this->catalog->toArray(),
-            'settings' => $this->settingsFor($application, $tenant, $principal),
-            'routes' => [
-                'status' => 'immutable',
-                'intents' => $this->intents(),
-                'fallbacks' => $this->fallbacks(),
-            ],
+            'settings' => $settings,
+            'routes' => $routes,
             'classifier' => Arr::merge($this->classifier->toArray(), [
                 'cache_key' => $cacheKey,
                 'artifact_key' => 'conversation/models/' . $cacheKey . '/intent_naive_bayes.phpml',
@@ -104,6 +121,45 @@ final class ConversationalLearningCatalog
             'learning' => $this->learning->toArray(),
             'review' => $this->review->toArray(),
         ];
+
+        $filtered = DevElation::apply('opus.conversation.configuration', [
+            'configuration' => $configuration,
+            'profile' => [
+                'scope' => $profile->key(),
+                'type' => $profile->type(),
+                'principal_id' => $profile->principalId(),
+                'tenant_id' => $profile->tenantId(),
+            ],
+        ]);
+        if (Arr::is($filtered) && Arr::is($filtered['configuration'] ?? null)) {
+            $configuration = Arr::toArray($filtered['configuration'], true);
+        }
+
+        $classifier = Arr::is($configuration['classifier'] ?? null)
+            ? Arr::toArray($configuration['classifier'], true)
+            : [];
+        $learning = Arr::is($configuration['learning'] ?? null)
+            ? Arr::toArray($configuration['learning'], true)
+            : [];
+        $review = Arr::is($configuration['review'] ?? null)
+            ? Arr::toArray($configuration['review'], true)
+            : [];
+
+        $configuration['scope'] = $profile->key();
+        $configuration['dataset'] = $this->catalog->toArray();
+        $configuration['settings'] = $settings;
+        $configuration['routes'] = $routes;
+        $configuration['classifier'] = Arr::merge($classifier, [
+            'cache_key' => $cacheKey,
+            'artifact_key' => 'conversation/models/' . $cacheKey . '/intent_naive_bayes.phpml',
+        ]);
+        $configuration['learning'] = Arr::merge($learning, ['automatic_observation' => false]);
+        $configuration['review'] = Arr::merge($review, [
+            'generated_fallbacks_are_training_data' => false,
+            'promotion_requires_approval' => true,
+        ]);
+
+        return $configuration;
     }
 
     public function toArray(): array
