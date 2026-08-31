@@ -33,6 +33,7 @@ It has five connected product responsibilities:
 | Product surface | Responsibility | Deployment boundary | Tracker |
 | --- | --- | --- | --- |
 | Opus runtime | Application composition, lifecycle, policy, admin, Wise command hosting, and agent integration | Reusable application package | [#102](https://github.com/BlueFissionTech/opus/issues/102) |
+| Frontend presentation | Reproducible browser assets, Reactor migration, Vibe integration, accessibility, and responsive behavior | Public application bundle | [#2](https://github.com/BlueFissionTech/opus/issues/2), [#10](https://github.com/BlueFissionTech/opus/issues/10) |
 | Managed Opus | Provisioning, tenancy, operations, metering, recovery, and managed application lifecycle | Hosted control plane plus isolated application runtimes | [#103](https://github.com/BlueFissionTech/opus/issues/103) |
 | Self-hosted Opus | Reproducible public installation, upgrade, rollback, documentation, and support policy | Downloadable source and distribution artifacts | [#104](https://github.com/BlueFissionTech/opus/issues/104) |
 | Marketplace and Annex directory | Publisher, artifact, release, compatibility, trust, discovery, entitlement, and directory workflows | Dedicated Opus installation | [#105](https://github.com/BlueFissionTech/opus/issues/105) |
@@ -84,6 +85,8 @@ earlier dependency or evidence gate.
   and representative add-on lifecycle behavior.
 - Stabilize the Wise command host, central and specialist agent composition,
   scoped profiles, authorization, audit, and shadow-mode execution.
+- Establish one reproducible frontend asset source map, migrate shared bindings
+  through Reactor-owned exports, and enforce production bundle validation.
 - Complete resumable application onboarding and application blueprint
   persistence.
 - Establish health, readiness, diagnostics, logging, security, and conformance
@@ -131,6 +134,9 @@ earlier dependency or evidence gate.
   notes, migration guidance, and security/support policies.
 - Verify documented web and CLI installation, upgrade, backup, recovery, and
   representative add-on workflows.
+- Verify the production frontend build, public asset provenance, responsive and
+  accessibility checks, and completion or explicit migration status for every
+  remaining legacy dashboard import.
 - Tie the release to an immutable Materia conformance snapshot.
 - Exclude all private deployment assets and separately licensed themes.
 
@@ -164,6 +170,18 @@ Tracked in [#104](https://github.com/BlueFissionTech/opus/issues/104).
 A public release depends only on supported public package versions. Development
 branches may validate unreleased upstream work, but local source pins and private
 repository credentials cannot enter a release artifact.
+
+### Frontend Presentation
+
+Tracked in [#2](https://github.com/BlueFissionTech/opus/issues/2) and
+[#10](https://github.com/BlueFissionTech/opus/issues/10).
+
+Opus owns reproducible application bundling and presentation integration.
+Reactor owns reusable browser bindings and runtime UI behavior, while Vibe and
+Vibrato own server-authored template semantics. Frontend release evidence must
+identify authored and generated asset ownership, execute a production build,
+prevent direct legacy-module regressions, and cover responsive, accessible,
+theme-independent application and add-on UI behavior.
 
 ### Marketplace and Annex Directory
 
