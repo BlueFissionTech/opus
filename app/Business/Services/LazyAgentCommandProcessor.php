@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Business\Services;
 
 use BlueFission\Data\Storage\Session;
+use BlueFission\DevElation;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandProcessor;
 use BlueFission\Wise\Cmd\CommandRequest;
@@ -29,6 +30,12 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
         try {
             $processor = $this->processor();
         } catch (Throwable) {
+            $this->publishRuntimeAction('opus.agent.command_runtime.unavailable', [
+                'status' => 'unavailable',
+                'reason' => 'command_runtime_unavailable',
+                'retryable' => true,
+            ]);
+
             return CommandResult::invalid(
                 'The command runtime is unavailable.',
                 ['agent_command_runtime_unavailable'],
@@ -56,7 +63,13 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
             throw new RuntimeException('invalid_agent_command_processor');
         }
 
-        return $this->processor = $processor;
+        $this->processor = $processor;
+        $this->publishRuntimeAction('opus.agent.command_runtime.ready', [
+            'status' => 'ready',
+            'source' => $this->factory === null ? 'application' : 'factory',
+        ]);
+
+        return $this->processor;
     }
 
     private function buildProcessor(): ICommandProcessor
@@ -72,5 +85,14 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
             ),
             new AgentContinuationScopeStore($storage)
         );
+    }
+
+    private function publishRuntimeAction(string $name, array $payload): void
+    {
+        try {
+            DevElation::do($name, [$payload]);
+        } catch (Throwable) {
+            // Observers cannot change command-runtime availability.
+        }
     }
 }

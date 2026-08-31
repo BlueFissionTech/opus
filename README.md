@@ -95,6 +95,8 @@ php vendor/bin/opus-addon.php validate <addon-root>
 
 Opus's event management system allows you to hook into various events and filters, making it easy to extend and customize the framework's behavior.
 
+The lazy Wise command boundary publishes non-blocking `opus.agent.command_runtime.ready` and `opus.agent.command_runtime.unavailable` DevElation actions. Their payloads contain only stable status metadata; dependency injection remains the supported processor replacement boundary, and observer failures cannot alter command availability.
+
 ### Add-On System
 
 The add-on architecture allows for seamless feature additions and management without modifying core files directly. See the [add-on authoring guide](ADDONS.md) for the package boundary, lifecycle, structure, and validation expectations.

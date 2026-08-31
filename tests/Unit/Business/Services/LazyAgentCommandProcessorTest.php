@@ -7,6 +7,7 @@ namespace Tests\Unit\Business\Services;
 use App\Business\Services\AgentCommandContextProvider;
 use App\Business\Services\LazyAgentCommandProcessor;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
+use BlueFission\DevElation;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
@@ -82,6 +83,54 @@ final class LazyAgentCommandProcessorTest extends TestCase
         $processor->process('run command');
     }
 
+    public function testRuntimeLifecycleActionsAreStableAndNonBlocking(): void
+    {
+        $this->withDevElationHooks(function (): void {
+            $ready = [];
+            $unavailable = [];
+            DevElation::action(
+                'opus.agent.command_runtime.ready',
+                static function (array $payload) use (&$ready): void {
+                    $ready[] = $payload;
+                    throw new RuntimeException('observer failed');
+                }
+            );
+            DevElation::action(
+                'opus.agent.command_runtime.unavailable',
+                static function (array $payload) use (&$unavailable): void {
+                    $unavailable[] = $payload;
+                    throw new RuntimeException('observer failed');
+                }
+            );
+
+            $inner = new class implements ICommandProcessor {
+                public function process(CommandRequest|Command|array|string $request): CommandResult
+                {
+                    return CommandResult::completed(['ok' => true]);
+                }
+            };
+            $available = new LazyAgentCommandProcessor(
+                static fn (): ICommandProcessor => $inner
+            );
+            $failed = new LazyAgentCommandProcessor(
+                static fn (): ICommandProcessor => throw new RuntimeException('runtime failed')
+            );
+
+            $this->assertSame(CommandResult::COMPLETED, $available->process('list command')->status());
+            $this->assertSame(CommandResult::COMPLETED, $available->process('list command')->status());
+            $this->assertSame(CommandResult::INVALID, $failed->process('list command')->status());
+            $this->assertSame([['status' => 'ready', 'source' => 'factory']], $ready);
+            $this->assertSame(
+                [[
+                    'status' => 'unavailable',
+                    'reason' => 'command_runtime_unavailable',
+                    'retryable' => true,
+                ]],
+                $unavailable
+            );
+        });
+    }
+
     public function testActivatedAddOnQueryIsResolvedOnlyWhenContextIsRequested(): void
     {
         $resolutions = 0;
@@ -106,5 +155,22 @@ final class LazyAgentCommandProcessorTest extends TestCase
         $this->assertSame(1, $resolutions);
         $this->assertSame(['reporting'], $first['active_addons']);
         $this->assertSame(['reporting'], $second['active_addons']);
+    }
+
+    private function withDevElationHooks(callable $test): void
+    {
+        $reflection = new \ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $actions = $reflection->getProperty('_actions');
+        $originalActive = $active->getValue();
+        $originalActions = $actions->getValue();
+
+        try {
+            DevElation::up();
+            $test();
+        } finally {
+            $active->setValue(null, $originalActive);
+            $actions->setValue(null, $originalActions);
+        }
     }
 }
