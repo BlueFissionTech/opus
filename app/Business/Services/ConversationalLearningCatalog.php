@@ -144,10 +144,17 @@ final class ConversationalLearningCatalog
         $review = Arr::is($configuration['review'] ?? null)
             ? Arr::toArray($configuration['review'], true)
             : [];
+        $configurationSettings = Arr::is($configuration['settings'] ?? null)
+            ? Arr::toArray($configuration['settings'], true)
+            : $settings;
 
         $configuration['scope'] = $profile->key();
         $configuration['dataset'] = $this->catalog->toArray();
-        $configuration['settings'] = $settings;
+        $configuration['settings'] = Arr::merge($configurationSettings, [
+            'promotion_requires_review' => $settings['promotion_requires_review'],
+            'capture_private_conversations' => $settings['capture_private_conversations'],
+            'capture_provider_payloads' => $settings['capture_provider_payloads'],
+        ]);
         $configuration['routes'] = $routes;
         $configuration['classifier'] = Arr::merge($classifier, [
             'cache_key' => $cacheKey,
