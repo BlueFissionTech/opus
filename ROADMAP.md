@@ -247,6 +247,10 @@ must identify the applicable evidence:
 Unknown evidence remains unknown. It must not be inferred from adjacent package
 or deployment success.
 
+Any release that exposes Opus DevElation hooks or filters is blocked when the
+#110 catalog is absent, payload compatibility or ordering is unknown, or its
+post-filter invariant and conformance tests are missing or failing.
+
 ## Prioritization
 
 1. Protect production correctness, security, tenant isolation, and
