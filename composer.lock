@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7278a0aa90fc26a37954eab2971d7950",
+    "content-hash": "d84280a1afb0423897909e4feb5a8edc",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -52,16 +52,16 @@
         },
         {
             "name": "bluefission/automata",
-            "version": "v1.0.0-alpha.3",
+            "version": "v1.0.0-alpha.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/BlueFissionTech/automata.git",
-                "reference": "c48adfd13bcf4bddd66dfd0fee77c5d5430b52f0"
+                "reference": "b3e3e1e7e1238a2df48d630f0d1f896aef279511"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BlueFissionTech/automata/zipball/c48adfd13bcf4bddd66dfd0fee77c5d5430b52f0",
-                "reference": "c48adfd13bcf4bddd66dfd0fee77c5d5430b52f0",
+                "url": "https://api.github.com/repos/BlueFissionTech/automata/zipball/b3e3e1e7e1238a2df48d630f0d1f896aef279511",
+                "reference": "b3e3e1e7e1238a2df48d630f0d1f896aef279511",
                 "shasum": ""
             },
             "require": {
@@ -71,7 +71,7 @@
                 "php-ai/php-ml": "^0.10.0"
             },
             "require-dev": {
-                "bluefission/simpleclients": "dev-master",
+                "bluefission/simpleclients": "^0.1.0-alpha",
                 "phpunit/phpunit": "^11.5"
             },
             "suggest": {
@@ -119,7 +119,7 @@
                 "issues": "https://github.com/BlueFissionTech/automata/issues",
                 "source": "https://github.com/BlueFissionTech/automata"
             },
-            "time": "2026-08-08T21:14:46+00:00"
+            "time": "2026-08-31T21:39:54+00:00"
         },
         {
             "name": "bluefission/bluecore",
@@ -432,16 +432,16 @@
         },
         {
             "name": "bluefission/presence",
-            "version": "dev-main",
+            "version": "v0.1.0-alpha.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefissiontech/presence",
-                "reference": "9637482818b6ff2ed3c18b012d94545e649a12c2"
+                "reference": "5c01dca824a2bccb2c899b59ab9587d21b715515"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefissiontech/presence/zipball/9637482818b6ff2ed3c18b012d94545e649a12c2",
-                "reference": "9637482818b6ff2ed3c18b012d94545e649a12c2",
+                "url": "https://api.github.com/repos/bluefissiontech/presence/zipball/5c01dca824a2bccb2c899b59ab9587d21b715515",
+                "reference": "5c01dca824a2bccb2c899b59ab9587d21b715515",
                 "shasum": ""
             },
             "require": {
@@ -459,7 +459,6 @@
                 "bluefission/bluecore": "Adds framework bridge and middleware hosting capabilities.",
                 "bluefission/synematic": "Adds workflow, provenance, privacy, and interoperability coordination."
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "branch-alias": {
@@ -501,7 +500,7 @@
                 "maps",
                 "session"
             ],
-            "time": "2026-08-09T00:59:17+00:00"
+            "time": "2026-09-01T15:38:47+00:00"
         },
         {
             "name": "bluefission/simpleclients",
@@ -3119,7 +3118,7 @@
     "packages-dev": [
         {
             "name": "bluefission/jenerator",
-            "version": "dev-main",
+            "version": "v0.1.0-alpha.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefissiontech/jenerator",
@@ -3139,7 +3138,6 @@
             "require-dev": {
                 "phpunit/phpunit": "^10.5"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -3156,36 +3154,33 @@
         },
         {
             "name": "bluefission/wise",
-            "version": "dev-main",
+            "version": "v0.1.0-alpha.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefissiontech/wise",
-                "reference": "ad14e76f9e51ef44b6fd165b1d83a56069722a2a"
+                "reference": "e55c68fd690c529989ccce62c74f2fe62e00edef"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefissiontech/wise/zipball/ad14e76f9e51ef44b6fd165b1d83a56069722a2a",
-                "reference": "ad14e76f9e51ef44b6fd165b1d83a56069722a2a",
+                "url": "https://api.github.com/repos/bluefissiontech/wise/zipball/e55c68fd690c529989ccce62c74f2fe62e00edef",
+                "reference": "e55c68fd690c529989ccce62c74f2fe62e00edef",
                 "shasum": ""
             },
             "require": {
-                "bluefission/automata": "^1.0.0-alpha.2",
-                "bluefission/develation": "^1.3.42",
-                "bluefission/jenerator": "dev-main",
+                "bluefission/automata": "^1.0.0-alpha.5",
+                "bluefission/develation": "~1.3.43.0",
+                "bluefission/jenerator": "^0.1.0-alpha.1",
+                "bluefission/presence": "0.1.0-alpha.3",
                 "bluefission/simpleclients": "^0.1.0-alpha",
                 "bluefission/synthetiq": "^0.1.0-alpha.1",
                 "bluefission/vibrato": "dev-main",
                 "google/cloud-language": "^0.27.0",
-                "orhanerday/open-ai": "^2.2"
+                "orhanerday/open-ai": "^2.2",
+                "php": ">=8.2"
             },
             "require-dev": {
-                "php": ">=8.0.0",
                 "phpunit/phpunit": "^11.1@dev"
             },
-            "suggest": {
-                "bluefission/presence": "Enables advanced authentication, authorization, and session integration."
-            },
-            "default-branch": true,
             "type": "package",
             "autoload": {
                 "psr-4": {
@@ -3236,7 +3231,7 @@
                 "llm",
                 "shell"
             ],
-            "time": "2026-08-22T21:57:37+00:00"
+            "time": "2026-09-01T22:16:44+00:00"
         },
         {
             "name": "brick/math",
@@ -6376,12 +6371,10 @@
         "bluefission/bluecore": 15,
         "bluefission/opus-addon-hoom": 20,
         "bluefission/opus-addon-kapsle": 20,
-        "bluefission/presence": 20,
         "bluefission/simpleclients": 15,
         "bluefission/synematic": 20,
         "bluefission/synthetiq": 15,
-        "bluefission/vibrato": 20,
-        "bluefission/wise": 20
+        "bluefission/vibrato": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
