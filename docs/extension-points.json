@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "catalog_version": "1.0.0",
+  "namespace": "opus",
+  "extension_points": [
+    {
+      "name": "opus.intake.defaults",
+      "kind": "filter",
+      "area": "application_intake",
+      "phase": "before_session_creation",
+      "owner": "ApplicationIntakeService",
+      "payload": {
+        "type": "object",
+        "required": ["defaults", "context"],
+        "properties": {
+          "defaults": "object",
+          "context": "object"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "required": ["defaults"]
+      },
+      "mutability": "replace_value",
+      "exception_policy": "propagate_before_write",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "Project identity, tenant, application slug, and prompt version remain authoritative.",
+        "A missing or invalid defaults value falls back to built-in defaults."
+      ]
+    },
+    {
+      "name": "opus.intake.session.transitioned",
+      "kind": "action",
+      "area": "application_intake",
+      "phase": "after_persistence",
+      "owner": "ApplicationIntakeService",
+      "payload": {
+        "type": "object",
+        "required": ["transition", "session"],
+        "properties": {
+          "transition": "string",
+          "session": "object"
+        }
+      },
+      "returns": {
+        "type": "void"
+      },
+      "mutability": "observe_only",
+      "exception_policy": "propagate_after_commit",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "The session is persisted before observers run.",
+        "Observer failure does not roll back the completed write."
+      ]
+    },
+    {
+      "name": "opus.agent.command_context",
+      "kind": "filter",
+      "area": "agent_wise_runtime",
+      "phase": "after_authoritative_context_resolution",
+      "owner": "AgentCommandContextProvider",
+      "payload": {
+        "type": "object",
+        "required": ["agent_id", "active_addons", "addon_states", "capabilities"]
+      },
+      "returns": {
+        "type": "object"
+      },
+      "mutability": "replace_value",
+      "exception_policy": "propagate_before_execution",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "Caller identity and an explicit tenant cannot be changed.",
+        "Profile identity and tenant scope are revalidated after filtering.",
+        "Invalid filtered context falls back to the authoritative context."
+      ]
+    },
+    {
+      "name": "opus.agent.command_runtime.ready",
+      "kind": "action",
+      "area": "agent_wise_runtime",
+      "phase": "after_runtime_construction",
+      "owner": "LazyAgentCommandProcessor",
+      "payload": {
+        "type": "object",
+        "required": ["status", "source"]
+      },
+      "returns": {
+        "type": "void"
+      },
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "Observers cannot replace the command processor.",
+        "Observers cannot change runtime availability."
+      ]
+    },
+    {
+      "name": "opus.agent.command_runtime.unavailable",
+      "kind": "action",
+      "area": "agent_wise_runtime",
+      "phase": "after_runtime_construction_failure",
+      "owner": "LazyAgentCommandProcessor",
+      "payload": {
+        "type": "object",
+        "required": ["status", "reason", "retryable"]
+      },
+      "returns": {
+        "type": "void"
+      },
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "The fail-closed structured result remains authoritative.",
+        "Observers cannot force runtime availability or execution."
+      ]
+    },
+    {
+      "name": "opus.conversation.settings",
+      "kind": "filter",
+      "area": "scoped_profiles_conversation",
+      "phase": "after_layer_composition",
+      "owner": "ConversationalLearningCatalog",
+      "payload": {
+        "type": "object",
+        "required": ["settings", "layers"]
+      },
+      "returns": {
+        "type": "object",
+        "required": ["settings"]
+      },
+      "mutability": "replace_value",
+      "exception_policy": "propagate_before_use",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "Mode is constrained to shadow, review, or active.",
+        "Required review and privacy exclusions are reapplied after filtering."
+      ]
+    },
+    {
+      "name": "opus.conversation.configuration",
+      "kind": "filter",
+      "area": "scoped_profiles_conversation",
+      "phase": "after_scoped_configuration_composition",
+      "owner": "ConversationalLearningCatalog",
+      "payload": {
+        "type": "object",
+        "required": ["configuration", "profile"]
+      },
+      "returns": {
+        "type": "object",
+        "required": ["configuration"]
+      },
+      "mutability": "replace_value",
+      "exception_policy": "propagate_before_use",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "Profile scope, dataset identity, routes, and classifier identity remain authoritative.",
+        "Automatic observation stays disabled and generated fallbacks require reviewed promotion."
+      ]
+    }
+  ],
+  "boundary_inventory": [
+    {
+      "area": "application_intake",
+      "status": "hooked",
+      "owner": "ApplicationIntakeService and ApplicationIntakeSession",
+      "extension_points": [
+        "opus.intake.defaults",
+        "opus.intake.session.transitioned"
+      ],
+      "rationale": "Defaults may be extended before creation and persisted transitions may be observed without weakening session identity or write guarantees."
+    },
+    {
+      "area": "addon_lifecycle",
+      "status": "stronger_abstraction",
+      "owner": "BlueCore add-on lifecycle contracts and Opus readiness services",
+      "extension_points": [],
+      "rationale": "Discovery, validation, registration, activation, and removal remain behind lifecycle services, state validation, idempotency, and approval gates."
+    },
+    {
+      "area": "agent_wise_runtime",
+      "status": "hooked",
+      "owner": "AgentCommandContextProvider and LazyAgentCommandProcessor",
+      "extension_points": [
+        "opus.agent.command_context",
+        "opus.agent.command_runtime.ready",
+        "opus.agent.command_runtime.unavailable"
+      ],
+      "rationale": "Context may be augmented within authoritative actor and tenant scope, while runtime availability is observable but not replaceable through actions."
+    },
+    {
+      "area": "scoped_profiles_conversation",
+      "status": "hooked",
+      "owner": "ConversationalLearningCatalog and Wise profile policies",
+      "extension_points": [
+        "opus.conversation.settings",
+        "opus.conversation.configuration"
+      ],
+      "rationale": "Safe settings and configuration may be extended before mandatory scope, privacy, review, and learning invariants are reapplied."
+    },
+    {
+      "area": "request_response",
+      "status": "stronger_abstraction",
+      "owner": "BlueCore routing, request, response, gateway, and controller contracts",
+      "extension_points": [],
+      "rationale": "Routing, normalization, errors, and audit correlation remain typed service boundaries until stable sanitized payloads and ordering are defined."
+    },
+    {
+      "area": "rendering_generation",
+      "status": "stronger_abstraction",
+      "owner": "Vibe, Vibrato, VibeThemeRenderer, and VibeGenerationService",
+      "extension_points": [],
+      "rationale": "Theme resolution, navigation, rendering, generated artifacts, and validation remain package and service contracts with explicit trust boundaries."
+    },
+    {
+      "area": "configuration_settings",
+      "status": "intentionally_closed",
+      "owner": "Opus registration, environment, and scoped policy services",
+      "extension_points": [],
+      "rationale": "General application, tenant, and principal composition stays closed until authoritative deny and privacy ordering can be guaranteed across settings domains."
+    },
+    {
+      "area": "interoperability_marketplace",
+      "status": "stronger_abstraction",
+      "owner": "Agent capability maps, Annex contracts, and future marketplace services",
+      "extension_points": [],
+      "rationale": "Capability discovery and handoffs remain typed, approval-gated contracts; the marketplace surface is not yet available."
+    }
+  ]
+}

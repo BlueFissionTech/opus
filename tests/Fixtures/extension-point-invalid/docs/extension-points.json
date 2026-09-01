@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "catalog_version": "",
+  "extension_points": [
+    {
+      "name": "opus.intake.defaults",
+      "kind": "unknown",
+      "area": "",
+      "phase": "",
+      "owner": "",
+      "payload": [],
+      "returns": [],
+      "mutability": "",
+      "exception_policy": "",
+      "ordering": "",
+      "invariants": "none"
+    },
+    {
+      "name": "opus.intake.defaults",
+      "kind": "filter",
+      "area": "application_intake",
+      "phase": "before_session_creation",
+      "owner": "ApplicationIntakeService",
+      "payload": {"type": "object"},
+      "returns": {"type": "object"},
+      "mutability": "replace_value",
+      "exception_policy": "propagate_before_write",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": []
+    },
+    {
+      "name": "invalid",
+      "kind": "filter",
+      "area": "application_intake",
+      "phase": "before_session_creation",
+      "owner": "ApplicationIntakeService",
+      "payload": {"type": "object"},
+      "returns": {"type": "object"},
+      "mutability": "replace_value",
+      "exception_policy": "propagate_before_write",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": []
+    }
+  ],
+  "boundary_inventory": [
+    {
+      "area": "application_intake",
+      "status": "unknown",
+      "owner": "",
+      "extension_points": ["opus.unknown"],
+      "rationale": ""
+    },
+    {
+      "area": "application_intake",
+      "status": "hooked",
+      "owner": "ApplicationIntakeService",
+      "extension_points": [],
+      "rationale": "duplicate"
+    }
+  ]
+}

@@ -24,7 +24,7 @@ final class ApplicationIntakeService
         array $actor = [],
         ?string $correlationId = null
     ): ApplicationIntakeSession {
-        $filtered = DevElation::apply('opus.intake.defaults', [
+        $filtered = DevElation::apply(ExtensionPointCatalog::INTAKE_DEFAULTS, [
             'defaults' => ApplicationIntakeSession::defaultValues(),
             'context' => [
                 'project_name' => $projectName,
@@ -156,7 +156,7 @@ final class ApplicationIntakeService
     ): ApplicationIntakeSession {
         $saved = $this->repository->save($session);
 
-        DevElation::do('opus.intake.session.transitioned', [[
+        DevElation::do(ExtensionPointCatalog::INTAKE_SESSION_TRANSITIONED, [[
             'transition' => $transition,
             'session' => $saved->toArray(),
         ]]);

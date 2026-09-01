@@ -65,7 +65,7 @@ final class AgentCommandContextProvider
             $context->set('tenant_id', $tenantId);
         }
 
-        $filtered = DevElation::apply('opus.agent.command_context', $context->toArray());
+        $filtered = DevElation::apply(ExtensionPointCatalog::AGENT_COMMAND_CONTEXT, $context->toArray());
         if (!Arr::is($filtered)) {
             return $context->toArray();
         }
