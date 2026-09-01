@@ -183,6 +183,24 @@ final class WiseProfilePolicyResolverTest extends TestCase
         $this->assertNotSame($first->key(), $second->key());
     }
 
+    public function testProfileKeysPreserveWhitespaceDistinctTenantIdentifiers(): void
+    {
+        $canonical = new WiseProfile(WiseProfile::USER, 'user-a', 'tenant-a');
+        $distinct = new WiseProfile(WiseProfile::USER, 'user-a', ' tenant-a ');
+
+        $this->assertSame('tenant-a', $canonical->tenantId());
+        $this->assertSame(' tenant-a ', $distinct->tenantId());
+        $this->assertNotSame($canonical->key(), $distinct->key());
+        $this->assertFalse($canonical->samePrincipal($distinct));
+    }
+
+    public function testProfileRejectsWhitespaceOnlyTenantIdentifiers(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new WiseProfile(WiseProfile::USER, 'user-a', '   ');
+    }
+
     public function testUnknownActionsInReservedFamiliesFailClosed(): void
     {
         $profile = new WiseProfile(WiseProfile::USER, 'user-a', 'tenant-a', ['user']);

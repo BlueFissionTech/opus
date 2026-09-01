@@ -25,7 +25,6 @@ final class WiseProfile
     {
         $type = Str::make($type)->trim()->lower()->val();
         $principalId = Str::make($principalId)->trim()->val();
-        $tenantId = Str::make((string) $tenantId)->trim()->val();
 
         if (!Arr::make(self::TYPES)->has($type, true)) {
             throw new InvalidArgumentException('Wise profile type is invalid.');
@@ -33,10 +32,15 @@ final class WiseProfile
         if (Str::isEmpty($principalId)) {
             throw new InvalidArgumentException('Wise profile principal is required.');
         }
+        if (!Str::isNull($tenantId)
+            && Str::isEmpty(Str::make((string) $tenantId)->trim()->val())
+        ) {
+            throw new InvalidArgumentException('Wise profile tenant must be a nonempty string or null.');
+        }
 
         $this->type = Str::make($type);
         $this->principalId = Str::make($principalId);
-        $this->tenantId = Str::isNotEmpty($tenantId) ? Str::make($tenantId) : null;
+        $this->tenantId = Str::isNull($tenantId) ? null : Str::make((string) $tenantId);
         $this->roles = Arr::make([]);
         Arr::make($roles)->each(function ($role): void {
             if (!Str::is($role)) {
