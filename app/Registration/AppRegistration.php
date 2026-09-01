@@ -15,6 +15,8 @@ use App\Business\Services\AgentCapabilityMapLoader;
 use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentContinuationScopeStore;
 use App\Business\Services\AgentScopedCommandProcessor;
+use App\Domain\Onboarding\IApplicationIntakeRepository;
+use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\IExtension;
@@ -104,6 +106,7 @@ class AppRegistration implements IExtension {
 		$this->bind('BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository', 'BlueFission\BlueCore\Domain\AddOn\Repositories\AddOnRepositorySql');
 
 		$this->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
+		$this->bind(IApplicationIntakeRepository::class, ApplicationIntakeRepositorySql::class);
 		$this->bind(ICommandProcessor::class, AgentScopedCommandProcessor::class);
 	}
 

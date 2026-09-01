@@ -6,6 +6,8 @@ namespace Tests\Unit\Registration;
 
 use App\Business\Services\VibeThemeRenderer;
 use App\Business\Services\AgentScopedCommandProcessor;
+use App\Domain\Onboarding\IApplicationIntakeRepository;
+use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use App\Registration\AppRegistration;
 use BlueFission\BlueCore\Theme;
 use BlueFission\Str;
@@ -57,6 +59,10 @@ final class AppRegistrationTest extends TestCase
         $this->assertSame(
             AgentScopedCommandProcessor::class,
             $app->bindings[ICommandProcessor::class]
+        );
+        $this->assertSame(
+            ApplicationIntakeRepositorySql::class,
+            $app->bindings[IApplicationIntakeRepository::class]
         );
     }
 
