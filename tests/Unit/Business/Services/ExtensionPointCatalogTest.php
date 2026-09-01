@@ -126,5 +126,13 @@ final class ExtensionPointCatalogTest extends TestCase
         $this->assertContains('application_intake has an invalid inventory status', $invalid->val());
         $this->assertContains('application_intake references an unknown extension point', $invalid->val());
         $this->assertContains('boundary inventory area is duplicated: application_intake', $invalid->val());
+        $this->assertContains(
+            'opus.intake.defaults is assigned to multiple boundary areas',
+            $invalid->val()
+        );
+        $this->assertContains(
+            'opus.agent.command_context does not belong to boundary area other_area',
+            $invalid->val()
+        );
     }
 }

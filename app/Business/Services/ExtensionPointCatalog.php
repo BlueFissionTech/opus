@@ -85,18 +85,26 @@ final class ExtensionPointCatalog extends Service
         $invalid = Arr::make([]);
         $catalogued = Arr::make([]);
         $covered = Arr::make([]);
+        $ownership = Arr::make([]);
 
         if ($manifest->get('schema_version') !== 1) {
             $invalid->push('schema_version must be 1');
         }
-        if (!Str::isNotEmpty((string) $manifest->get('catalog_version'))) {
+        $catalogVersion = $manifest->get('catalog_version');
+        if (!Str::is($catalogVersion) || Str::make($catalogVersion)->trim()->isEmpty()) {
             $invalid->push('catalog_version must be a nonempty string');
+            $catalogVersion = '';
         }
         $this->validateList($manifest, 'extension_points', $invalid);
         $this->validateList($manifest, 'boundary_inventory', $invalid);
 
         Arr::make($this->extensionPoints())->each(
-            fn ($definition) => $this->validateExtensionPoint($definition, $catalogued, $invalid)
+            fn ($definition) => $this->validateExtensionPoint(
+                $definition,
+                $catalogued,
+                $ownership,
+                $invalid
+            )
         );
 
         $areas = Arr::make([]);
@@ -106,6 +114,7 @@ final class ExtensionPointCatalog extends Service
                 $areas,
                 $catalogued,
                 $covered,
+                $ownership,
                 $invalid
             )
         );
@@ -116,7 +125,7 @@ final class ExtensionPointCatalog extends Service
         $uncovered = $catalogued->filter(fn (string $name): bool => !$covered->has($name, true))->values();
 
         return [
-            'catalog_version' => (string) $manifest->get('catalog_version'),
+            'catalog_version' => $catalogVersion,
             'extension_point_count' => $catalogued->count(),
             'boundary_count' => $areas->count(),
             'missing' => $missing->val(),
@@ -146,7 +155,12 @@ final class ExtensionPointCatalog extends Service
         }
     }
 
-    private function validateExtensionPoint($definition, Arr $catalogued, Arr $invalid): void
+    private function validateExtensionPoint(
+        $definition,
+        Arr $catalogued,
+        Arr $ownership,
+        Arr $invalid
+    ): void
     {
         if (!Arr::is($definition)) {
             $invalid->push('extension-point entry must be an object');
@@ -166,6 +180,7 @@ final class ExtensionPointCatalog extends Service
             return;
         }
         $catalogued->push($name);
+        $ownership->set($name, $definition->get('area'));
 
         if (!Arr::make(['filter', 'action'])->has($definition->get('kind'), true)) {
             $invalid->push($name . ' has an invalid kind');
@@ -197,6 +212,7 @@ final class ExtensionPointCatalog extends Service
         Arr $areas,
         Arr $catalogued,
         Arr $covered,
+        Arr $ownership,
         Arr $invalid
     ): void {
         if (!Arr::is($boundary)) {
@@ -230,9 +246,23 @@ final class ExtensionPointCatalog extends Service
             $invalid->push($area . ' extension_points must be a list');
             return;
         }
-        Arr::make($names)->each(function ($name) use ($area, $catalogued, $covered, $invalid): void {
+        Arr::make($names)->each(function ($name) use (
+            $area,
+            $catalogued,
+            $covered,
+            $ownership,
+            $invalid
+        ): void {
             if (!Str::is($name) || !$catalogued->has($name, true)) {
                 $invalid->push($area . ' references an unknown extension point');
+                return;
+            }
+            if ($covered->has($name, true)) {
+                $invalid->push($name . ' is assigned to multiple boundary areas');
+                return;
+            }
+            if ($ownership->get($name) !== $area) {
+                $invalid->push($name . ' does not belong to boundary area ' . $area);
                 return;
             }
             $covered->push($name);
