@@ -57,7 +57,7 @@
         "bluefission/develation": "^1.3.43",
         "bluefission/opus-addon-hoom": "dev-main",
         "bluefission/opus-addon-kapsle": "dev-main",
-        "bluefission/presence": "dev-main",
+        "bluefission/presence": "0.1.0-alpha.3",
         "bluefission/simpleclients": "^0.1.0@alpha",
         "bluefission/synematic": "dev-main",
         "bluefission/synthetiq": "^0.1.0@alpha",
@@ -68,7 +68,7 @@
         "symfony/http-client": "^7.3"
     },
     "require-dev": {
-        "bluefission/wise": "dev-main",
+        "bluefission/wise": "0.1.0-alpha.1",
         "phpunit/phpunit": "^9.5"
     },
     "suggest": {
