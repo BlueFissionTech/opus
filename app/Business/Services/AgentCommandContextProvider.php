@@ -77,17 +77,22 @@ final class AgentCommandContextProvider
         if (Str::isNotEmpty($actorId) && $filteredActorId !== $actorId) {
             return $context->toArray();
         }
-        if (Str::isNotEmpty((string) $tenantId)
-            && $filtered->get('tenant_id') !== $tenantId
+        $requestedTenantId = Str::isNotEmpty((string) $tenantId) ? $tenantId : null;
+        $filteredTenantId = $filtered->get('tenant_id');
+        if ((!Str::isNull($filteredTenantId)
+                && (!Str::is($filteredTenantId)
+                    || Str::isEmpty(Str::make((string) $filteredTenantId)->trim()->val())))
+            || (!Str::isNull($requestedTenantId) && $filteredTenantId !== $requestedTenantId)
         ) {
             return $context->toArray();
         }
+        $effectiveTenantId = $requestedTenantId ?? $filteredTenantId;
 
         $profile = Arr::make((array) $filtered->get('wise_profile'));
         if (Str::isNotEmpty($actorId)
             && ($profile->get('type') !== WiseProfile::USER
                 || $profile->get('principal_id') !== $actorId
-                || $profile->get('tenant_id') !== (Str::isNotEmpty((string) $tenantId) ? $tenantId : null))
+                || $profile->get('tenant_id') !== $effectiveTenantId)
         ) {
             return $context->toArray();
         }

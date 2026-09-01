@@ -15,6 +15,7 @@ use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
 use BlueFission\Wise\Cmd\ICommandProcessor;
+use BlueFission\DevElation;
 use PHPUnit\Framework\TestCase;
 
 final class AgentScopedProfileTest extends TestCase
@@ -27,6 +28,35 @@ final class AgentScopedProfileTest extends TestCase
         $this->assertSame('user-a', $context['wise_profile']['principal_id']);
         $this->assertSame('tenant-a', $context['wise_profile']['tenant_id']);
         $this->assertSame(['user'], $context['wise_profile']['roles']);
+    }
+
+    public function testCommandContextHookCanDeriveAnOmittedTenant(): void
+    {
+        $reflection = new \ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $filters = $reflection->getProperty('_filters');
+        $originalActive = $active->getValue();
+        $originalFilters = $filters->getValue();
+
+        try {
+            DevElation::up();
+            DevElation::filter('opus.agent.command_context', static function (array $context): array {
+                $context['tenant_id'] = 'tenant-a';
+                $context['wise_profile']['tenant_id'] = 'tenant-a';
+                $context['wise_profile']['roles'] = ['administrator'];
+
+                return $context;
+            });
+
+            $context = (new AgentCommandContextProvider())->forActor('user-a');
+
+            $this->assertSame('tenant-a', $context['tenant_id']);
+            $this->assertSame('tenant-a', $context['wise_profile']['tenant_id']);
+            $this->assertSame(['administrator'], $context['wise_profile']['roles']);
+        } finally {
+            $active->setValue(null, $originalActive);
+            $filters->setValue(null, $originalFilters);
+        }
     }
 
     public function testContinuationRefreshPreservesAgentProfileIdentityWithoutStaleRoles(): void
