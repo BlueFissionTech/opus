@@ -15,10 +15,13 @@ use BotMan\BotMan\BotMan;
 
 class CliManager extends Service
 {
+    private AgentCommandContextProvider $contextProvider;
+
     public function __construct(
         private WiseCommandHost $commandHost,
-        private AgentCommandContextProvider $contextProvider
+        ?AgentCommandContextProvider $contextProvider = null
     ) {
+        $this->contextProvider = $contextProvider ?? new AgentCommandContextProvider();
         parent::__construct();
     }
 

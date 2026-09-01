@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Registration;
 
 use App\Business\Services\VibeThemeRenderer;
-use App\Business\Services\AgentScopedCommandProcessor;
+use App\Business\Services\LazyAgentCommandProcessor;
 use App\Domain\Onboarding\IApplicationIntakeRepository;
 use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use App\Registration\AppRegistration;
@@ -57,7 +57,7 @@ final class AppRegistrationTest extends TestCase
         $registration->bindings();
 
         $this->assertSame(
-            AgentScopedCommandProcessor::class,
+            LazyAgentCommandProcessor::class,
             $app->bindings[ICommandProcessor::class]
         );
         $this->assertSame(
