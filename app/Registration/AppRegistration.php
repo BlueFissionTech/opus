@@ -9,6 +9,8 @@ use App\Business\Presentation\PackageTheme;
 use App\Business\Services\RuntimePathResolver;
 use App\Business\Services\VibeThemeRenderer;
 use App\Business\Services\LazyAgentCommandProcessor;
+use App\Domain\Onboarding\IApplicationIntakeRepository;
+use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\IExtension;
@@ -96,6 +98,7 @@ class AppRegistration implements IExtension {
 		$this->bind('BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository', 'BlueFission\BlueCore\Domain\AddOn\Repositories\AddOnRepositorySql');
 
 		$this->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
+		$this->bind(IApplicationIntakeRepository::class, ApplicationIntakeRepositorySql::class);
 		$this->bind(ICommandProcessor::class, LazyAgentCommandProcessor::class);
 	}
 
