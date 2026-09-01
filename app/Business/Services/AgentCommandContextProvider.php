@@ -9,14 +9,19 @@ use BlueFission\Arr;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\DevElation;
 use BlueFission\Str;
+use Closure;
 use Throwable;
 
 final class AgentCommandContextProvider
 {
     private const CENTRAL_AGENT = 'opus.central';
+    private ?Closure $queryResolver;
 
-    public function __construct(private ?IActivatedAddOnsQuery $activatedAddOns = null)
-    {
+    public function __construct(
+        private ?IActivatedAddOnsQuery $activatedAddOns = null,
+        ?callable $queryResolver = null
+    ) {
+        $this->queryResolver = $queryResolver === null ? null : Closure::fromCallable($queryResolver);
     }
 
     public function forActor(string $actorId, ?string $tenantId = null): array
@@ -25,7 +30,7 @@ final class AgentCommandContextProvider
         $states = Arr::make([]);
 
         try {
-            $records = $this->activatedAddOns?->fetch() ?? [];
+            $records = $this->activatedAddOns()?->fetch() ?? [];
             Arr::make(Arr::is($records) ? $records : [])->each(
                 function ($record) use ($active, $states): void {
                     $record = Arr::make((array) $record);
@@ -132,5 +137,21 @@ final class AgentCommandContextProvider
         }
 
         return $refreshed->toArray();
+    }
+
+    private function activatedAddOns(): ?IActivatedAddOnsQuery
+    {
+        if ($this->activatedAddOns !== null) {
+            return $this->activatedAddOns;
+        }
+
+        $resolved = $this->queryResolver === null
+            ? \App::makeInstance(IActivatedAddOnsQuery::class)
+            : ($this->queryResolver)();
+        if ($resolved instanceof IActivatedAddOnsQuery) {
+            $this->activatedAddOns = $resolved;
+        }
+
+        return $this->activatedAddOns;
     }
 }

@@ -1,8 +1,6 @@
 <?php
 namespace App\Registration;
 // use BlueFission\BlueCore\Business\Managers\CommandManager;
-use App\Business\Middleware\ProcessesCommandMiddleware;
-use App\Business\Services\AgentCommandContextProvider;
 use BlueFission\BlueCore\Business\Managers\NavMenuManager;
 use BlueFission\BlueCore\Business\Managers\DatasourceManager;
 use BlueFission\BlueCore\Business\Managers\AddOnManager;
@@ -10,19 +8,14 @@ use App\Business\MysqlConnector;
 use App\Business\Presentation\PackageTheme;
 use App\Business\Services\RuntimePathResolver;
 use App\Business\Services\VibeThemeRenderer;
-use App\Business\Services\AgentCapabilityMapCatalog;
-use App\Business\Services\AgentCapabilityMapLoader;
-use App\Business\Services\AgentCapabilityMapResolver;
-use App\Business\Services\AgentContinuationScopeStore;
-use App\Business\Services\AgentScopedCommandProcessor;
 use App\Business\Services\ConversationalLearningCatalog;
-use App\Business\Services\WiseProfileContextResolver;
+use App\Business\Services\LazyAgentCommandProcessor;
 use App\Business\Services\WiseProfilePolicyResolver;
+use App\Domain\Onboarding\IApplicationIntakeRepository;
+use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\IExtension;
-use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
-use BlueFission\Wise\Cmd\CommandProcessor;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 
 /**
@@ -115,22 +108,14 @@ class AppRegistration implements IExtension {
 		$this->bind('BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository', 'BlueFission\BlueCore\Domain\AddOn\Repositories\AddOnRepositorySql');
 
 		$this->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
-		$this->bind(ICommandProcessor::class, AgentScopedCommandProcessor::class);
+		$this->bind(IApplicationIntakeRepository::class, ApplicationIntakeRepositorySql::class);
+		$this->bind(ICommandProcessor::class, LazyAgentCommandProcessor::class);
 	}
 
 	/**
 	 * Pass arguments to different components
 	 */
 	public function arguments() {
-		$commandStorage = new Session(['location' => 'cache', 'name' => 'system']);
-		$agentMapLoader = new AgentCapabilityMapLoader();
-		$profilePolicies = new WiseProfilePolicyResolver(
-			(array) require $this->applicationRoot() . 'mapping/wise_profiles.php'
-		);
-		$contextProvider = new AgentCommandContextProvider(
-			\App::makeInstance(IActivatedAddOnsQuery::class)
-		);
-
 		$this->bindArgs( ['session'=>new Session()], 'App\Business\Http\AdminController');
 		$this->bindArgs( ['session'=>new Session()], 'BlueFission\BlueCore\Auth');
 
@@ -140,20 +125,7 @@ class AppRegistration implements IExtension {
 
 
 		$this->bindArgs( ['link'=>\App::makeInstance('BlueFission\Connections\Database\MySQLLink'), 'storage'=>\App::makeInstance('BlueFission\Data\Storage\MySQLBulk')], 'BlueFission\BlueCore\Business\Managers\DatasourceManager');
-		
-		$this->bindArgs(['storage' => $commandStorage], CommandProcessor::class);
-		$this->bindArgs([
-			'processor' => \App::makeInstance(CommandProcessor::class),
-			'resolver' => new AgentCapabilityMapResolver(
-				$agentMapLoader->loadApplication($this->applicationRoot() . 'mapping/agents.php'),
-				catalog: new AgentCapabilityMapCatalog($this->applicationRoot() . 'addons', $agentMapLoader)
-			),
-			'continuations' => new AgentContinuationScopeStore($commandStorage),
-			'profilePolicies' => $profilePolicies,
-			'profileContexts' => new WiseProfileContextResolver(),
-		], AgentScopedCommandProcessor::class);
-		$this->bindArgs(['contextProvider' => $contextProvider], ProcessesCommandMiddleware::class);
-		$this->bindArgs(['contextProvider' => $contextProvider], \App\Business\Console\CliManager::class);
+
 	}
 
 	public function addons()

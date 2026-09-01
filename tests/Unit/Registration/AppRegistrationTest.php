@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Registration;
 
 use App\Business\Services\VibeThemeRenderer;
-use App\Business\Services\AgentScopedCommandProcessor;
 use App\Business\Services\ConversationalLearningCatalog;
+use App\Business\Services\LazyAgentCommandProcessor;
 use App\Business\Services\WiseProfilePolicyResolver;
+use App\Domain\Onboarding\IApplicationIntakeRepository;
+use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use App\Registration\AppRegistration;
 use BlueFission\BlueCore\Theme;
 use BlueFission\Str;
@@ -47,7 +49,7 @@ final class AppRegistrationTest extends TestCase
         );
     }
 
-    public function testItBindsWiseCommandsThroughTheAgentScopedProcessor(): void
+    public function testItBindsWiseCommandsThroughTheLazyAgentProcessor(): void
     {
         $app = new class {
             /** @var array<string, string> */
@@ -65,8 +67,12 @@ final class AppRegistrationTest extends TestCase
         $registration->bindings();
 
         $this->assertSame(
-            AgentScopedCommandProcessor::class,
+            LazyAgentCommandProcessor::class,
             $app->bindings[ICommandProcessor::class]
+        );
+        $this->assertSame(
+            ApplicationIntakeRepositorySql::class,
+            $app->bindings[IApplicationIntakeRepository::class]
         );
     }
 
