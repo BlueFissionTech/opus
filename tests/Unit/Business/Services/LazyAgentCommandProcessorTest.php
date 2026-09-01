@@ -6,6 +6,8 @@ namespace Tests\Unit\Business\Services;
 
 use App\Business\Services\AgentCommandContextProvider;
 use App\Business\Services\LazyAgentCommandProcessor;
+use App\Business\Services\WiseProfileContextResolver;
+use App\Business\Services\WiseProfilePolicyResolver;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\DevElation;
 use BlueFission\Wise\Cmd\Command;
@@ -13,6 +15,7 @@ use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use RuntimeException;
 
 final class LazyAgentCommandProcessorTest extends TestCase
@@ -155,6 +158,24 @@ final class LazyAgentCommandProcessorTest extends TestCase
         $this->assertSame(1, $resolutions);
         $this->assertSame(['reporting'], $first['active_addons']);
         $this->assertSame(['reporting'], $second['active_addons']);
+    }
+
+    public function testDefaultRuntimeRetainsScopedProfileAuthorization(): void
+    {
+        $processor = new LazyAgentCommandProcessor();
+        $policies = new ReflectionMethod($processor, 'profilePolicies');
+        $contexts = new ReflectionMethod($processor, 'profileContexts');
+        $policies->setAccessible(true);
+        $contexts->setAccessible(true);
+
+        $this->assertInstanceOf(
+            WiseProfilePolicyResolver::class,
+            $policies->invoke($processor)
+        );
+        $this->assertInstanceOf(
+            WiseProfileContextResolver::class,
+            $contexts->invoke($processor)
+        );
     }
 
     private function withDevElationHooks(callable $test): void

@@ -76,15 +76,37 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
     {
         $storage = new Session(['location' => 'cache', 'name' => 'system']);
         $loader = new AgentCapabilityMapLoader();
+        $applicationRoot = $this->applicationRoot();
 
         return new AgentScopedCommandProcessor(
             new CommandProcessor($storage),
             new AgentCapabilityMapResolver(
-                $loader->loadApplication(APP_ROOT . 'mapping/agents.php'),
-                catalog: new AgentCapabilityMapCatalog(APP_ROOT . 'addons', $loader)
+                $loader->loadApplication($applicationRoot . 'mapping/agents.php'),
+                catalog: new AgentCapabilityMapCatalog($applicationRoot . 'addons', $loader)
             ),
-            new AgentContinuationScopeStore($storage)
+            new AgentContinuationScopeStore($storage),
+            $this->profilePolicies(),
+            $this->profileContexts()
         );
+    }
+
+    private function profilePolicies(): WiseProfilePolicyResolver
+    {
+        return new WiseProfilePolicyResolver(
+            (array) require $this->applicationRoot() . 'mapping/wise_profiles.php'
+        );
+    }
+
+    private function profileContexts(): WiseProfileContextResolver
+    {
+        return new WiseProfileContextResolver();
+    }
+
+    private function applicationRoot(): string
+    {
+        return defined('APP_ROOT')
+            ? (string) constant('APP_ROOT')
+            : dirname(__DIR__, 3) . DIRECTORY_SEPARATOR;
     }
 
     private function publishRuntimeAction(string $name, array $payload): void
