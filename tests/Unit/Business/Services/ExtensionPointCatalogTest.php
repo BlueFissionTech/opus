@@ -121,9 +121,21 @@ final class ExtensionPointCatalogTest extends TestCase
         $this->assertFalse($report->get('ready'));
         $this->assertContains('schema_version must be 1', $invalid->val());
         $this->assertContains('catalog_version must be a nonempty string', $invalid->val());
+        $this->assertContains('namespace must be opus', $invalid->val());
+        $this->assertContains('opus.intake.defaults is missing phase', $invalid->val());
+        $this->assertContains('opus.intake.defaults is missing owner', $invalid->val());
+        $this->assertContains('opus.intake.defaults is missing mutability', $invalid->val());
+        $this->assertContains('opus.intake.defaults is missing exception_policy', $invalid->val());
+        $this->assertContains('opus.agent.command_context has an invalid payload schema', $invalid->val());
+        $this->assertContains(
+            'opus.agent.command_context invariants must contain nonempty strings',
+            $invalid->val()
+        );
         $this->assertContains('extension-point name is duplicated: opus.intake.defaults', $invalid->val());
         $this->assertContains('extension-point name is invalid', $invalid->val());
         $this->assertContains('application_intake has an invalid inventory status', $invalid->val());
+        $this->assertContains('application_intake is missing owner', $invalid->val());
+        $this->assertContains('application_intake is missing rationale', $invalid->val());
         $this->assertContains('application_intake references an unknown extension point', $invalid->val());
         $this->assertContains('boundary inventory area is duplicated: application_intake', $invalid->val());
         $this->assertContains(

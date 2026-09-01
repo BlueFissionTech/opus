@@ -91,9 +91,14 @@ final class ExtensionPointCatalog extends Service
             $invalid->push('schema_version must be 1');
         }
         $catalogVersion = $manifest->get('catalog_version');
-        if (!Str::is($catalogVersion) || Str::make($catalogVersion)->trim()->isEmpty()) {
+        if (!$this->isNonemptyString($catalogVersion)
+            || !Str::make($catalogVersion)->matches('/^[1-9][0-9]*\.[0-9]+\.[0-9]+$/')
+        ) {
             $invalid->push('catalog_version must be a nonempty string');
             $catalogVersion = '';
+        }
+        if ($manifest->get('namespace') !== 'opus') {
+            $invalid->push('namespace must be opus');
         }
         $this->validateList($manifest, 'extension_points', $invalid);
         $this->validateList($manifest, 'boundary_inventory', $invalid);
@@ -187,23 +192,31 @@ final class ExtensionPointCatalog extends Service
         }
         Arr::make(['area', 'phase', 'owner', 'mutability', 'exception_policy', 'ordering'])
             ->each(function (string $field) use ($definition, $invalid, $name): void {
-                if (!Str::isNotEmpty((string) $definition->get($field))) {
+                if (!$this->isNonemptyString($definition->get($field))) {
                     $invalid->push($name . ' is missing ' . $field);
                 }
             });
         if ($definition->get('ordering') !== self::EXECUTION_ORDER) {
             $invalid->push($name . ' has an unsupported execution order');
         }
-        Arr::make(['payload', 'returns'])->each(function (string $shape) use ($definition, $invalid, $name): void {
-            $schema = $definition->get($shape);
-            if (!Arr::is($schema) || !Str::isNotEmpty((string) Arr::make($schema)->get('type'))) {
-                $invalid->push($name . ' has an invalid ' . $shape . ' schema');
-            }
-        });
+        Arr::make(['payload', 'returns'])->each(
+            fn (string $shape) => $this->validateSchema(
+                $definition->get($shape),
+                $shape,
+                $name,
+                $invalid
+            )
+        );
 
         $invariants = $definition->get('invariants');
         if (!Arr::is($invariants) || !array_is_list($invariants)) {
             $invalid->push($name . ' invariants must be a list');
+        } else {
+            Arr::make($invariants)->each(function ($invariant) use ($invalid, $name): void {
+                if (!$this->isNonemptyString($invariant)) {
+                    $invalid->push($name . ' invariants must contain nonempty strings');
+                }
+            });
         }
     }
 
@@ -222,7 +235,7 @@ final class ExtensionPointCatalog extends Service
 
         $boundary = Arr::make($boundary);
         $area = $boundary->get('area');
-        if (!Str::isNotEmpty((string) $area)) {
+        if (!$this->isNonemptyString($area)) {
             $invalid->push('boundary inventory area must be a nonempty string');
             return;
         }
@@ -236,7 +249,7 @@ final class ExtensionPointCatalog extends Service
             $invalid->push($area . ' has an invalid inventory status');
         }
         foreach (['owner', 'rationale'] as $field) {
-            if (!Str::isNotEmpty((string) $boundary->get($field))) {
+            if (!$this->isNonemptyString($boundary->get($field))) {
                 $invalid->push($area . ' is missing ' . $field);
             }
         }
@@ -267,5 +280,47 @@ final class ExtensionPointCatalog extends Service
             }
             $covered->push($name);
         });
+    }
+
+    private function validateSchema($schema, string $shape, string $name, Arr $invalid): void
+    {
+        if (!Arr::is($schema)) {
+            $invalid->push($name . ' has an invalid ' . $shape . ' schema');
+            return;
+        }
+
+        $schema = Arr::make($schema);
+        if (!$this->isNonemptyString($schema->get('type'))) {
+            $invalid->push($name . ' has an invalid ' . $shape . ' schema');
+        }
+
+        foreach (['required', 'properties'] as $field) {
+            if (!$schema->hasKey($field)) {
+                continue;
+            }
+
+            $values = $schema->get($field);
+            if (!Arr::is($values) || ($field === 'required' && !array_is_list($values))) {
+                $invalid->push($name . ' has invalid ' . $shape . ' ' . $field);
+                continue;
+            }
+            Arr::make($values)->each(function ($value, $key) use (
+                $field,
+                $invalid,
+                $name,
+                $shape
+            ): void {
+                if (!$this->isNonemptyString($value)
+                    || ($field === 'properties' && !$this->isNonemptyString($key))
+                ) {
+                    $invalid->push($name . ' has invalid ' . $shape . ' ' . $field);
+                }
+            });
+        }
+    }
+
+    private function isNonemptyString($value): bool
+    {
+        return Str::is($value) && Str::make($value)->trim()->isNotEmpty();
     }
 }

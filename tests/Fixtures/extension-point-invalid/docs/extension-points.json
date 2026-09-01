@@ -6,12 +6,12 @@
       "name": "opus.intake.defaults",
       "kind": "unknown",
       "area": "application_intake",
-      "phase": "",
-      "owner": "",
+      "phase": [],
+      "owner": 42,
       "payload": [],
       "returns": [],
-      "mutability": "",
-      "exception_policy": "",
+      "mutability": {},
+      "exception_policy": [],
       "ordering": "",
       "invariants": "none"
     },
@@ -21,12 +21,12 @@
       "area": "application_intake",
       "phase": "before_session_creation",
       "owner": "ApplicationIntakeService",
-      "payload": {"type": "object"},
+      "payload": {"type": []},
       "returns": {"type": "object"},
       "mutability": "replace_value",
       "exception_policy": "propagate_before_write",
       "ordering": "priority_ascending_then_registration_order",
-      "invariants": []
+      "invariants": [42]
     },
     {
       "name": "invalid",
@@ -47,21 +47,21 @@
       "area": "agent_wise_runtime",
       "phase": "after_authoritative_context_resolution",
       "owner": "AgentCommandContextProvider",
-      "payload": {"type": "object"},
+      "payload": {"type": []},
       "returns": {"type": "object"},
       "mutability": "replace_value",
       "exception_policy": "propagate_before_execution",
       "ordering": "priority_ascending_then_registration_order",
-      "invariants": []
+      "invariants": [42]
     }
   ],
   "boundary_inventory": [
     {
       "area": "application_intake",
       "status": "unknown",
-      "owner": "",
+      "owner": [],
       "extension_points": ["opus.intake.defaults", "opus.unknown"],
-      "rationale": ""
+      "rationale": 42
     },
     {
       "area": "application_intake",
