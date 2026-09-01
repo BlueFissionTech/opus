@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Business\Services;
 
 use App\Domain\Agents\IAgentContinuationScopeStore;
+use App\Domain\Agents\ProfileAccessDecision;
 use App\Domain\Agents\ResolvedAgentToolMap;
 use BlueFission\Arr;
 use BlueFission\Str;
@@ -12,6 +13,7 @@ use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
 use BlueFission\Wise\Cmd\ICommandProcessor;
+use InvalidArgumentException;
 
 final class AgentScopedCommandProcessor implements ICommandProcessor
 {
@@ -20,8 +22,11 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
     public function __construct(
         private ICommandProcessor $processor,
         private AgentCapabilityMapResolver $resolver,
-        private IAgentContinuationScopeStore $continuations
+        private IAgentContinuationScopeStore $continuations,
+        private ?WiseProfilePolicyResolver $profilePolicies = null,
+        private ?WiseProfileContextResolver $profileContexts = null
     ) {
+        $this->profileContexts ??= new WiseProfileContextResolver();
     }
 
     public function process(CommandRequest|Command|array|string $request): CommandResult
@@ -53,6 +58,22 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
                     'agent_tool' => $tool,
                     'agent_decision' => 'deny',
                     'agent_reason' => $tool === null ? 'command_tool_unresolved' : 'tool_not_granted',
+                    'agent_result_status' => CommandResult::INVALID,
+                ]),
+                $parsed->command()
+            );
+        }
+
+        $profileDecision = $this->profileDecision($tool, $resolved, $context);
+        $metadata = Arr::merge($metadata, $this->profileMetadata($profileDecision));
+        if ($profileDecision instanceof ProfileAccessDecision && !$profileDecision->allowed()) {
+            return CommandResult::invalid(
+                'Profile resource is unavailable in this context.',
+                ['wise_profile_access_denied'],
+                Arr::merge($metadata, [
+                    'agent_tool' => $tool,
+                    'agent_decision' => 'deny',
+                    'agent_reason' => $profileDecision->reason(),
                     'agent_result_status' => CommandResult::INVALID,
                 ]),
                 $parsed->command()
@@ -98,6 +119,7 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
                 'tenant_id' => $resolved->tenantId(),
                 'actor' => $context->get('actor'),
                 'tool' => $tool,
+                'wise_profile' => $profileDecision?->metadata()['target_profile'] ?? null,
             ]);
         }
 
@@ -108,10 +130,26 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
     {
         $context = Arr::make($context);
         $resolved = $this->resolve($context);
+        $denied = 0;
+        $commands = Arr::make($resolved->tools())->filter(function (string $tool) use (
+            $resolved,
+            $context,
+            &$denied
+        ): bool {
+            $decision = $this->profileDecision($tool, $resolved, $context);
+            $allowed = !$decision instanceof ProfileAccessDecision || $decision->allowed();
+            if (!$allowed) {
+                $denied++;
+            }
+
+            return $allowed;
+        });
 
         return [
-            'commands' => $resolved->tools(),
-            'metadata' => $this->metadata($context, $resolved),
+            'commands' => $commands->toArray(),
+            'metadata' => Arr::merge($this->metadata($context, $resolved), [
+                'profile_commands_denied' => $denied,
+            ]),
         ];
     }
 
@@ -130,6 +168,11 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
         $token = (string) $request->continuationToken();
         $continuation = Arr::make((array) $this->continuations->get($token));
         $tool = $continuation->get('tool');
+        $profileDecision = Str::is($tool)
+            ? $this->profileDecision((string) $tool, $resolved, $context)
+            : null;
+        $metadata = Arr::merge($metadata, $this->profileMetadata($profileDecision));
+        $targetProfile = $profileDecision?->metadata()['target_profile'] ?? null;
         $scopeMismatch = $continuation->isEmpty()
             || !$this->hasActorScope($continuation->get('actor'))
             || !$this->hasActorScope($context->get('actor'))
@@ -137,10 +180,13 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             || $continuation->get('tenant_id') !== $resolved->tenantId()
             || $this->actorIdentity($continuation->get('actor'))
                 !== $this->actorIdentity($context->get('actor'))
+            || ($profileDecision instanceof ProfileAccessDecision
+                && $continuation->get('wise_profile') !== $targetProfile)
             || !Str::is($tool);
         $capabilityRevoked = $request->approved() !== false
             && Str::is($tool)
-            && !$resolved->allows((string) $tool);
+            && (!$resolved->allows((string) $tool)
+                || ($profileDecision instanceof ProfileAccessDecision && !$profileDecision->allowed()));
         if ($scopeMismatch || $capabilityRevoked) {
             return CommandResult::invalid(
                 'Command continuation is unavailable to this agent.',
@@ -220,6 +266,38 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             ->append('.')
             ->append(Str::make((string) $command->verb)->trim()->lower()->val())
             ->val();
+    }
+
+    private function profileDecision(
+        string $tool,
+        ResolvedAgentToolMap $resolved,
+        Arr $context
+    ): ?ProfileAccessDecision {
+        if ($this->profilePolicies === null || !$this->profilePolicies->isProfileTool($tool)) {
+            return null;
+        }
+
+        try {
+            $profiles = $this->profileContexts->resolve($resolved->agentId(), $context->toArray());
+        } catch (InvalidArgumentException) {
+            return ProfileAccessDecision::deny('profile_context_invalid');
+        }
+
+        return $this->profilePolicies->authorizeTool(
+            $profiles['actor'],
+            $profiles['target'],
+            $tool,
+            (array) Arr::getPath($context->toArray(), 'profile_policy.tenant', []),
+            (array) Arr::getPath($context->toArray(), 'profile_policy.principal', []),
+            (array) $context->get('capabilities')
+        );
+    }
+
+    private function profileMetadata(?ProfileAccessDecision $decision): array
+    {
+        return $decision instanceof ProfileAccessDecision
+            ? ['wise_profile_access' => $decision->toArray()]
+            : [];
     }
 
     private function withMetadata(CommandResult $result, array $metadata): CommandResult
