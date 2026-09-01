@@ -63,18 +63,24 @@ class ComposerMetadataTest extends TestCase
 
         $wise = $byName->get('bluefission/wise');
         $presence = $byName->get('bluefission/presence');
+        $wiseReference = 'e55c68fd690c529989ccce62c74f2fe62e00edef';
+        $presenceReference = '5c01dca824a2bccb2c899b59ab9587d21b715515';
 
         $this->assertInstanceOf(Arr::class, $wise);
         $this->assertInstanceOf(Arr::class, $presence);
         $this->assertSame('v0.1.0-alpha.2', $wise->get('version'));
+        $this->assertSame($wiseReference, $wise->getPath('source.reference'));
+        $this->assertSame($wiseReference, $wise->getPath('dist.reference'));
         $this->assertSame(
-            'e55c68fd690c529989ccce62c74f2fe62e00edef',
-            $wise->getPath('source.reference')
+            "https://api.github.com/repos/bluefissiontech/wise/zipball/{$wiseReference}",
+            $wise->getPath('dist.url')
         );
         $this->assertSame('v0.1.0-alpha.3', $presence->get('version'));
+        $this->assertSame($presenceReference, $presence->getPath('source.reference'));
+        $this->assertSame($presenceReference, $presence->getPath('dist.reference'));
         $this->assertSame(
-            '5c01dca824a2bccb2c899b59ab9587d21b715515',
-            $presence->getPath('source.reference')
+            "https://api.github.com/repos/bluefissiontech/presence/zipball/{$presenceReference}",
+            $presence->getPath('dist.url')
         );
     }
 
