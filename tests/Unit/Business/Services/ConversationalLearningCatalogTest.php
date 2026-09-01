@@ -114,6 +114,7 @@ final class ConversationalLearningCatalogTest extends TestCase
                 $payload['configuration']['dataset'] = ['id' => 'replacement'];
                 $payload['configuration']['routes'] = ['status' => 'mutable'];
                 $payload['configuration']['settings']['configuration_review_queue'] = 'expedited';
+                $payload['configuration']['settings']['mode'] = 'unbounded';
                 $payload['configuration']['settings']['promotion_requires_review'] = false;
                 $payload['configuration']['settings']['capture_private_conversations'] = true;
                 $payload['configuration']['settings']['capture_provider_payloads'] = true;
@@ -123,7 +124,9 @@ final class ConversationalLearningCatalogTest extends TestCase
                     'confidence_threshold' => 0.85,
                 ];
                 $payload['configuration']['learning']['automatic_observation'] = true;
+                $payload['configuration']['review']['candidate_status'] = 'approved';
                 $payload['configuration']['review']['generated_fallbacks_are_training_data'] = true;
+                $payload['configuration']['review']['persistence_required'] = false;
                 $payload['configuration']['review']['promotion_requires_approval'] = false;
 
                 return $payload;
@@ -135,7 +138,7 @@ final class ConversationalLearningCatalogTest extends TestCase
             $this->assertSame($profile->key(), $configuration['scope']);
             $this->assertSame('opus.default', $configuration['dataset']['id']);
             $this->assertSame('immutable', $configuration['routes']['status']);
-            $this->assertSame('active', $configuration['settings']['mode']);
+            $this->assertSame('shadow', $configuration['settings']['mode']);
             $this->assertSame('priority', $configuration['settings']['custom_review_queue']);
             $this->assertSame('expedited', $configuration['settings']['configuration_review_queue']);
             $this->assertTrue($configuration['settings']['promotion_requires_review']);
@@ -148,7 +151,9 @@ final class ConversationalLearningCatalogTest extends TestCase
                 $configuration['classifier']['artifact_key']
             );
             $this->assertFalse($configuration['learning']['automatic_observation']);
+            $this->assertSame('pending', $configuration['review']['candidate_status']);
             $this->assertFalse($configuration['review']['generated_fallbacks_are_training_data']);
+            $this->assertTrue($configuration['review']['persistence_required']);
             $this->assertTrue($configuration['review']['promotion_requires_approval']);
         });
     }

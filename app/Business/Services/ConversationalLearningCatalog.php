@@ -147,6 +147,12 @@ final class ConversationalLearningCatalog
         $configurationSettings = Arr::is($configuration['settings'] ?? null)
             ? Arr::toArray($configuration['settings'], true)
             : $settings;
+        if (!Arr::make(['shadow', 'review', 'active'])->has(
+            $configurationSettings['mode'] ?? null,
+            true
+        )) {
+            $configurationSettings['mode'] = 'shadow';
+        }
 
         $configuration['scope'] = $profile->key();
         $configuration['dataset'] = $this->catalog->toArray();
@@ -162,7 +168,9 @@ final class ConversationalLearningCatalog
         ]);
         $configuration['learning'] = Arr::merge($learning, ['automatic_observation' => false]);
         $configuration['review'] = Arr::merge($review, [
+            'candidate_status' => 'pending',
             'generated_fallbacks_are_training_data' => false,
+            'persistence_required' => true,
             'promotion_requires_approval' => true,
         ]);
 
