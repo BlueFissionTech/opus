@@ -68,7 +68,7 @@
         "symfony/http-client": "^7.3"
     },
     "require-dev": {
-        "bluefission/wise": "0.1.0-alpha.1",
+        "bluefission/wise": "0.1.0-alpha.2",
         "phpunit/phpunit": "^9.5"
     },
     "suggest": {

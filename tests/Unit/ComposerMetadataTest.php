@@ -32,10 +32,10 @@ class ComposerMetadataTest extends TestCase
         $optional = $this->readJson($root . '/templates/composer/opus-root-optional-wise.json');
 
         $this->assertArrayNotHasKey('bluefission/wise', $composer['require'] ?? []);
-        $this->assertSame('0.1.0-alpha.1', $composer['require-dev']['bluefission/wise'] ?? null);
+        $this->assertSame('0.1.0-alpha.2', $composer['require-dev']['bluefission/wise'] ?? null);
         $this->assertSame('0.1.0-alpha.3', $composer['require']['bluefission/presence'] ?? null);
         $this->assertArrayHasKey('bluefission/wise', $composer['suggest'] ?? []);
-        $this->assertSame('0.1.0-alpha.1', $required['require']['bluefission/wise'] ?? null);
+        $this->assertSame('0.1.0-alpha.2', $required['require']['bluefission/wise'] ?? null);
         $this->assertArrayNotHasKey('bluefission/wise', $optional['require'] ?? []);
         $this->assertArrayNotHasKey('bluefission/wise', $optional['repositories'] ?? []);
     }
@@ -66,9 +66,9 @@ class ComposerMetadataTest extends TestCase
 
         $this->assertInstanceOf(Arr::class, $wise);
         $this->assertInstanceOf(Arr::class, $presence);
-        $this->assertSame('v0.1.0-alpha.1', $wise->get('version'));
+        $this->assertSame('v0.1.0-alpha.2', $wise->get('version'));
         $this->assertSame(
-            'b751e48212278e1dfec3f2492577eefb9eb1a71c',
+            'e55c68fd690c529989ccce62c74f2fe62e00edef',
             $wise->getPath('source.reference')
         );
         $this->assertSame('v0.1.0-alpha.3', $presence->get('version'));

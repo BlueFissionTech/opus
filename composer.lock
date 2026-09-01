@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "546c5e8b9a436cfa2997cfef4faff62c",
+    "content-hash": "d84280a1afb0423897909e4feb5a8edc",
     "packages": [
         {
             "name": "bluefission/annex-php-sdk",
@@ -3154,16 +3154,16 @@
         },
         {
             "name": "bluefission/wise",
-            "version": "v0.1.0-alpha.1",
+            "version": "v0.1.0-alpha.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bluefissiontech/wise",
-                "reference": "b751e48212278e1dfec3f2492577eefb9eb1a71c"
+                "reference": "e55c68fd690c529989ccce62c74f2fe62e00edef"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bluefissiontech/wise/zipball/b751e48212278e1dfec3f2492577eefb9eb1a71c",
-                "reference": "b751e48212278e1dfec3f2492577eefb9eb1a71c",
+                "url": "https://api.github.com/repos/bluefissiontech/wise/zipball/e55c68fd690c529989ccce62c74f2fe62e00edef",
+                "reference": "e55c68fd690c529989ccce62c74f2fe62e00edef",
                 "shasum": ""
             },
             "require": {
@@ -3231,7 +3231,7 @@
                 "llm",
                 "shell"
             ],
-            "time": "2026-09-01T20:01:19+00:00"
+            "time": "2026-09-01T22:16:44+00:00"
         },
         {
             "name": "brick/math",
