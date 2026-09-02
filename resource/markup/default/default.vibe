@@ -12,7 +12,7 @@
 
 @section('main')
 <h1 class="cover-heading">{$title}.</h1>
-<p class="lead">Build AI, automation, and integration applications from a shared operational platform.</p>
+<p class="lead">Build automation, inference, and integration applications from a shared operational platform.</p>
 <p class="lead">
   <a href="#features" class="btn btn-lg btn-secondary">Learn more</a>
 </p>
@@ -32,7 +32,7 @@
   var botmanWidget = {
     frameEndpoint: '/chatwindow',
     aboutText: 'powered by BotMan',
-    introMessage: "Hi! I'm your chatbot assistant.",
+    introMessage: "Hi! I'm your Opus assistant.",
     chatServer: '/api/chat',
     title: {$chatTitle},
     mainColor: '#c0c0c0',

@@ -1,23 +1,36 @@
 # Blue Fission Opus Framework
 
-Welcome to the Opus framework, crafted by BlueFission. Opus is designed to bring the power of AI to your fingertips, enabling you to build and manage AI-powered applications with ease. This framework is built on BlueCore and integrates seamlessly with various AI tools and services to help you create robust, data-driven applications.
+Opus is the Blue Fission application platform for building and operating
+extensible web applications, automations, inference-backed experiences, and
+integrations. It is built on BlueCore and composes package-owned command,
+orchestration, conversation, presentation, and interoperability contracts.
 
 ## Overview
 
 ### Purpose
 
-Opus is a low-code/no-code platform aimed at democratizing AI technology. It allows users of all technical backgrounds to leverage AI capabilities in their applications. Opus bridges the gap between human potential and AI power, providing tools for business automation, data insights, learning systems, and human-AI collaboration.
+Opus provides a common runtime and administration boundary for applications
+that combine deterministic automation, data-backed insights, machine-learning
+classification, model inference, content or code generation, and human review.
+Each capability remains explicit so operators can understand its provider,
+permissions, evidence, and lifecycle.
 
 ### Key Features
 
-- **Business Automation**: Deploy autonomous agents to achieve your organization's goals.
-- **Data Informed Insights**: Utilize data science tools to uncover hidden insights from your data.
-- **Learning Systems**: Generate dynamic addon extensions that enhance functionality in real-time.
-- **Human Supporting**: Collaborate with AI to boost productivity and effectiveness.
-- **Low Code/No Code Development**: Create AI-powered applications with minimal coding effort.
-- **Extensibility**: Easily extend functionality through a plugin-based system.
-- **Self-Improving System**: Leverage generative AI to evolve and create new features as your needs grow.
-- **Stakeholder Collaboration**: Foster collective decision-making with multiple stakeholders.
+- **Application Runtime**: Compose BlueCore services, routes, gateways, themes,
+  and add-ons through one host.
+- **Automation And Commands**: Expose authorized operations through Wise for
+  CLI, programmatic, conversational, and agent callers.
+- **Provider-Neutral Inference**: Integrate hosted, self-hosted, local, or
+  deterministic providers through replaceable profiles.
+- **Generation And Scaffolding**: Validate and render Vibe templates within
+  bounded application paths.
+- **Extensibility**: Install package-owned add-ons and use documented
+  DevElation hooks and filters without modifying core files.
+- **Scoped Agents And Profiles**: Isolate central, specialist, tenant, and user
+  command and profile surfaces by default.
+- **Inspectable Outcomes**: Preserve structured status, diagnostics,
+  correlation, approval, and lifecycle context.
 
 ## Installation
 
@@ -52,8 +65,8 @@ composer update --no-install --no-scripts
 ```
 
 The default application profile requires Wise explicitly and uses
-`WISE_INTEGRATION=required`. Applications that do not expose the intelligent
-shell or command resources can start from
+`WISE_INTEGRATION=required`. Applications that do not expose the Wise command
+environment or resources can start from
 [`templates/composer/opus-root-optional-wise.json`](templates/composer/opus-root-optional-wise.json)
 and set `WISE_INTEGRATION=optional`. Optional mode skips the complete Wise
 resource mapping when its runtime types are unavailable. Required mode fails
@@ -101,9 +114,13 @@ The lazy Wise command boundary publishes non-blocking `opus.agent.command_runtim
 
 The add-on architecture allows for seamless feature additions and management without modifying core files directly. See the [add-on authoring guide](ADDONS.md) for the package boundary, lifecycle, structure, and validation expectations.
 
-### AI Integration
+### Inference And Automation Integration
 
-Opus is designed to integrate seamlessly with AI libraries and services, providing native compatibility and simplifying the process of building AI-powered applications.
+Opus composes provider-neutral inference, machine-learning, conversation, and
+automation contracts without making a provider mandatory. Provider setup,
+credentials, routing, budgets, and retention policy remain explicit
+application concerns. See the [product specification](PRODUCT.md) for the
+current maturity and known gaps.
 
 ### Command Line Tools
 
@@ -114,8 +131,11 @@ human operators and agents share the same backend contract.
 ## Project Docs
 
 - [Specification](SPEC.md)
+- [Product specification](PRODUCT.md)
+- [Product requirements](PRD.md)
 - [Roadmap](ROADMAP.md)
 - [Arkheion capability catalog](ARKHEION.md)
+- [Capability language](docs/terminology.md)
 - [Testing](tests.md)
 - [Asset build contract](ASSETS.md)
 
@@ -123,19 +143,25 @@ human operators and agents share the same backend contract.
 
 ### Automation
 
-Deploy autonomous agents to automate various business processes, increasing efficiency and reducing manual effort.
+Coordinate deterministic or approval-gated work through explicit command,
+capability, tenant, and lifecycle boundaries.
 
 ### Data Insights
 
-Access a suite of data science tools to analyze and visualize your data, helping you make informed decisions based on real insights.
+Present findings with their source, freshness, uncertainty, and decision
+authority instead of treating generated output as evidence.
 
 ### Learning Extensions
 
-Opus can dynamically generate addon extensions, enhancing your application's functionality in real-time based on your evolving needs.
+Opus provides Vibe-backed rendering and bounded scaffold generation. Generated
+artifacts remain reviewable proposals until validation and authorization gates
+complete.
 
-### Human-AI Collaboration
+### Human Review And Decision Support
 
-Collaborate with AI systems to augment human capabilities, improving productivity and effectiveness in your workflows.
+Operators can review plans, diagnostics, evidence, and generated artifacts
+before authorizing consequential work. Inference and orchestration do not grant
+execution authority by themselves.
 
 ## Contributing
 
