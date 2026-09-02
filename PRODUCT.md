@@ -150,6 +150,39 @@ Exactly-once activation and full real-database lifecycle acceptance remain in
 issues #12, #40, and #43. Marketplace discovery is not part of the local
 lifecycle and remains Planned in #105.
 
+### Starter Add-On Profile
+
+The distributable platform should offer a curated, skippable starter profile
+whose first packages provide an MCP service bridge, contact intake, and an
+Annex compatibility profile. These are separately versioned add-ons rather
+than hidden core modules. Bundling makes them available for review; availability
+does not imply activation, listener exposure, provider access, agent-tool
+grants, or authorization for external communication. Network-facing behavior
+remains disabled until an authorized operator supplies configuration and
+approves activation.
+
+Status: Planned in issue #119. The starter manifest, package ownership,
+installer selection, independent lifecycle proof, and release policy do not
+yet exist as one supported distribution contract.
+
+### Add-On Organization And Impact
+
+Administrators need application-scoped feature groups and tags so large add-on
+portfolios can be searched, sorted, and presented as sections, accordions, or
+dedicated pages. Membership is many-to-many: one feature may use several
+add-ons, and one add-on may support several features. Organizational metadata
+does not replace manifest-declared dependency or capability relationships.
+
+Before suspension, deactivation, removal, or upgrade, Opus should explain every
+affected feature group, declared dependent, capability consumer, specialist
+surface, route, scheduled job, and unresolved configuration reference. It
+must block operations that would violate authoritative dependencies and require
+explicit confirmation for non-blocking degradation.
+
+Status: Planned in issue #120. Existing add-on administration exposes a flat
+lifecycle-oriented list without this grouping and impact-analysis control
+plane.
+
 ### Presentation And Content
 
 Vibe themes provide application and admin templates, includes, sections,
@@ -301,6 +334,8 @@ scope.
 | Guided installation | Partial | Bootstrap and intake state exist; complete web/CLI guidance and provider setup do not. |
 | Themes and overrides | Partial | Vibe rendering and host/package isolation exist; theme discovery, preview, update, and accessibility administration do not. |
 | Add-on installation and activation | Partial | Local lifecycle surfaces exist; marketplace, signing, compatibility review, update, and rollback remain. |
+| Curated starter add-ons | Planned | A skippable profile for an MCP service bridge, contact intake, and Annex profile is defined in #119; no supported starter manifest exists yet. |
+| Add-on portfolio organization | Planned | Feature groups, tags, filtering, and dependency-aware lifecycle impact are defined in #120; the current administration view is flat. |
 | Pages and publishing | Partial | Basic content CRUD and presentation exist; revisions, workflow, scheduling, taxonomy, preview, and recovery remain. |
 | Media library | Partial | A panel and modal exist; storage, metadata, transformation, policy, and complete CRUD evidence are incomplete. |
 | Users and roles | Partial | Authentication and basic user management exist; comprehensive RBAC/ABAC, tenancy, sessions, and self-service controls remain. |

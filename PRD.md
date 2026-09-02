@@ -251,8 +251,21 @@ Current status: Partial.
   idempotently.
 - Execute required lifecycle stages exactly once and aggregate failures closed.
 - Expose health, compatibility, migration, and rollback state.
+- Offer a reviewable and skippable starter profile containing separately
+  versioned MCP service, contact-intake, and Annex-profile add-ons.
+- Treat starter-package availability, installation, activation, network
+  exposure, credentials, and agent grants as separate decisions.
+- Organize add-ons through application-scoped, many-to-many feature groups and
+  user-defined tags with deterministic ordering and bulk administration.
+- Keep organizational metadata separate from manifest-declared dependencies,
+  capabilities, and conflicts.
+- Explain affected features, dependents, capability consumers, specialist
+  surfaces, routes, jobs, and configuration before lifecycle changes.
+- Fail closed when a lifecycle action would break an authoritative dependency,
+  and record confirmed non-blocking degradation in the audit timeline.
 
-Current status: Partial under #12, #40, and #43.
+Current status: Partial under #12, #40, and #43; the starter profile and
+portfolio organization are Planned under #119 and #120.
 
 ### FR-6 Themes, Content, Navigation, And Media
 
@@ -448,6 +461,10 @@ Initial measures are release gates rather than adoption targets:
 - One generated scaffold can be reviewed, written, validated, and rolled back.
 - One add-on can install, activate, update, deactivate, and remove repeatedly
   with exact readiness results.
+- A starter profile can install all, none, or a selected subset of its packages
+  without granting network or agent authority implicitly.
+- An operator can group and tag at least 100 add-ons, and a lifecycle preview
+  reports every declared dependency and affected feature before execution.
 - Every release-critical action appears in an explainable, redacted timeline.
 - Backup and restore recover a representative application within the declared
   objective.

@@ -106,6 +106,30 @@ class ProductDocumentationTest extends TestCase
         }
     }
 
+    public function testStarterProfileAndAddOnOrganizationRemainExplicitlyPlanned(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $documents = [];
+
+        foreach (['PRODUCT.md', 'PRD.md', 'ROADMAP.md'] as $path) {
+            $documents[$path] = (string) file_get_contents(
+                $root . DIRECTORY_SEPARATOR . $path
+            );
+        }
+
+        foreach ($documents as $path => $content) {
+            $this->assertStringContainsString('#119', $content, $path);
+            $this->assertStringContainsString('#120', $content, $path);
+        }
+
+        $this->assertStringContainsString('Status: Planned in issue #119', $documents['PRODUCT.md']);
+        $this->assertStringContainsString('Status: Planned in issue #120', $documents['PRODUCT.md']);
+        $this->assertStringContainsString('does not replace manifest-declared', $documents['PRODUCT.md']);
+        $this->assertStringContainsString('does not imply activation', $documents['PRODUCT.md']);
+        $this->assertStringContainsString('many-to-many feature groups', $documents['PRD.md']);
+        $this->assertStringContainsString('fail-closed lifecycle previews', $documents['ROADMAP.md']);
+    }
+
     private function withoutCompatibilityIdentifiers(string $content): string
     {
         return preg_replace(

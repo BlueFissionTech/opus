@@ -124,6 +124,8 @@ capability so that a label cannot substitute for evidence:
 | Vibe rendering and bounded file generation | Available | Syntax validation, deterministic rendering, safe paths, and structured results | Add reviewed catalogs and approval/rollback workflows. |
 | General code scaffolding | Partial | `CodeManager` and Vibe generation service exist; the default code command remains unregistered | Define scaffold types, preview/diff, authorization, validation, and rollback under #13/#95. |
 | Canonical add-on generator and validator | Partial | Composer binary, structural validation, templates, and standalone/embedded tests exist | Finish lifecycle and compatibility acceptance in #43. |
+| Curated starter add-on profile | Planned | The initial MCP service, contact-intake, and Annex-profile package set is accepted | Define the versioned, skippable, permission-gated distribution profile and independent lifecycle proof in #119. |
+| Add-on feature groups, tags, and impact analysis | Planned | Product requirements define many-to-many organization without conflating tags and dependencies | Deliver scalable administration, shared API/Wise services, and fail-closed lifecycle previews in #120. |
 | Scheduled work, queues, todos, notes, calendars, goals, and steps | Partial | Wise resources and scoped profile maps exist | Add persistent profile adapters, user/tenant administration, policy, and operational views in #99. |
 
 ### Conversation, Inference, And Agents
@@ -172,6 +174,11 @@ requirements and release gates are in [PRD.md](PRD.md).
   release and does not fork that behavior.
 - Marketplace discovery, package entitlement, installation approval, runtime
   authorization, and agent capability grants are separate decisions.
+- Starter-package availability, selection, installation, activation, network
+  exposure, credentials, and agent grants are separate decisions.
+- Feature groups and tags are many-to-many organizational metadata; only
+  package manifests and resolved capability contracts establish authoritative
+  dependencies.
 - Annex directory metadata can describe a compatible capability but cannot
   authorize or execute it.
 - Central and specialist agents are provider-neutral and deny-by-default.
@@ -207,11 +214,13 @@ The reviewed delivery order is:
 2. Publish the ownership and conformance taxonomy in #107, then prove the
    reproducible self-hosted distribution in #104.
 3. Validate Kapsle and Hoom as the first two official add-on contracts.
-4. Prove the lean service-host template in #106.
-5. Deliver the minimum marketplace and Annex directory service in #105.
-6. Complete resumable onboarding, private profiles, and side-effect-free
+4. Define and prove the skippable starter profile in #119, then make larger
+   add-on portfolios governable through #120.
+5. Prove the lean service-host template in #106.
+6. Deliver the minimum marketplace and Annex directory service in #105.
+7. Complete resumable onboarding, private profiles, and side-effect-free
    consulting guidance in #95, #99, and #101.
-7. Advance further add-on and service waves according to evidence and product
+8. Advance further add-on and service waves according to evidence and product
    value, and deliver the managed platform in #103 only after the preceding
    gates are reproducible.
 
@@ -255,6 +264,10 @@ deployment, spending, or production promotion.
 
 - Validate one official add-on end to end as the extension conformance canary,
   then repeat with a distinct identity-oriented add-on.
+- Publish the #119 starter-profile manifest and prove all, none, and selected
+  package installation without implicit activation or authority.
+- Deliver #120 feature groups, tags, filtering, and lifecycle impact previews
+  before using the starter profile as a foundation for larger installations.
 - Prove direct Composer installation before marketplace delivery.
 - Use the shared #106 promotion contract to build one lean service-host
   template without moving package-owned domain behavior into Opus core.
