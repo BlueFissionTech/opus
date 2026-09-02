@@ -65,7 +65,7 @@ capability so that a label cannot substitute for evidence:
 | --- | --- |
 | State | Available, Partial, Planned, or Exploratory under the definitions above |
 | Ownership | Native Opus, package-owned add-on, service host, or ecosystem service |
-| Release lifecycle | Supported, deprecated, or retired; recorded separately from capability state |
+| Release lifecycle | `unreleased`, `supported`, `deprecated`, `retired`, or `not_applicable`; required for every capability and recorded separately from capability state |
 | Operational availability | Healthy, degraded, unavailable, or unknown for the evaluated environment |
 | Evidence | Current code, test, documentation, installation, and operating proof |
 | Dependencies | Required upstream releases, services, and unresolved contracts |

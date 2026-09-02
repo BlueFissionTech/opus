@@ -128,6 +128,10 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringContainsString('does not imply activation', $documents['PRODUCT.md']);
         $this->assertStringContainsString('many-to-many feature groups', $documents['PRD.md']);
         $this->assertStringContainsString('fail-closed lifecycle previews', $documents['ROADMAP.md']);
+        $this->assertStringContainsString(
+            '`unreleased`, `supported`, `deprecated`, `retired`, or `not_applicable`',
+            $documents['ROADMAP.md']
+        );
     }
 
     private function withoutCompatibilityIdentifiers(string $content): string
