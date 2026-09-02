@@ -410,8 +410,9 @@ Current status: Partial under #107 and #110.
 - Keep domain fixtures in their owning package while Opus owns host isolation,
   reset orchestration, and distribution conformance.
 
-Current status: Planned. The fixture and evidence schema belong to #107; the
-executable self-hosted proof belongs to #104.
+Current status: Planned under #122. Its executable host proof depends on the
+#104 self-hosted distribution and #107 evidence schema; domain fixtures remain
+owned by their add-ons or applications.
 
 ### FR-17 Add-On Ecosystem And Service Promotion
 
@@ -427,6 +428,10 @@ executable self-hosted proof belongs to #104.
   repository.
 - Consume capabilities through versioned request/result contracts with tenant
   and authorization context, idempotency, feature flags, and bounded retries.
+- For production-facing consumers, require tenant/authentication/IDOR fixtures,
+  retry/replay/cancellation/degraded tests, measured latency/error/queue and
+  per-outcome cost evidence, a bounded staging cohort, rollback/manual fallback,
+  and named support and decommission owners.
 - Preserve a graceful degraded or manual path for a consuming application's
   core workflows when Opus, a service, or a provider is unavailable.
 - Require behavioral service fixes to land and release in the add-on before the

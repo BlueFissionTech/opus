@@ -165,6 +165,10 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringContainsString('### Production Consumer Calibration', $roadmap);
         $this->assertStringContainsString('feature-flagged degraded or', $roadmap);
         $this->assertStringContainsString('authoritative add-on repository', $roadmap);
+        $this->assertStringContainsString('### 0-30 Day Contract Window', $roadmap);
+        $this->assertStringContainsString('### 31-90 Day Product Window', $roadmap);
+        $this->assertStringContainsString('resettable synthetic tenant host conformance in #122', $roadmap);
+        $this->assertStringContainsString('Planned under #122', $requirements);
         $this->assertStringContainsString('feature, declared dependent, capability consumer', $requirements);
         $this->assertStringNotContainsString('feature, declared dependency, capability consumer', $requirements);
     }

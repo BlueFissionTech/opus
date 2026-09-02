@@ -290,9 +290,9 @@ Status: Partial for development operations. Managed provisioning (#103), a
 reproducible self-hosted release (#104), marketplace/directory operations
 (#105), service promotion (#106), and immutable Materia conformance evidence
 (#107) are Planned. A resettable demonstration profile is also Planned under
-#104/#107: it must isolate synthetic tenants and roles, reject production
-configuration, disable external side effects, and reset idempotently from a
-verified fixture checksum.
+#122, dependent on #104/#107: it must isolate synthetic tenants and roles,
+reject production configuration, disable external side effects, and reset
+idempotently from a verified fixture checksum.
 
 ### Add-On-First Service Promotion
 
@@ -373,7 +373,7 @@ scope.
 | Updates | Planned | Dependency audits exist; signed core/add-on/theme update, staging, rollback, and maintenance mode do not. |
 | Health and diagnostics | Partial | Runtime/readiness contracts exist; operator dashboards, alerts, repair actions, and support bundles remain. |
 | Backup, restore, export, deletion | Planned | Required by #103 and #104; no complete user-facing workflow exists. |
-| Resettable demonstration mode | Planned | Synthetic fixtures and fail-closed adapters require a conformance schema in #107 and executable distribution proof in #104. |
+| Resettable demonstration mode | Planned | #122 owns host isolation, expiry, outbound denial, and idempotent reset; it depends on #104 distribution and #107 evidence contracts. |
 | Search and navigation | Partial | Routes, menus, and some Wise search resources exist; application content search and menu administration are incomplete. |
 | Import/export and portability | Planned | Managed/self-hosted portability is accepted, but not delivered end to end. |
 | Localization and accessibility | Exploratory | Expected release concerns, not yet a complete tracked product surface. |

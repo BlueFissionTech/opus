@@ -153,7 +153,7 @@ capability so that a label cannot substitute for evidence:
 | Health, readiness, logs, metrics, and support evidence | Partial | Runtime and lifecycle readiness primitives exist | Complete operator dashboards, alerts, repair actions, retention, and support bundles. |
 | Backup, restore, export, and deletion | Planned | Accepted managed/self-hosted requirements | Implement and prove in #103 and #104. |
 | Core/add-on/theme updates and rollback | Planned | Dependency and package audits exist | Add signed update channels, compatibility plans, maintenance mode, backup, health check, and rollback in #104/#105. |
-| Resettable demonstration host | Planned | The isolation and side-effect contract is accepted; executable proof does not exist | Define versioned synthetic fixtures in #107 and prove isolated, checksum-resettable, production-rejecting operation in #104. |
+| Resettable demonstration host | Planned | #122 defines the native isolation, expiry, reset, audit, and outbound-denial contract | Prove it after #104 distribution and #107 evidence contracts, with add-on-owned synthetic fixtures. |
 | Managed Opus service | Planned | Product boundary accepted | Deliver isolated provisioning and operating evidence in #103. |
 | Self-hosted public distribution | Planned | Product boundary accepted | Deliver reproducible public artifacts and lifecycle evidence in #104. |
 | Add-on marketplace | Planned | Discovery, trust, entitlement, and install separation accepted | Deliver the dedicated application in #105. |
@@ -212,22 +212,36 @@ requirements and release gates are in [PRD.md](PRD.md).
 The tracks can advance in parallel, but a later promotion cannot bypass an
 earlier dependency or evidence gate.
 
-The reviewed delivery order is:
+The reviewed delivery order is organized into planning windows, not release
+date promises.
 
-1. Land the extension-point catalog in #110/PR #111 and correct the Kapsle
-   conformance defect in #109.
-2. Publish the ownership and conformance taxonomy in #107, then prove the
-   reproducible self-hosted distribution in #104.
-3. Validate Kapsle and Hoom as the first two official add-on contracts.
-4. Define and prove the skippable starter profile in #119, then make larger
-   add-on portfolios governable through #120.
-5. Prove the lean service-host template in #106.
-6. Deliver the minimum marketplace and Annex directory service in #105.
-7. Complete resumable onboarding, private profiles, and side-effect-free
-   consulting guidance in #95, #99, and #101.
-8. Advance further add-on and service waves according to evidence and product
-   value, and deliver the managed platform in #103 only after the preceding
-   gates are reproducible.
+### 0-30 Day Contract Window
+
+1. Land the extension-point catalog in #110/PR #111 and continue bounded
+   lifecycle, request/response, rendering, settings, and interoperability
+   adoption without weakening post-filter invariants.
+2. Prove the reproducible self-hosted distribution in #104, including exact
+   version identity, install/start, health/readiness, configuration validation,
+   recovery, and rollback evidence.
+3. Publish the ownership and conformance taxonomy in #107 and use Kapsle #81,
+   after its #109 tenant-status correction, as the first standalone add-on
+   canary. Validate Hoom independently after Kapsle passes.
+4. Define operator-visible unavailable, disabled, degraded, retry, dead-letter,
+   and recovery behavior for optional add-ons and providers in #120 without
+   disabling the host application.
+5. Prove resettable synthetic tenant host conformance in #122, then permit #119
+   to compose a synthetic-only starter profile from reviewed add-on artifacts.
+
+### 31-90 Day Product Window
+
+1. Complete resumable onboarding and side-effect-free guidance in #95 and
+   #101, consuming the scoped profile contracts already delivered under #99.
+2. Prove the independent add-on/service-host template in #106 with workers,
+   telemetry, rollback, secret ownership, and cost attribution.
+3. Deliver the minimum marketplace and Annex directory service in #105 only
+   after direct installation and lifecycle conformance are reproducible.
+4. Advance further add-on and service waves according to measured need, then
+   deliver managed-platform work in #103 only after the preceding gates pass.
 
 This ordering is a planning dependency graph. It does not authorize release,
 deployment, spending, or production promotion.
@@ -276,8 +290,10 @@ contract says otherwise.
 - Freeze a supported upstream compatibility matrix.
 - Complete the versioned extension catalog in #110 and resolve release-blocking
   package conformance defects.
-- Publish the ownership and Materia conformance taxonomy in #107.
-- Produce reproducible source and distribution archives with source/dist parity.
+- Produce reproducible source and distribution archives with source/dist parity
+  under #104.
+- Publish the ownership and Materia conformance taxonomy in #107 and validate
+  the first standalone add-on canary.
 - Publish checksums, provenance, dependency and license inventories, release
   notes, migration guidance, and security/support policies.
 - Verify documented web and CLI installation, upgrade, backup, recovery, and
@@ -438,6 +454,9 @@ must identify the applicable evidence:
   evidence;
 - service objectives, idempotency, retries, cancellation, dead-letter behavior,
   feature flags, graceful fallback or manual operation, and decommission plan;
+- tenant/authentication/IDOR fixtures, retry/replay/degraded behavior, measured
+  latency/error/queue evidence, and bounded staging-cohort results where an
+  external production consumer is involved;
 - resource and cost baseline with the outcome or capacity measure it supports;
 - performance, load, timeout, cancellation, retry, and recovery behavior;
 - health, readiness, diagnostics, logs, metrics, traces, and alert coverage;
