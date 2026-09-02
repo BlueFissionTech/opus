@@ -118,7 +118,7 @@ capability so that a label cannot substitute for evidence:
 | Capability | Status | Current evidence | Next gate |
 | --- | --- | --- | --- |
 | Wise headless command host | Available | One structured host for CLI/programmatic execution, confirmation, diagnostics, and exit status; #9 closed | Keep channel behavior and release compatibility tested. |
-| Interactive CLI | Available | `cmd i` loop with structured execution and pinned confirmations | Add discoverable setup/help and operator documentation. |
+| Interactive CLI | Partial | `cmd i` loop with structured execution and pinned confirmations | Add discoverable setup/help and operator documentation before claiming availability. |
 | Browser terminal/TTY | Partial | Admin panel, xterm assets, and optional Ratchet transport exist | Select the production transport and add authentication, reconnect, resize, cancellation, isolation, and load proof under #13. |
 | UI/CLI command parity | Partial | Shared service boundaries exist for some operations | Publish a parity matrix and route every supported control through one owning operation. |
 | Vibe rendering and bounded file generation | Available | Syntax validation, deterministic rendering, safe paths, and structured results | Add reviewed catalogs and approval/rollback workflows. |
