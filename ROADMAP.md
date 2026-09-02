@@ -81,7 +81,7 @@ capability so that a label cannot substitute for evidence:
 | PHP application runtime and mappings | Available | BlueCore registration, HTTP routes, gateways, package bootstrap, and PHP 8.2 test baseline | Expand the supported runtime matrix under #104. |
 | Composer-installed host/package root isolation | Available | Runtime-root resolver, Composer binary entrypoint, package-theme tests; #50 closed | Preserve source/dist parity in every release. |
 | DevElation hooks and filters | Partial | Intake, conversation, profile, and command-runtime extension points exist | Complete the catalog and priority-boundary proof in #110 and PR #111. |
-| Optional runtime degradation and recovery | Partial | Lazy command-runtime failure handling and structured unavailable results exist | Complete operator-visible status, retry/replay/cancellation, dead-letter, and manual recovery in #125. |
+| Optional runtime degradation and recovery | Partial | Lazy command-runtime failure handling and structured unavailable results exist | Complete passive discovery, authorized side-effect-free probes, operator-visible status, retry/replay/cancellation, dead-letter, and manual recovery in #125. |
 | Runtime contract proof | Available | `contract proof`, `contract targets`, and `contract validate` commands with fixtures | Bind proof to immutable releases in #107. |
 | Dependency provenance and VCS audit | Partial | Root-only registry, source transport, lock, and distribution checks | Deliver the credential-free public baseline in #56 and #104. |
 | Local Compose development profile | Partial | Compose assets and harness integration exist | Complete clean `/health` startup evidence in #20. |
@@ -156,7 +156,7 @@ capability so that a label cannot substitute for evidence:
 | Core/add-on/theme updates and rollback | Planned | Dependency and package audits exist | Add signed update channels, compatibility plans, maintenance mode, backup, health check, and rollback in #104/#105. |
 | Resettable demonstration host | Planned | #122 defines the native isolation, expiry, reset, audit, and outbound-denial contract | Prove it after #104 distribution and #107 evidence contracts, with add-on-owned synthetic fixtures. |
 | Managed Opus service | Planned | Product boundary accepted | Deliver isolated provisioning and operating evidence in #103. |
-| Self-hosted public distribution | Planned | Product boundary accepted | Deliver reproducible public artifacts and lifecycle evidence in #104. |
+| Self-hosted public distribution | Planned | Product boundary accepted | Deliver reproducible public artifacts, machine-readable path ownership/conflict policy, downstream conformance commands, and lifecycle evidence in #104. |
 | Add-on marketplace | Planned | Discovery, trust, entitlement, and install separation accepted | Deliver the dedicated application in #105. |
 | Annex capability directory | Planned | Directory boundary and authorization separation accepted | Deliver versioned discovery and conformance through #105 and Annex-owned contracts. |
 | Materia conformance publication | Planned | Runtime and dependency proofs provide starting evidence | Publish an immutable release matrix in #107. |
@@ -223,7 +223,8 @@ date promises.
    adoption without weakening post-filter invariants.
 2. Prove the reproducible self-hosted distribution in #104, including exact
    version identity, install/start, health/readiness, configuration validation,
-   recovery, and rollback evidence.
+   machine-readable path ownership/conflict policy, downstream conformance
+   commands, recovery, and rollback evidence.
 3. Publish the ownership and conformance taxonomy in #107 and use Kapsle #81,
    after its #109 tenant-status correction, as the first standalone add-on
    canary. Validate Hoom independently after Kapsle passes.
@@ -271,6 +272,13 @@ manual operation. Consumer-owned identity, policy, durable workflow state, and
 user-visible outcomes remain with the consumer unless an explicit reusable
 contract says otherwise.
 
+The first external conformance pilot must use an allowlisted, versioned,
+synthetic input and produce a deterministic dry-run plan with all provider
+writes disabled. Evidence covers valid, duplicate, replayed, stale, missing-
+consent, invalid-mapping, unavailable-provider, denied-action, and traceable-
+outcome cases. The pilot cannot block the consumer's production cutover or
+transfer domain authority into Opus.
+
 ### Phase 0: Foundation and Repeatability
 
 - Resolve all required dependencies from reviewed public releases.
@@ -294,6 +302,9 @@ contract says otherwise.
   package conformance defects.
 - Produce reproducible source and distribution archives with source/dist parity
   under #104.
+- Publish a machine-readable path-ownership/conflict manifest and reusable
+  downstream install, update, recovery, and rollback conformance commands;
+  preserve unrelated host-owned files and reject unrelated-history merges.
 - Publish the ownership and Materia conformance taxonomy in #107 and validate
   the first standalone add-on canary.
 - Publish checksums, provenance, dependency and license inventories, release
@@ -341,6 +352,9 @@ contract says otherwise.
   side-effect-free consulting guidance under #95, #99, and #101.
 - Exercise the admin surface, Wise command parity, central agent, one
   specialist, and dry-run automation.
+- Compose one package-owned deterministic fixture through a standalone runtime
+  and an Opus host with matching checksum and normalized outcome; keep scenario,
+  simulation, renderer, and walkthrough semantics in their owning packages.
 - Add explainable history, approval, generation preview/apply/rollback, and
   complete user/tenant administration.
 - Advance additional add-on and service work in evidence- and value-based

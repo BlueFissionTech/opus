@@ -158,6 +158,12 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringNotContainsString('environment-specific presentation', $product);
         $this->assertStringContainsString('### Optional Runtime Availability And Recovery', $product);
         $this->assertStringContainsString('issue #125 owns the complete host resilience', $product);
+        $this->assertStringContainsString('side-effect-free health probe', $product);
+        $this->assertStringContainsString('machine-readable path', $product);
+        $this->assertStringContainsString('path-ownership and conflict policy', $requirements);
+        $this->assertStringContainsString('standalone and Opus-hosted execution', $requirements);
+        $this->assertStringContainsString('first external conformance pilot', $roadmap);
+        $this->assertStringContainsString('unrelated-history merges', $roadmap);
         $this->assertStringContainsString(
             'The service repository is never the authoritative source for',
             $product

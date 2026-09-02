@@ -193,10 +193,13 @@ status, policy, operator visibility, and governed retry, replay, cancellation,
 dead-letter, and manual-recovery surfaces. Add-ons and upstream packages retain
 their domain, protocol, provider-transport, and reusable retry semantics.
 
-Discovery and health checks report structured availability without constructing
-or calling optional providers. Authorized administration and Wise commands must
-expose equivalent controls while preserving tenant, role, capability, approval,
-idempotency, and correlation context.
+Passive bootstrap and discovery report structured availability without
+constructing or calling optional providers. An explicitly authorized,
+side-effect-free health probe may contact the configured endpoint to update
+connectivity and capability status, but may not execute application work,
+training, or mutation. Authorized administration and Wise commands must expose
+equivalent controls while preserving tenant, role, capability, approval,
+idempotency, timeout, budget, audit, and correlation context.
 
 Status: Partial. Lazy command-runtime failure handling and structured unavailable
 results exist; issue #125 owns the complete host resilience and recovery control
@@ -303,6 +306,13 @@ normalized timeline and its redacted views.
 
 The repository includes dependency-source audits, platform checks, runtime
 contract proof, optional-service behavior, and local Compose tracking.
+
+A public source or distribution update must publish machine-readable path
+ownership and conflict policy. Core, add-on, theme, service-overlay, and
+operator-owned paths remain distinguishable; an installer must preserve
+unrelated host-owned files and stop for review when ownership is ambiguous.
+Reusable downstream conformance commands must prove source/distribution parity
+without merging unrelated repository histories.
 
 Status: Partial for development operations. Managed provisioning (#103), a
 reproducible self-hosted release (#104), marketplace/directory operations

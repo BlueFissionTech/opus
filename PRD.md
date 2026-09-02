@@ -239,7 +239,8 @@ Current status: Partial under #95.
 - Collect secrets through a secret-reference boundary, not ordinary settings or
   intake answers.
 - Test provider reachability and model capability separately from task
-  execution.
+  execution through an explicitly authorized, side-effect-free probe with a
+  bounded timeout and budget.
 - Configure routing, fallback, budgets, timeouts, data-use policy, and allowed
   agents by application and tenant.
 - Allow an optional Blue Fission provider without giving it special runtime
@@ -362,6 +363,11 @@ Current status: Partial.
   licenses.
 - Support staging/dry-run, maintenance state, backup, update, health check,
   rollback, and recovery.
+- Publish a machine-readable path-ownership and conflict policy that separates
+  core, add-on, theme, service-overlay, and operator-owned files, preserves
+  unrelated host-owned content, and stops ambiguous replacements for review.
+- Publish reusable downstream conformance commands for source and distribution
+  install, update, conflict, recovery, and rollback behavior.
 - Never update from an unreleased mutable branch in production.
 
 Current status: Planned under #104 and #105.
@@ -407,6 +413,12 @@ Current status: Partial under #107 and #110.
 - Reset to a versioned fixture checksum idempotently and expose reset status.
 - Reject production configuration and fail closed for email, payment, webhook,
   provider, and automation side effects.
+- Host package-owned deterministic fixtures and runtimes only after standalone
+  checksum, replay, and snapshot/restore proof, and demonstrate the same
+  fixture and normalized outcome in standalone and Opus-hosted execution.
+- Keep scenario, simulation, rendering, and walkthrough semantics out of Opus
+  controllers and templates; Opus owns only route, asset, session, optional
+  persistence, isolation, and add-on lifecycle composition.
 - Keep domain fixtures in their owning package while Opus owns host isolation,
   reset orchestration, and distribution conformance.
 
@@ -446,8 +458,10 @@ Current status: Planned under #106 and #107.
   add-on, provider, transport, or specialist is unavailable.
 - Report unavailable, disabled, denied, degraded, retrying, exhausted,
   cancelled, and recovered outcomes with stable status and reason codes.
-- Discover and inspect health without constructing or calling optional
-  providers.
+- Keep passive bootstrap and discovery from constructing or calling optional
+  providers; permit an explicitly authorized, side-effect-free health probe to
+  contact the configured endpoint without executing application work,
+  training, or mutation.
 - Provide equivalent authorized web and Wise controls for disable, inspect,
   retry, replay, cancel, dead-letter review, manual recovery, and accepted
   degraded operation.
@@ -482,6 +496,8 @@ Current status: Partial under #125.
 - Support PHP 8.2+ within the declared matrix.
 - Avoid operating-system-specific process assumptions in core contracts.
 - Keep source and distribution installs behaviorally equivalent.
+- Preserve machine-readable path ownership and fail closed on ambiguous update
+  conflicts instead of merging unrelated application histories.
 - Keep hosted deployment policy outside the reusable package.
 
 ### Performance
