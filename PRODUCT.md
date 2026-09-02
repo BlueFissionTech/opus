@@ -304,18 +304,19 @@ dependency declarations, theme-neutral UI contributions, Wise commands,
 specialist-agent boundaries, Annex metadata, health, and lifecycle behavior.
 
 Before a dedicated service application is started, the add-on must pass clean
-install, activation, configuration, tenancy, authorization, upgrade, rollback,
-deactivation, removal, and reinstall proof against a reviewed Opus release. It
-must also produce a marketplace-ready artifact, even when publication begins
-as private or limited availability.
+installation, activation, suspension, resumption, configuration, tenancy,
+authorization, upgrade, rollback, deactivation, removal, and reinstall proof
+against a reviewed Opus release. It must also produce a marketplace-ready artifact,
+even when publication begins as private or limited availability.
 
 Only then may a separate service repository compose immutable Opus and add-on
 releases. That repository owns deployment configuration, secret references,
 ingress and egress, quotas, feature flags, service objectives, observability,
-cost attribution, backup and recovery policy, and environment-specific
-presentation. It is never the authoritative source for add-on domain behavior.
-Required behavioral changes return to the add-on and are released before the
-service consumes them.
+cost attribution, backup and recovery policy, presentation configuration, and
+deployment references. Reusable presentation behavior and assets remain in the
+add-on or theme. The service repository is never the authoritative source for
+add-on domain behavior. Required behavioral changes return to the add-on and
+are released before the service consumes them.
 
 Status: Planned under #106 and #107. Kapsle is the first independent conformance
 and service-host proof; Hoom follows as a second independent proof before any
@@ -443,8 +444,8 @@ current Opus capability through implication alone.
 - Unknown evidence remains unknown.
 - Add-on success does not prove core readiness, and core success does not prove
   an add-on or hosted service is ready.
-- Pelorus planning context may inform priority and review requirements but does
-  not authorize execution, spending, deployment, or release.
+- Reviewed planning context may inform priority and review requirements but
+  does not authorize execution, spending, deployment, or release.
 
 ## Related Documents
 

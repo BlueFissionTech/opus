@@ -248,8 +248,8 @@ deployment, spending, or production promotion.
 
 ### Production Consumer Calibration
 
-MorPro Hub is the first major production demand signal, not a source of Opus
-domain semantics. Its operating feedback prioritizes reusable platform work in
+A production consumer is a demand signal, not a source of Opus domain
+semantics. Reviewed operating feedback prioritizes reusable platform work in
 this order:
 
 1. stable authentication, tenant and policy context, billing-access boundaries,

@@ -150,8 +150,14 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringContainsString('marketplace-ready artifact', $product);
         $this->assertStringContainsString('issue #123 owns that native control plane', $product);
         $this->assertStringContainsString('Issue #124 owns the', $product);
+        $this->assertStringContainsString('installation, activation, suspension, resumption', $product);
         $this->assertStringContainsString(
-            'It is never the authoritative source for add-on domain behavior.',
+            'Reusable presentation behavior and assets remain in the',
+            $product
+        );
+        $this->assertStringNotContainsString('environment-specific presentation', $product);
+        $this->assertStringContainsString(
+            'The service repository is never the authoritative source for',
             $product
         );
         $this->assertStringContainsString('### Promote An Add-On To A Service', $requirements);
@@ -163,6 +169,9 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringContainsString('#124 owns the complete operator surface', $requirements);
         $this->assertStringContainsString('generic reviewed Opus release', $requirements);
         $this->assertStringContainsString('### Production Consumer Calibration', $roadmap);
+        $this->assertStringContainsString('A production consumer is a demand signal', $roadmap);
+        $this->assertStringNotContainsString('MorPro', $roadmap);
+        $this->assertStringNotContainsString('Pelorus', $product);
         $this->assertStringContainsString('feature-flagged degraded or', $roadmap);
         $this->assertStringContainsString('authoritative add-on repository', $roadmap);
         $this->assertStringContainsString('### 0-30 Day Contract Window', $roadmap);
