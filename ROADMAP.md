@@ -65,6 +65,8 @@ capability so that a label cannot substitute for evidence:
 | --- | --- |
 | State | Available, Partial, Planned, or Exploratory under the definitions above |
 | Ownership | Native Opus, package-owned add-on, service host, or ecosystem service |
+| Release lifecycle | Supported, deprecated, or retired; recorded separately from capability state |
+| Operational availability | Healthy, degraded, unavailable, or unknown for the evaluated environment |
 | Evidence | Current code, test, documentation, installation, and operating proof |
 | Dependencies | Required upstream releases, services, and unresolved contracts |
 | Launch gate | The exact condition that permits promotion to the next state |
@@ -396,8 +398,8 @@ must identify the applicable evidence:
 - the versioned DevElation extension-point catalog, payload compatibility,
   execution order, post-filter invariant tests, and deprecation evidence tracked
   in [#110](https://github.com/BlueFissionTech/opus/issues/110);
-- explicit maturity: planned, experimental, evolving, stable, deprecated, or
-  unavailable.
+- the four-value capability State, separate release lifecycle, and separate
+  operational availability defined by the conformance schema above.
 
 Unknown evidence remains unknown. It must not be inferred from adjacent package
 or deployment success.

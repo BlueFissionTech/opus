@@ -28,6 +28,10 @@ class ProductDocumentationTest extends TestCase
             '/\|\s*(?:Available|Partial|Planned|Exploratory)\s+(?:as|for|in|external)\b/i',
             $roadmap
         );
+        $this->assertStringNotContainsString(
+            'planned, experimental, evolving, stable, deprecated, or',
+            $roadmap
+        );
 
         $product = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'PRODUCT.md');
         $this->assertStringNotContainsString('| External |', $product);
