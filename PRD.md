@@ -464,7 +464,9 @@ Initial measures are release gates rather than adoption targets:
 - A starter profile can install all, none, or a selected subset of its packages
   without granting network or agent authority implicitly.
 - An operator can group and tag at least 100 add-ons, and a lifecycle preview
-  reports every declared dependency and affected feature before execution.
+  reports the complete #120 impact contract before execution: every affected
+  feature, declared dependency, capability consumer, specialist surface, route,
+  job, and unresolved configuration reference.
 - Every release-critical action appears in an explainable, redacted timeline.
 - Backup and restore recover a representative application within the declared
   objective.

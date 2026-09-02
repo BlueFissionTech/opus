@@ -126,7 +126,12 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringContainsString('Status: Planned in issue #120', $documents['PRODUCT.md']);
         $this->assertStringContainsString('does not replace manifest-declared', $documents['PRODUCT.md']);
         $this->assertStringContainsString('does not imply activation', $documents['PRODUCT.md']);
+        $this->assertStringContainsString(
+            'Before installation, activation, resume, suspension, deactivation, removal, or',
+            $documents['PRODUCT.md']
+        );
         $this->assertStringContainsString('many-to-many feature groups', $documents['PRD.md']);
+        $this->assertStringContainsString('complete #120 impact contract', $documents['PRD.md']);
         $this->assertStringContainsString('fail-closed lifecycle previews', $documents['ROADMAP.md']);
         $this->assertStringContainsString(
             '`unreleased`, `supported`, `deprecated`, `retired`, or `not_applicable`',

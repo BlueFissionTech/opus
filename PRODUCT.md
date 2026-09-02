@@ -173,11 +173,12 @@ dedicated pages. Membership is many-to-many: one feature may use several
 add-ons, and one add-on may support several features. Organizational metadata
 does not replace manifest-declared dependency or capability relationships.
 
-Before suspension, deactivation, removal, or upgrade, Opus should explain every
-affected feature group, declared dependent, capability consumer, specialist
-surface, route, scheduled job, and unresolved configuration reference. It
-must block operations that would violate authoritative dependencies and require
-explicit confirmation for non-blocking degradation.
+Before installation, activation, resume, suspension, deactivation, removal, or
+upgrade, Opus should explain every affected feature group, declared dependent,
+capability consumer, specialist surface, route, scheduled job, and unresolved
+configuration reference. It must block operations that would violate
+authoritative dependencies and require explicit confirmation for non-blocking
+degradation.
 
 Status: Planned in issue #120. Existing add-on administration exposes a flat
 lifecycle-oriented list without this grouping and impact-analysis control
