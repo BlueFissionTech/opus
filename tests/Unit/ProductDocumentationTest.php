@@ -165,6 +165,8 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringContainsString('### Production Consumer Calibration', $roadmap);
         $this->assertStringContainsString('feature-flagged degraded or', $roadmap);
         $this->assertStringContainsString('authoritative add-on repository', $roadmap);
+        $this->assertStringContainsString('feature, declared dependent, capability consumer', $requirements);
+        $this->assertStringNotContainsString('feature, declared dependency, capability consumer', $requirements);
     }
 
     private function withoutCompatibilityIdentifiers(string $content): string
