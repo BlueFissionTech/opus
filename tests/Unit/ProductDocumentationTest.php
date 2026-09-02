@@ -53,6 +53,9 @@ class ProductDocumentationTest extends TestCase
                 . DIRECTORY_SEPARATOR . 'Prompts' . DIRECTORY_SEPARATOR . 'InsightResponse.php',
             $root . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'Business'
                 . DIRECTORY_SEPARATOR . 'Prompts' . DIRECTORY_SEPARATOR . 'CriticismResponse.php',
+            $root . DIRECTORY_SEPARATOR . 'resource' . DIRECTORY_SEPARATOR . 'markup'
+                . DIRECTORY_SEPARATOR . 'default' . DIRECTORY_SEPARATOR . 'assets'
+                . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'custom.js',
         ];
         $markupRoot = $root . DIRECTORY_SEPARATOR . 'resource' . DIRECTORY_SEPARATOR . 'markup';
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($markupRoot));
