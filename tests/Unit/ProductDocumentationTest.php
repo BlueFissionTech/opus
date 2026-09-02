@@ -139,6 +139,34 @@ class ProductDocumentationTest extends TestCase
         );
     }
 
+    public function testAddOnsMustProveStandaloneValueBeforeServicePromotion(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $product = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'PRODUCT.md');
+        $requirements = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'PRD.md');
+        $roadmap = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'ROADMAP.md');
+
+        $this->assertStringContainsString('### Add-On-First Service Promotion', $product);
+        $this->assertStringContainsString('marketplace-ready artifact', $product);
+        $this->assertStringContainsString('issue #123 owns that native control plane', $product);
+        $this->assertStringContainsString('Issue #124 owns the', $product);
+        $this->assertStringContainsString(
+            'It is never the authoritative source for add-on domain behavior.',
+            $product
+        );
+        $this->assertStringContainsString('### Promote An Add-On To A Service', $requirements);
+        $this->assertStringContainsString(
+            '### FR-17 Add-On Ecosystem And Service Promotion',
+            $requirements
+        );
+        $this->assertStringContainsString('Current status: Partial under #123.', $requirements);
+        $this->assertStringContainsString('#124 owns the complete operator surface', $requirements);
+        $this->assertStringContainsString('generic reviewed Opus release', $requirements);
+        $this->assertStringContainsString('### Production Consumer Calibration', $roadmap);
+        $this->assertStringContainsString('feature-flagged degraded or', $roadmap);
+        $this->assertStringContainsString('authoritative add-on repository', $roadmap);
+    }
+
     private function withoutCompatibilityIdentifiers(string $content): string
     {
         return preg_replace(

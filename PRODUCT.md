@@ -267,7 +267,7 @@ the host composition and application-facing controls.
 Status: Partial. Basic authentication and administration exist. Complete role
 and permission management, tenant/application administration, sessions,
 recovery, secret visibility, audit, and policy explanation are not yet one
-coherent operator surface.
+coherent operator surface; issue #123 owns that native control plane.
 
 ### History, Explainability, And Approval
 
@@ -278,7 +278,8 @@ an inspectable history.
 Status: Partial. There is no unified operator timeline that explains who did
 what, under which grant, with which evidence, provider, approval, result,
 rollback, and retained artifact. Shadow mode and approval requirements exist as
-policy, but not as a complete administration workflow.
+policy, but not as a complete administration workflow. Issue #124 owns the
+normalized timeline and its redacted views.
 
 ### Operations And Distribution
 
@@ -292,6 +293,33 @@ reproducible self-hosted release (#104), marketplace/directory operations
 #104/#107: it must isolate synthetic tenants and roles, reject production
 configuration, disable external side effects, and reset idempotently from a
 verified fixture checksum.
+
+### Add-On-First Service Promotion
+
+An Arkheion or other hosted capability begins as a standalone Opus add-on in
+its own authoritative repository. The add-on must be independently versioned,
+installable into a generic Opus application, and usable without its eventual
+service host. Its package owns domain behavior, migrations, capability and
+dependency declarations, theme-neutral UI contributions, Wise commands,
+specialist-agent boundaries, Annex metadata, health, and lifecycle behavior.
+
+Before a dedicated service application is started, the add-on must pass clean
+install, activation, configuration, tenancy, authorization, upgrade, rollback,
+deactivation, removal, and reinstall proof against a reviewed Opus release. It
+must also produce a marketplace-ready artifact, even when publication begins
+as private or limited availability.
+
+Only then may a separate service repository compose immutable Opus and add-on
+releases. That repository owns deployment configuration, secret references,
+ingress and egress, quotas, feature flags, service objectives, observability,
+cost attribution, backup and recovery policy, and environment-specific
+presentation. It is never the authoritative source for add-on domain behavior.
+Required behavioral changes return to the add-on and are released before the
+service consumes them.
+
+Status: Planned under #106 and #107. Kapsle is the first independent conformance
+and service-host proof; Hoom follows as a second independent proof before any
+co-install composition claim.
 
 ## Provider And Model Contract
 
@@ -339,7 +367,8 @@ scope.
 | Add-on portfolio organization | Planned | Feature groups, tags, filtering, and dependency-aware lifecycle impact are defined in #120; the current administration view is flat. |
 | Pages and publishing | Partial | Basic content CRUD and presentation exist; revisions, workflow, scheduling, taxonomy, preview, and recovery remain. |
 | Media library | Partial | A panel and modal exist; storage, metadata, transformation, policy, and complete CRUD evidence are incomplete. |
-| Users and roles | Partial | Authentication and basic user management exist; comprehensive RBAC/ABAC, tenancy, sessions, and self-service controls remain. |
+| Users and roles | Partial | Authentication and basic user management exist; #123 owns comprehensive policy, tenancy, sessions, and self-service controls. |
+| Activity, approvals, and explainability | Partial | Separate diagnostics and traces exist; #124 owns one redacted, tenant-safe timeline and review surface. |
 | Settings | Partial | Configuration files and environment values exist; there is no unified validated settings control plane. |
 | Updates | Planned | Dependency audits exist; signed core/add-on/theme update, staging, rollback, and maintenance mode do not. |
 | Health and diagnostics | Partial | Runtime/readiness contracts exist; operator dashboards, alerts, repair actions, and support bundles remain. |
@@ -369,6 +398,15 @@ External services must remain separable from the reusable core:
 Discovery, entitlement, installation, authorization, delegation, and
 execution are separate decisions. A successful lookup never grants runtime
 authority.
+
+External applications consume Opus or Arkheion capabilities through versioned
+adapters and request/result contracts rather than framework replacement or
+controller-to-provider coupling. Each integration declares tenant and
+authorization context, idempotency, service objectives, audit and observability
+evidence, cost attribution, feature flags, graceful fallback or manual
+operation, and replacement/decommission policy. A consumer's core workflow
+must not become unavailable solely because Opus, a specialist service, or an
+inference provider is unavailable.
 
 ## Product Boundaries
 

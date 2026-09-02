@@ -148,7 +148,7 @@ capability so that a label cannot substitute for evidence:
 | Capability | Status | Current evidence | Next gate |
 | --- | --- | --- | --- |
 | Structured outcomes and diagnostics | Partial | Command presentations, readiness normalization, reason codes, and correlation context exist | Make coverage consistent across every core operation. |
-| Unified activity history and explainability | Partial | Intake revisions, command diagnostics, agent state, and package traces are separate | Build one redacted operator timeline with evidence, grant, approval, retry, cancellation, and rollback context. |
+| Unified activity history and explainability | Partial | Intake revisions, command diagnostics, agent state, and package traces are separate | Build the #124 redacted operator timeline with evidence, grant, approval, retry, cancellation, and rollback context. |
 | Approval and shadow execution | Partial | Policy contracts require review and pin continuations | Add queue, review, approval/rejection, scheduling, execution, and revocation administration. |
 | Health, readiness, logs, metrics, and support evidence | Partial | Runtime and lifecycle readiness primitives exist | Complete operator dashboards, alerts, repair actions, retention, and support bundles. |
 | Backup, restore, export, and deletion | Planned | Accepted managed/self-hosted requirements | Implement and prove in #103 and #104. |
@@ -172,6 +172,11 @@ requirements and release gates are in [PRD.md](PRD.md).
 - Managed-hosting policy must not leak into the reusable self-hosted package.
 - Add-on domain behavior stays in the add-on. A service host composes a reviewed
   release and does not fork that behavior.
+- Every hosted domain capability must first be a standalone, independently
+  versioned add-on that passes generic Opus conformance and produces a
+  marketplace-ready artifact.
+- Service repositories own deployment overlays and operations only. Behavioral
+  fixes must return to the add-on and be released before service consumption.
 - Marketplace discovery, package entitlement, installation approval, runtime
   authorization, and agent capability grants are separate decisions.
 - Starter-package availability, selection, installation, activation, network
@@ -226,6 +231,29 @@ The reviewed delivery order is:
 
 This ordering is a planning dependency graph. It does not authorize release,
 deployment, spending, or production promotion.
+
+### Production Consumer Calibration
+
+MorPro Hub is the first major production demand signal, not a source of Opus
+domain semantics. Its operating feedback prioritizes reusable platform work in
+this order:
+
+1. stable authentication, tenant and policy context, billing-access boundaries,
+   health, and onboarding contracts;
+2. versioned read/write request-result contracts, documents, messaging, and
+   provider adapters;
+3. bounded asynchronous workers and operational integration support;
+4. advanced generation, comprehension, decision support, and real-time features
+   only after the preceding gates are stable;
+5. independent service extraction only when measured load, support, or cost
+   justifies it and the add-on-first promotion contract already passes.
+
+An unreleased Opus change must not become a hidden prerequisite for a consumer
+cutover. Every requested platform release identifies the exact gate it unlocks,
+and integrations retain a versioned adapter plus feature-flagged degraded or
+manual operation. Consumer-owned identity, policy, durable workflow state, and
+user-visible outcomes remain with the consumer unless an explicit reusable
+contract says otherwise.
 
 ### Phase 0: Foundation and Repeatability
 
@@ -370,14 +398,18 @@ promotion in [#106](https://github.com/BlueFissionTech/opus/issues/106).
 
 Each Arkheion capability follows this progression:
 
-1. package-owned contract;
-2. canonical Opus add-on;
-3. clean embedded-host evidence;
-4. reviewed marketplace artifact;
-5. dedicated Opus service composition;
-6. OCI operational evidence;
-7. controlled enterprise availability;
-8. broader availability only when maturity, support, and business gates are met.
+1. package-owned contract and authoritative add-on repository;
+2. immutable, independently versioned canonical Opus add-on;
+3. clean installation and complete lifecycle evidence in a generic Opus host;
+4. tenancy, authorization, Wise/agent, Annex, health, upgrade, rollback, and
+   uninstall evidence where those surfaces are declared;
+5. reviewed marketplace-ready artifact, published according to its approved
+   public, private, or limited-availability policy;
+6. dedicated Opus service composition that contains no authoritative domain
+   fork;
+7. OCI operational, service-objective, recovery, and cost evidence;
+8. controlled enterprise availability;
+9. broader availability only when maturity, support, and business gates are met.
 
 The separately licensed Snow theme may be supplied to approved Arkheion
 deployments, but it is not an Opus default and must never enter public
@@ -400,9 +432,13 @@ must identify the applicable evidence:
 
 - source commit, package versions, archive or image digest, and provenance;
 - compatibility and migration matrix;
+- stable request/result contract versions and owning repositories;
 - unit, contract, integration, lifecycle, and production-shaped test results;
 - security audit, threat boundaries, authorization, tenancy, and redaction
   evidence;
+- service objectives, idempotency, retries, cancellation, dead-letter behavior,
+  feature flags, graceful fallback or manual operation, and decommission plan;
+- resource and cost baseline with the outcome or capacity measure it supports;
 - performance, load, timeout, cancellation, retry, and recovery behavior;
 - health, readiness, diagnostics, logs, metrics, traces, and alert coverage;
 - backup, restore, rollout, rollback, and disaster-recovery evidence;

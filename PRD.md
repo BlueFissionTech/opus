@@ -152,6 +152,23 @@ may occur solely because intake started or completed.
 
 Discovery metadata never grants execution authority.
 
+### Promote An Add-On To A Service
+
+1. Establish the add-on's own authoritative repository and ownership boundary.
+2. Publish an immutable, independently versioned add-on release.
+3. Install it into a generic reviewed Opus release without service-host code.
+4. Prove configuration, tenancy, permissions, lifecycle, health, upgrade,
+   rollback, uninstall, Wise/agent surfaces, and Annex metadata where declared.
+5. Produce a marketplace-ready artifact and conformance evidence.
+6. Create a separate service repository that consumes immutable Opus and add-on
+   releases and owns only deployment-specific configuration and operations.
+7. Return behavioral fixes to the add-on repository before service adoption.
+8. Promote hosting only after security, service-objective, cost, recovery, and
+   human approval gates pass.
+
+The service host cannot become the only usable implementation of the
+capability or a private fork of package-owned behavior.
+
 ### Run A Command Or Automation
 
 1. Resolve actor, application, tenant, profile, agent, and correlation context.
@@ -241,7 +258,7 @@ configuration is not a complete setup experience.
   work, and agent execution.
 - Explain denials without leaking hidden capability or tenant metadata.
 
-Current status: Partial.
+Current status: Partial under #123.
 
 ### FR-5 Add-On Lifecycle
 
@@ -325,7 +342,7 @@ Current status: Partial under #99.
   support operators.
 - Permit replay only through a new authorization decision.
 
-Current status: Partial primitives; no complete operator surface.
+Current status: Partial primitives; #124 owns the complete operator surface.
 
 ### FR-11 Settings And Secrets
 
@@ -395,6 +412,27 @@ Current status: Partial under #107 and #110.
 
 Current status: Planned. The fixture and evidence schema belong to #107; the
 executable self-hosted proof belongs to #104.
+
+### FR-17 Add-On Ecosystem And Service Promotion
+
+- Require every hosted domain capability to exist first as an independently
+  versioned, installable Opus add-on in its own authoritative repository.
+- Prove the add-on against a generic Opus host before service-host work begins.
+- Require a marketplace-ready artifact and machine-readable conformance packet
+  before dedicated service promotion.
+- Keep domain behavior, migrations, commands, capability declarations, and
+  theme-neutral UI in the add-on package.
+- Keep deployment configuration, secret references, ingress/egress, quotas,
+  service objectives, observability, cost, backup, and recovery in the service
+  repository.
+- Consume capabilities through versioned request/result contracts with tenant
+  and authorization context, idempotency, feature flags, and bounded retries.
+- Preserve a graceful degraded or manual path for a consuming application's
+  core workflows when Opus, a service, or a provider is unavailable.
+- Require behavioral service fixes to land and release in the add-on before the
+  service host consumes them.
+
+Current status: Planned under #106 and #107.
 
 ## Non-Functional Requirements
 
@@ -473,6 +511,11 @@ Initial measures are release gates rather than adoption targets:
 - A public distribution installs without local paths or unpublished packages.
 - Marketplace discovery, entitlement, install approval, and runtime grants are
   proven as separate transitions.
+- One standalone add-on passes generic-host conformance and produces a
+  marketplace-ready artifact before its dedicated service repository is
+  permitted to claim the capability.
+- One external consumer remains operational through a documented degraded or
+  manual path while an Opus-backed capability is unavailable.
 
 Commercial, adoption, retention, and service-level targets belong to managed
 product planning and must be added with an owner and measurement source.
