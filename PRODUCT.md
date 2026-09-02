@@ -184,6 +184,24 @@ Status: Planned in issue #120. Existing add-on administration exposes a flat
 lifecycle-oriented list without this grouping and impact-analysis control
 plane.
 
+### Optional Runtime Availability And Recovery
+
+Installed or activated lifecycle state is distinct from runtime availability.
+An unavailable optional add-on, provider, transport, or specialist must not
+disable application bootstrap or unrelated capabilities. Opus owns the scoped
+status, policy, operator visibility, and governed retry, replay, cancellation,
+dead-letter, and manual-recovery surfaces. Add-ons and upstream packages retain
+their domain, protocol, provider-transport, and reusable retry semantics.
+
+Discovery and health checks report structured availability without constructing
+or calling optional providers. Authorized administration and Wise commands must
+expose equivalent controls while preserving tenant, role, capability, approval,
+idempotency, and correlation context.
+
+Status: Partial. Lazy command-runtime failure handling and structured unavailable
+results exist; issue #125 owns the complete host resilience and recovery control
+plane.
+
 ### Presentation And Content
 
 Vibe themes provide application and admin templates, includes, sections,

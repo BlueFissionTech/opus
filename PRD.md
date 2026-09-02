@@ -439,6 +439,25 @@ owned by their add-ons or applications.
 
 Current status: Planned under #106 and #107.
 
+### FR-18 Optional Runtime Degradation And Recovery
+
+- Keep add-on lifecycle state separate from runtime availability and health.
+- Preserve application bootstrap and unrelated capabilities when an optional
+  add-on, provider, transport, or specialist is unavailable.
+- Report unavailable, disabled, denied, degraded, retrying, exhausted,
+  cancelled, and recovered outcomes with stable status and reason codes.
+- Discover and inspect health without constructing or calling optional
+  providers.
+- Provide equivalent authorized web and Wise controls for disable, inspect,
+  retry, replay, cancel, dead-letter review, manual recovery, and accepted
+  degraded operation.
+- Preserve tenant, role, capability, approval, idempotency, continuation, and
+  correlation context through every recovery transition.
+- Keep domain fallback and reusable provider, transport, queue, and orchestration
+  semantics in their owning add-on or upstream package.
+
+Current status: Partial under #125.
+
 ## Non-Functional Requirements
 
 ### Security

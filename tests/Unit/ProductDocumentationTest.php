@@ -156,6 +156,8 @@ class ProductDocumentationTest extends TestCase
             $product
         );
         $this->assertStringNotContainsString('environment-specific presentation', $product);
+        $this->assertStringContainsString('### Optional Runtime Availability And Recovery', $product);
+        $this->assertStringContainsString('issue #125 owns the complete host resilience', $product);
         $this->assertStringContainsString(
             'The service repository is never the authoritative source for',
             $product
@@ -178,6 +180,9 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringContainsString('### 31-90 Day Product Window', $roadmap);
         $this->assertStringContainsString('resettable synthetic tenant host conformance in #122', $roadmap);
         $this->assertStringContainsString('Planned under #122', $requirements);
+        $this->assertStringContainsString('### FR-18 Optional Runtime Degradation And Recovery', $requirements);
+        $this->assertStringContainsString('Current status: Partial under #125.', $requirements);
+        $this->assertStringContainsString('recovery behavior for optional runtimes in #125', $roadmap);
         $this->assertStringContainsString('feature, declared dependent, capability consumer', $requirements);
         $this->assertStringNotContainsString('feature, declared dependency, capability consumer', $requirements);
     }

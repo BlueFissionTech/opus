@@ -81,6 +81,7 @@ capability so that a label cannot substitute for evidence:
 | PHP application runtime and mappings | Available | BlueCore registration, HTTP routes, gateways, package bootstrap, and PHP 8.2 test baseline | Expand the supported runtime matrix under #104. |
 | Composer-installed host/package root isolation | Available | Runtime-root resolver, Composer binary entrypoint, package-theme tests; #50 closed | Preserve source/dist parity in every release. |
 | DevElation hooks and filters | Partial | Intake, conversation, profile, and command-runtime extension points exist | Complete the catalog and priority-boundary proof in #110 and PR #111. |
+| Optional runtime degradation and recovery | Partial | Lazy command-runtime failure handling and structured unavailable results exist | Complete operator-visible status, retry/replay/cancellation, dead-letter, and manual recovery in #125. |
 | Runtime contract proof | Available | `contract proof`, `contract targets`, and `contract validate` commands with fixtures | Bind proof to immutable releases in #107. |
 | Dependency provenance and VCS audit | Partial | Root-only registry, source transport, lock, and distribution checks | Deliver the credential-free public baseline in #56 and #104. |
 | Local Compose development profile | Partial | Compose assets and harness integration exist | Complete clean `/health` startup evidence in #20. |
@@ -226,9 +227,10 @@ date promises.
 3. Publish the ownership and conformance taxonomy in #107 and use Kapsle #81,
    after its #109 tenant-status correction, as the first standalone add-on
    canary. Validate Hoom independently after Kapsle passes.
-4. Define operator-visible unavailable, disabled, degraded, retry, dead-letter,
-   and recovery behavior for optional add-ons and providers in #120 without
-   disabling the host application.
+4. Complete #120 feature grouping and dependency-aware lifecycle impact, and
+   define operator-visible unavailable, disabled, degraded, retry, dead-letter,
+   and recovery behavior for optional runtimes in #125 without disabling the
+   host application.
 5. Prove resettable synthetic tenant host conformance in #122, then permit #119
    to compose a synthetic-only starter profile from reviewed add-on artifacts.
 
