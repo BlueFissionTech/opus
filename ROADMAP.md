@@ -80,7 +80,7 @@ capability so that a label cannot substitute for evidence:
 | Composer-installed host/package root isolation | Available | Runtime-root resolver, Composer binary entrypoint, package-theme tests; #50 closed | Preserve source/dist parity in every release. |
 | DevElation hooks and filters | Partial | Intake, conversation, profile, and command-runtime extension points exist | Complete the catalog and priority-boundary proof in #110 and PR #111. |
 | Runtime contract proof | Available | `contract proof`, `contract targets`, and `contract validate` commands with fixtures | Bind proof to immutable releases in #107. |
-| Dependency provenance and VCS audit | Available for development | Root-only registry, source transport, lock, and distribution checks | Deliver the credential-free public baseline in #56 and #104. |
+| Dependency provenance and VCS audit | Partial | Root-only registry, source transport, lock, and distribution checks | Deliver the credential-free public baseline in #56 and #104. |
 | Local Compose development profile | Partial | Compose assets and harness integration exist | Complete clean `/health` startup evidence in #20. |
 
 ### Installation And Application Setup
@@ -89,7 +89,7 @@ capability so that a label cannot substitute for evidence:
 | --- | --- | --- | --- |
 | CLI/runtime bootstrap | Available | Shared runtime bootstrap and terminal/add-on entrypoint tests | Include it in packaged install and upgrade proof. |
 | Ordered database initialization | Available | Idempotent initialization work completed in #25 | Repeat on every supported database target. |
-| Resumable application intake state | Available as a service | Persisted sessions, revision guard, defaults, and skip/pause/resume/complete transitions | Expose it through web, CLI, and conversation in #95. |
+| Resumable application intake state | Partial | Persisted sessions, revision guard, defaults, and skip/pause/resume/complete transitions | Expose it through web, CLI, and conversation in #95. |
 | Guided web and CLI installation | Partial | Installation commands and intake domain exist but are not one guided flow | Complete the installer experience in #95 and release proof in #104. |
 | Vibe/JenSS intake blueprint | Planned | Accepted architecture in #95 | Author, version, validate, and persist the first production prompt. |
 | Provider selection and credential setup | Planned | Legacy OpenAI-compatible config exists, but no provider-neutral setup | Add optional hosted/local setup, secret references, policy, and connectivity proof through #95/#99/#29. |
@@ -129,10 +129,10 @@ capability so that a label cannot substitute for evidence:
 | Capability | Status | Current evidence | Next gate |
 | --- | --- | --- | --- |
 | BotMan web and CLI conversation adapters | Partial | Chat route, widget, CLI driver, and middleware exist | Bind complete scoped conversation outcomes, identity, provider selection, and error presentation. |
-| Deterministic conversation and command seeds | Available as configuration | Versioned intents, safe fallbacks, and shadow/review defaults exist | Add idempotent persistence and administration in #99. |
+| Deterministic conversation and command seeds | Available | Versioned intents, safe fallbacks, and shadow/review defaults exist | Add idempotent persistence and administration in #99. |
 | Scoped private Wise profiles | Partial | Application/tenant/principal policy and profile isolation are tested | Complete the function adapter, persistent resources, delegation administration, and concurrency proof in #99. |
 | Central agent capability map | Available | Versioned root map, validation, filtered discovery/invocation, and deny-by-default resolution; #66 closed | Add operator configuration and complete runtime/provider acceptance. |
-| Add-on specialist capability maps | Available as a host contract | Declared/generated/central/disabled modes and leakage tests exist | Complete add-on lifecycle integration and administration. |
+| Add-on specialist capability maps | Available | Declared/generated/central/disabled modes and leakage tests exist | Complete add-on lifecycle integration and administration. |
 | Provider-neutral runtime composition | Partial | Descriptors, factories, lifecycle, execution fences, cancellation, and state stores exist | Add provider/profile adapters, configuration, teardown, and production recovery in #29. |
 | Central-to-specialist delegation | Partial | Bounded Automata delegation and normalized outcomes exist | Add explicit peer collaboration, operator visibility, approval, and production proof in #29. |
 | Multiple providers and self-hosted models | Planned | Runtime interfaces permit opaque provider profiles | Implement settings, routing, fallback, budget, privacy, and health contracts. |
@@ -143,7 +143,7 @@ capability so that a label cannot substitute for evidence:
 
 | Capability | Status | Current evidence | Next gate |
 | --- | --- | --- | --- |
-| Structured outcomes and diagnostics | Available in key command/lifecycle paths | Command presentations, readiness normalization, reason codes, and correlation context exist | Make coverage consistent across every core operation. |
+| Structured outcomes and diagnostics | Partial | Command presentations, readiness normalization, reason codes, and correlation context exist | Make coverage consistent across every core operation. |
 | Unified activity history and explainability | Partial | Intake revisions, command diagnostics, agent state, and package traces are separate | Build one redacted operator timeline with evidence, grant, approval, retry, cancellation, and rollback context. |
 | Approval and shadow execution | Partial | Policy contracts require review and pin continuations | Add queue, review, approval/rejection, scheduling, execution, and revocation administration. |
 | Health, readiness, logs, metrics, and support evidence | Partial | Runtime and lifecycle readiness primitives exist | Complete operator dashboards, alerts, repair actions, retention, and support bundles. |
@@ -155,7 +155,7 @@ capability so that a label cannot substitute for evidence:
 | Add-on marketplace | Planned | Discovery, trust, entitlement, and install separation accepted | Deliver the dedicated application in #105. |
 | Annex capability directory | Planned | Directory boundary and authorization separation accepted | Deliver versioned discovery and conformance through #105 and Annex-owned contracts. |
 | Materia conformance publication | Planned | Runtime and dependency proofs provide starting evidence | Publish an immutable release matrix in #107. |
-| Arkheion service promotion | Planned external composition | Shared host/add-on boundary is documented | Prove the promotion contract in #106 without moving add-on domains into core. |
+| Arkheion service promotion | Planned | Shared host/add-on boundary is documented | Prove the promotion contract in #106 without moving add-on domains into core. |
 | Accessibility, localization, telemetry, and support policy | Exploratory | Required release concerns are recognized | Assign owners, baselines, consent rules, and tracked delivery issues. |
 
 The detailed product boundary is in [PRODUCT.md](PRODUCT.md), and functional

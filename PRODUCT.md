@@ -63,7 +63,9 @@ production operation are complete.
 | Partial | Meaningful implementation exists, but administration, integration, operational proof, or end-to-end usability is incomplete. |
 | Planned | An accepted issue or roadmap contract exists, but the capability is not yet usable as a product feature. |
 | Exploratory | The capability is implied or under discussion and is not yet an accepted delivery commitment. |
-| External | The behavior belongs to an upstream package or optional service; Opus owns only its host integration. |
+
+Package, add-on, service-host, and ecosystem ownership is recorded separately
+from maturity. External ownership never creates an additional status value.
 
 Documentation and tests are evidence, but do not by themselves move a feature
 to Available. A feature also needs an intentional access surface and its

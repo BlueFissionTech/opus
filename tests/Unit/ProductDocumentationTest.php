@@ -24,6 +24,14 @@ class ProductDocumentationTest extends TestCase
             $this->assertStringContainsString($status, $roadmap);
         }
 
+        $this->assertDoesNotMatchRegularExpression(
+            '/\|\s*(?:Available|Partial|Planned|Exploratory)\s+(?:as|for|in|external)\b/i',
+            $roadmap
+        );
+
+        $product = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'PRODUCT.md');
+        $this->assertStringNotContainsString('| External |', $product);
+
         $readme = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'README.md');
         foreach (['PRODUCT.md', 'PRD.md', 'ROADMAP.md', 'docs/terminology.md'] as $path) {
             $this->assertStringContainsString($path, $readme);
