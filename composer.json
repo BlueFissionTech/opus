@@ -72,7 +72,7 @@
         "phpunit/phpunit": "^9.5"
     },
     "suggest": {
-        "bluefission/wise": "Install to enable the intelligent shell, command processor, and resource mappings.",
+        "bluefission/wise": "Install to enable the Wise command environment, command processor, and resource mappings.",
         "cboden/ratchet": "Install to enable the optional terminal WebSocket transport when the host dependency graph is compatible."
     },
     "config": {

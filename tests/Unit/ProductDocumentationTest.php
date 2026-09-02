@@ -11,6 +11,10 @@ use SplFileInfo;
 
 class ProductDocumentationTest extends TestCase
 {
+    private const BLANKET_CAPABILITY_PATTERN =
+        '/(?:\bAI(?:-powered|-first|-enabled|-driven)?\b|\bartificial intelligence\b'
+        . '|\bintelligent (?:shell|platform|application|system|agent|assistant|service|tool)\b)/i';
+
     public function testProductDocumentsPublishTheRequiredStatusModel(): void
     {
         $root = dirname(__DIR__, 2);
@@ -47,6 +51,7 @@ class ProductDocumentationTest extends TestCase
         $root = dirname(__DIR__, 2);
         $paths = [
             $root . DIRECTORY_SEPARATOR . 'README.md',
+            $root . DIRECTORY_SEPARATOR . 'composer.json',
             $root . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'Business'
                 . DIRECTORY_SEPARATOR . 'Prompts' . DIRECTORY_SEPARATOR . 'ConsoleResponse.php',
             $root . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'Business'
@@ -74,7 +79,7 @@ class ProductDocumentationTest extends TestCase
             $content = (string) file_get_contents($path);
             $content = $this->withoutCompatibilityIdentifiers($content);
             $this->assertDoesNotMatchRegularExpression(
-                '/(?:\bAI(?:-powered|-first|-enabled|-driven)?\b|\bartificial intelligence\b)/i',
+                self::BLANKET_CAPABILITY_PATTERN,
                 $content,
                 sprintf('Use capability-specific language in %s.', $path)
             );
@@ -83,12 +88,22 @@ class ProductDocumentationTest extends TestCase
 
     public function testCompatibilityIdentifiersRemainValidInterfaceCopy(): void
     {
-        $content = 'Run list ai or `ai` with AIResource from common/config/ai.php.';
+        $content = 'Run `list ai for "provider"` or `ai` with AIResource from common/config/ai.php.';
 
         $this->assertDoesNotMatchRegularExpression(
-            '/(?:\bAI(?:-powered|-first|-enabled|-driven)?\b|\bartificial intelligence\b)/i',
+            self::BLANKET_CAPABILITY_PATTERN,
             $this->withoutCompatibilityIdentifiers($content)
         );
+    }
+
+    public function testOrdinaryProseCannotUseCommandVerbsToHideBlanketLanguage(): void
+    {
+        foreach (['help AI-powered teams', 'do AI-driven work'] as $content) {
+            $this->assertMatchesRegularExpression(
+                self::BLANKET_CAPABILITY_PATTERN,
+                $this->withoutCompatibilityIdentifiers($content)
+            );
+        }
     }
 
     private function withoutCompatibilityIdentifiers(string $content): string
@@ -96,8 +111,8 @@ class ProductDocumentationTest extends TestCase
         return preg_replace(
             [
                 '/\bAIResource\b/',
-                '/\b(?:list|show|find|get|do|help)\s+ai\b/i',
-                '/\bai\s+(?:list|show|find|get|do|help)\b/i',
+                '#<Command>\s*(?:list|show|find|get|do|help)\s+ai\b[^<]*</Command>#i',
+                '/`(?:list|show|find|get|do|help)\s+ai(?:\s+[^`]*)?`/i',
                 '/`ai`/i',
                 '#common/config/ai\.php#i',
             ],
