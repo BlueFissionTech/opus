@@ -149,6 +149,7 @@ capability so that a label cannot substitute for evidence:
 | Health, readiness, logs, metrics, and support evidence | Partial | Runtime and lifecycle readiness primitives exist | Complete operator dashboards, alerts, repair actions, retention, and support bundles. |
 | Backup, restore, export, and deletion | Planned | Accepted managed/self-hosted requirements | Implement and prove in #103 and #104. |
 | Core/add-on/theme updates and rollback | Planned | Dependency and package audits exist | Add signed update channels, compatibility plans, maintenance mode, backup, health check, and rollback in #104/#105. |
+| Resettable demonstration host | Planned | The isolation and side-effect contract is accepted; executable proof does not exist | Define versioned synthetic fixtures in #107 and prove isolated, checksum-resettable, production-rejecting operation in #104. |
 | Managed Opus service | Planned | Product boundary accepted | Deliver isolated provisioning and operating evidence in #103. |
 | Self-hosted public distribution | Planned | Product boundary accepted | Deliver reproducible public artifacts and lifecycle evidence in #104. |
 | Add-on marketplace | Planned | Discovery, trust, entitlement, and install separation accepted | Deliver the dedicated application in #105. |

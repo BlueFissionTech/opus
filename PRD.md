@@ -368,6 +368,21 @@ Current status: Planned under #105.
 
 Current status: Partial under #107 and #110.
 
+### FR-16 Resettable Demonstration Host
+
+- Provide at least two isolated synthetic tenants with representative users,
+  roles, profile scopes, status, and expiry behavior.
+- Namespace every persisted fixture and prove that one tenant cannot discover
+  another tenant's records or capabilities.
+- Reset to a versioned fixture checksum idempotently and expose reset status.
+- Reject production configuration and fail closed for email, payment, webhook,
+  provider, and automation side effects.
+- Keep domain fixtures in their owning package while Opus owns host isolation,
+  reset orchestration, and distribution conformance.
+
+Current status: Planned. The fixture and evidence schema belong to #107; the
+executable self-hosted proof belongs to #104.
+
 ## Non-Functional Requirements
 
 ### Security
