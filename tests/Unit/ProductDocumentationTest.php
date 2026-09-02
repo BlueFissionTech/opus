@@ -68,11 +68,37 @@ class ProductDocumentationTest extends TestCase
 
         foreach ($paths as $path) {
             $content = (string) file_get_contents($path);
+            $content = $this->withoutCompatibilityIdentifiers($content);
             $this->assertDoesNotMatchRegularExpression(
-                '/\bAI(?:-powered|-first|-enabled|-driven)?\b/i',
+                '/(?:\bAI(?:-powered|-first|-enabled|-driven)?\b|\bartificial intelligence\b)/i',
                 $content,
                 sprintf('Use capability-specific language in %s.', $path)
             );
         }
+    }
+
+    public function testCompatibilityIdentifiersRemainValidInterfaceCopy(): void
+    {
+        $content = 'Run list ai or `ai` with AIResource from common/config/ai.php.';
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/(?:\bAI(?:-powered|-first|-enabled|-driven)?\b|\bartificial intelligence\b)/i',
+            $this->withoutCompatibilityIdentifiers($content)
+        );
+    }
+
+    private function withoutCompatibilityIdentifiers(string $content): string
+    {
+        return preg_replace(
+            [
+                '/\bAIResource\b/',
+                '/\b(?:list|show|find|get|do|help)\s+ai\b/i',
+                '/\bai\s+(?:list|show|find|get|do|help)\b/i',
+                '/`ai`/i',
+                '#common/config/ai\.php#i',
+            ],
+            '[compatibility identifier]',
+            $content
+        ) ?? $content;
     }
 }
