@@ -124,6 +124,14 @@ final class ExtensionPointCatalogTest extends TestCase
             $invalid->val()
         );
         $this->assertContains(
+            'opus.test.unsupported_policy has an unsupported payload type',
+            $invalid->val()
+        );
+        $this->assertContains(
+            'opus.test.unsupported_policy has unsupported returns property type: retryable',
+            $invalid->val()
+        );
+        $this->assertContains(
             'opus.agent.command_context has unsupported mutability for filter',
             $invalid->val()
         );

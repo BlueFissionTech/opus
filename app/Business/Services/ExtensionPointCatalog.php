@@ -33,6 +33,27 @@ final class ExtensionPointCatalog extends Service
 
     private const INVENTORY_STATUSES = ['hooked', 'intentionally_closed', 'stronger_abstraction'];
     private const EXECUTION_ORDER = 'priority_ascending_then_registration_order';
+    private const VALUE_SCHEMA_TYPES = [
+        'object',
+        'array',
+        'string',
+        'integer',
+        'number',
+        'boolean',
+        'null',
+        'mixed',
+    ];
+    private const RETURN_SCHEMA_TYPES = [
+        'object',
+        'array',
+        'string',
+        'integer',
+        'number',
+        'boolean',
+        'null',
+        'mixed',
+        'void',
+    ];
     private const MUTABILITY_BY_KIND = [
         'filter' => ['replace_value'],
         'action' => ['observe_only'],
@@ -330,8 +351,13 @@ final class ExtensionPointCatalog extends Service
         }
 
         $schema = Arr::make($schema);
-        if (!$this->isNonemptyString($schema->get('type'))) {
+        $type = $schema->get('type');
+        if (!$this->isNonemptyString($type)) {
             $invalid->push($name . ' has an invalid ' . $shape . ' schema');
+        } elseif (!Arr::make(
+            $shape === 'returns' ? self::RETURN_SCHEMA_TYPES : self::VALUE_SCHEMA_TYPES
+        )->has($type, true)) {
+            $invalid->push($name . ' has an unsupported ' . $shape . ' type');
         }
 
         foreach (['required', 'properties'] as $field) {
@@ -351,9 +377,16 @@ final class ExtensionPointCatalog extends Service
                 $shape
             ): void {
                 if (!$this->isNonemptyString($value)
-                    || ($field === 'properties' && !$this->isNonemptyString($key))
-                ) {
+                    || ($field === 'properties' && !$this->isNonemptyString($key))) {
                     $invalid->push($name . ' has invalid ' . $shape . ' ' . $field);
+                    return;
+                }
+                if ($field === 'properties'
+                    && !Arr::make(self::VALUE_SCHEMA_TYPES)->has($value, true)
+                ) {
+                    $invalid->push(
+                        $name . ' has unsupported ' . $shape . ' property type: ' . $key
+                    );
                 }
             });
         }
