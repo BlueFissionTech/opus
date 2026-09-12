@@ -1,0 +1,125 @@
+{
+  "schema_version": 2,
+  "catalog_version": [],
+  "extension_points": [
+    {
+      "name": "opus.intake.defaults",
+      "kind": "unknown",
+      "area": "application_intake",
+      "phase": [],
+      "owner": 42,
+      "payload": [],
+      "returns": [],
+      "mutability": {},
+      "exception_policy": [],
+      "ordering": "",
+      "invariants": "none"
+    },
+    {
+      "name": "opus.intake.defaults",
+      "kind": "filter",
+      "area": "application_intake",
+      "phase": "before_session_creation",
+      "owner": "ApplicationIntakeService",
+      "payload": {"type": []},
+      "returns": {"type": "object"},
+      "mutability": "replace_in_place",
+      "exception_policy": "ignore_all_failures",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [42]
+    },
+    {
+      "name": "invalid",
+      "kind": "filter",
+      "area": "application_intake",
+      "phase": "before_session_creation",
+      "owner": "ApplicationIntakeService",
+      "payload": {"type": "object", "required": ["foo"]},
+      "returns": {"type": "object"},
+      "mutability": "replace_value",
+      "exception_policy": "propagate_before_write",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": []
+    },
+    {
+      "name": "opus.intake.session.transitioned",
+      "kind": "action",
+      "area": "application_intake",
+      "phase": "after_persistence",
+      "owner": "ApplicationIntakeService",
+      "payload": {
+        "type": "object",
+        "required": ["foo"],
+        "properties": {"transition": "boolean", "session": "object"}
+      },
+      "returns": {"type": "void", "required": {}},
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": []
+    },
+    {
+      "name": "opus.agent.command_context",
+      "kind": "action",
+      "area": "agent_wise_runtime",
+      "phase": "after_authoritative_context_resolution",
+      "owner": "AgentCommandContextProvider",
+      "payload": {"type": []},
+      "returns": {"type": "object"},
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [42]
+    },
+    {
+      "name": "opus.test.unsupported_policy",
+      "kind": "filter",
+      "area": "test_area",
+      "phase": "before_use",
+      "owner": "TestOwner",
+      "payload": {"type": "objekt"},
+      "returns": {"type": "void", "properties": {"retryable": "boolen"}},
+      "mutability": "replace_in_place",
+      "exception_policy": "ignore_all_failures",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": {}
+    }
+  ],
+  "boundary_inventory": [
+    {
+      "area": "application_intake",
+      "status": "unknown",
+      "owner": [],
+      "extension_points": ["opus.intake.defaults", "opus.unknown"],
+      "rationale": 42
+    },
+    {
+      "area": "application_intake",
+      "status": "hooked",
+      "owner": "ApplicationIntakeService",
+      "extension_points": [],
+      "rationale": "duplicate"
+    },
+    {
+      "area": "other_area",
+      "status": "stronger_abstraction",
+      "owner": "OtherService",
+      "extension_points": ["opus.intake.defaults", "opus.agent.command_context"],
+      "rationale": "invalid ownership and duplicate coverage"
+    },
+    {
+      "area": "empty_hook_area",
+      "status": "hooked",
+      "owner": "EmptyHookOwner",
+      "extension_points": [],
+      "rationale": "invalid empty hooked boundary"
+    },
+    {
+      "area": "invalid_container",
+      "status": "intentionally_closed",
+      "owner": "InvalidContainerOwner",
+      "extension_points": {},
+      "rationale": "invalid extension-point container"
+    }
+  ]
+}

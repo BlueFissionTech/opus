@@ -93,7 +93,10 @@ php vendor/bin/opus-addon.php validate <addon-root>
 
 ### Event Management
 
-Opus's event management system allows you to hook into various events and filters, making it easy to extend and customize the framework's behavior.
+Opus's event management system exposes versioned DevElation filters and
+actions for bounded customization. See the
+[extension-point catalog](docs/extension-points.md) for names, payloads,
+ordering, failure policies, invariants, and intentionally closed boundaries.
 
 The lazy Wise command boundary publishes non-blocking `opus.agent.command_runtime.ready` and `opus.agent.command_runtime.unavailable` DevElation actions. Their payloads contain only stable status metadata; dependency injection remains the supported processor replacement boundary, and observer failures cannot alter command availability.
 

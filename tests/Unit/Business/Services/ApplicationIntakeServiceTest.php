@@ -205,6 +205,28 @@ final class ApplicationIntakeServiceTest extends TestCase
         });
     }
 
+    public function testStartedObserverFailuresPropagateAfterTheSessionIsPersisted(): void
+    {
+        $this->withDevElationHooks(function (): void {
+            $repository = $this->repository();
+            DevElation::action(
+                'opus.intake.session.transitioned',
+                static function (): void {
+                    throw new RuntimeException('intake_session_already_exists');
+                }
+            );
+
+            try {
+                (new ApplicationIntakeService($repository))->start('Workflow Studio');
+                $this->fail('Post-persistence observer failures must propagate.');
+            } catch (RuntimeException $exception) {
+                $this->assertSame('intake_session_already_exists', $exception->getMessage());
+            }
+
+            $this->assertSame(1, $repository->writes);
+        });
+    }
+
     public function testMissingSessionsReturnAStableFailure(): void
     {
         $service = new ApplicationIntakeService($this->repository());
