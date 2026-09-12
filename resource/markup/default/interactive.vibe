@@ -82,7 +82,7 @@
         <div id="mainArea" class="container supreme-container">
             <div class="content-body">
                 <h1 class="">{$name}</h1>
-                <p class="lead">AI First Application Development Platform</p>
+                <p class="lead">Automation and inference application platform</p>
             <style>
             body {
                 font-family: Courier, monospace;

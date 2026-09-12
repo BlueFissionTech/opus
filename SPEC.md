@@ -27,7 +27,8 @@ Framework owns:
 Framework does not own:
 
 - interpreter grammar or parser behavior
-- reusable intelligence algorithms below the application platform layer
+- reusable automation, inference, or machine-learning algorithms below the
+  application platform layer
 - external service credentials or deployment secrets
 - consumer-specific application features
 

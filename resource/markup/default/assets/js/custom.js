@@ -309,7 +309,7 @@ var story = [
         display: 'dialogue',
         method: 'add',
         style: 'dialogue',
-        content: "thank you for the opportunity to be involved in your project. I have extensive experience in the field of enterprise-scale distributed artificial intelligence services. My portfolio should demonstrate an accomplished history across a wide range of verticals and multiple business models. I look forward to hearing your reply to my bid. I am certain I'm the right fit for your team and can provide what you need for your interactive virtual concierge system software.",
+        content: "thank you for the opportunity to be involved in your project. I have extensive experience in the field of enterprise-scale distributed inference and automation services. My portfolio should demonstrate an accomplished history across a wide range of verticals and multiple business models. I look forward to hearing your reply to my bid. I am certain I'm the right fit for your team and can provide what you need for your interactive virtual concierge system software.",
         followup: 'pause',
     },
     {
@@ -766,7 +766,7 @@ var story = [
     {
         display: 'area',
         method: 'new',
-        content: "This particular client’s forward-thinking. When she gets in touch she's always antsy for a new algorithm or something, and people like me make it happen. That’s the way it works. Everyone with ideas is on the hunt for the next big thing. They believe the first crash was a fluke and that the Bubble can be rebuilt and stabilized while still sitting on a network of corporations that pump out as much as they suck up. Pipedreams, I say. It was then and it is now. That’s just what happens when you try to build a society on ether. On electricity and data. A kingdom in the cloud. I guess I’m part of the problem, though. Me and all the other AI building trash in this shop. Did you hear they're going to have rights soon? The AI. Saw it on the news myself.",
+        content: "This particular client’s forward-thinking. When she gets in touch she's always antsy for a new algorithm or something, and people like me make it happen. That’s the way it works. Everyone with ideas is on the hunt for the next big thing. They believe the first crash was a fluke and that the Bubble can be rebuilt and stabilized while still sitting on a network of corporations that pump out as much as they suck up. Pipedreams, I say. It was then and it is now. That’s just what happens when you try to build a society on ether. On electricity and data. A kingdom in the cloud. I guess I’m part of the problem, though. Me and all the other people building inference systems in this shop. Did you hear synthetic agents are going to have rights soon? Saw it on the news myself.",
         followup: 'pause',
     },
     {
@@ -821,7 +821,7 @@ var story = [
     {
         display: 'console',
         method: 'new',
-        content: "Algorithms are just processes, often sitting at the center of those platforms that are so popular. Optimize this. When something happens do that. This one is simple enough, though. At least to someone with my experience. After some time I've made huge progress in this module just in drawing out the basic logic alone. The data types for the inputs, the data shape of the output, the data mining for its collection, the database of its storage, every aspect of the data I could account for. I've even designed the training process for the deep neural net that sits at the core of the AI. That's really why I do this. To lose myself in the logic. There's a power in unlocking the potential of a device, in pushing the boundaries of code. Though pushing boundaries has its dark sides as well. Just look at the Valley disaster.",
+        content: "Algorithms are just processes, often sitting at the center of those platforms that are so popular. Optimize this. When something happens do that. This one is simple enough, though. At least to someone with my experience. After some time I've made huge progress in this module just in drawing out the basic logic alone. The data types for the inputs, the data shape of the output, the data mining for its collection, the database of its storage, every aspect of the data I could account for. I've even designed the training process for the deep neural net that sits at the core of the inference system. That's really why I do this. To lose myself in the logic. There's a power in unlocking the potential of a device, in pushing the boundaries of code. Though pushing boundaries has its dark sides as well. Just look at the Valley disaster.",
         followup: 'pause'
     },
     {
@@ -890,7 +890,7 @@ var story = [
     {
         display: 'console',
         method: 'new',
-        content: "There's a vital step to making it useful. First, I need to design a new psychograph for it. Almost all of the technology we use is built on psychographs. In fact, it's a necessary component for all the work I do specifically. If you could create a file format for the human soul, this is what it would be. Those cog AI wouldn't be getting rights if it weren't for that. I add some qualities and underlying values from my template. Nothing fancy, just a basic seed to build the brain from. Doesn't take long. I save and export it for my cog.",
+        content: "There's a vital step to making it useful. First, I need to design a new psychograph for it. Almost all of the technology we use is built on psychographs. In fact, it's a necessary component for all the work I do specifically. If you could create a file format for the human soul, this is what it would be. Those cognitive agents wouldn't be getting rights if it weren't for that. I add some qualities and underlying values from my template. Nothing fancy, just a basic seed to build the brain from. Doesn't take long. I save and export it for my cog.",
         followup: 'pause'
     },
     {

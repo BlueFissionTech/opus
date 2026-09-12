@@ -3,7 +3,8 @@
 This roadmap defines the product lines, release sequence, ownership boundaries,
 and evidence required to operate and publish Opus. GitHub issue
 [#102](https://github.com/BlueFissionTech/opus/issues/102) is the program
-tracker.
+tracker. The evidence-based product definition and capability review are
+tracked in [#113](https://github.com/BlueFissionTech/opus/issues/113).
 
 Roadmap entries describe intent and gates, not a claim that planned capabilities
 are already production-ready. Every release declaration must point to current,
@@ -28,6 +29,12 @@ It has five connected product responsibilities:
 5. **Materia integration proof:** production-shaped evidence that the Blue
    Fission libraries form a coherent application stack.
 
+The roadmap also distinguishes four ownership classes: native Opus
+capabilities, official package-owned add-ons, separate Opus service hosts, and
+separate community or ecosystem services. The marketplace/directory and the
+managed control plane are separate applications built with Opus; they are not
+framework-core behavior.
+
 ## Product Topology
 
 | Product surface | Responsibility | Deployment boundary | Tracker |
@@ -41,6 +48,124 @@ It has five connected product responsibilities:
 | Arkheion services | Enterprise service composition and operations for one reviewed add-on capability | One dedicated Opus installation per service | [#106](https://github.com/BlueFissionTech/opus/issues/106) |
 | Materia proof | Versioned integration, compatibility, failure, security, and operational evidence | Release-specific conformance snapshot | [#107](https://github.com/BlueFissionTech/opus/issues/107) |
 
+## Capability Status
+
+This ledger is the current planning baseline for Opus core. It excludes the
+domain behavior of individual add-ons. `Available` requires an intentional,
+documented access surface as well as implementation evidence. `Partial` means
+that useful code exists but a product, administration, security, lifecycle, or
+operational path remains incomplete. `Planned` has an accepted tracker.
+`Exploratory` is an implication or discussion, not a delivery commitment.
+
+The tables below are a readable summary. The machine-readable conformance
+record delivered through #107 must carry the following fields for every
+capability so that a label cannot substitute for evidence:
+
+| Field | Required content |
+| --- | --- |
+| State | Available, Partial, Planned, or Exploratory under the definitions above |
+| Ownership | Native Opus, package-owned add-on, service host, or ecosystem service |
+| Release lifecycle | `unreleased`, `supported`, `deprecated`, `retired`, or `not_applicable`; required for every capability and recorded separately from capability state |
+| Operational availability | Healthy, degraded, unavailable, or unknown for the evaluated environment |
+| Evidence | Current code, test, documentation, installation, and operating proof |
+| Dependencies | Required upstream releases, services, and unresolved contracts |
+| Launch gate | The exact condition that permits promotion to the next state |
+| Success measure | A reproducible user or operator outcome |
+| Risk | Security, compatibility, reliability, cost, privacy, or support exposure |
+| Commitment | Accepted delivery commitment or non-binding product aspiration |
+
+### Runtime And Extensibility
+
+| Capability | Status | Current evidence | Next gate |
+| --- | --- | --- | --- |
+| PHP application runtime and mappings | Available | BlueCore registration, HTTP routes, gateways, package bootstrap, and PHP 8.2 test baseline | Expand the supported runtime matrix under #104. |
+| Composer-installed host/package root isolation | Available | Runtime-root resolver, Composer binary entrypoint, package-theme tests; #50 closed | Preserve source/dist parity in every release. |
+| DevElation hooks and filters | Partial | Intake, conversation, profile, and command-runtime extension points exist | Complete the catalog and priority-boundary proof in #110 and PR #111. |
+| Optional runtime degradation and recovery | Partial | Lazy command-runtime failure handling and structured unavailable results exist | Complete passive discovery, authorized side-effect-free probes, operator-visible status, retry/replay/cancellation, dead-letter, and manual recovery in #125. |
+| Runtime contract proof | Available | `contract proof`, `contract targets`, and `contract validate` commands with fixtures | Bind proof to immutable releases in #107. |
+| Dependency provenance and VCS audit | Partial | Root-only registry, source transport, lock, and distribution checks | Deliver the credential-free public baseline in #56 and #104. |
+| Local Compose development profile | Partial | Compose assets and harness integration exist | Complete clean `/health` startup evidence in #20. |
+
+### Installation And Application Setup
+
+| Capability | Status | Current evidence | Next gate |
+| --- | --- | --- | --- |
+| CLI/runtime bootstrap | Available | Shared runtime bootstrap and terminal/add-on entrypoint tests | Include it in packaged install and upgrade proof. |
+| Ordered database initialization | Available | Idempotent initialization work completed in #25 | Repeat on every supported database target. |
+| Resumable application intake state | Partial | Persisted sessions, revision guard, defaults, and skip/pause/resume/complete transitions | Expose it through web, CLI, and conversation in #95. |
+| Guided web and CLI installation | Partial | Installation commands and intake domain exist but are not one guided flow | Complete the installer experience in #95 and release proof in #104. |
+| Vibe/JenSS intake blueprint | Planned | Accepted architecture in #95 | Author, version, validate, and persist the first production prompt. |
+| Provider selection and credential setup | Planned | Legacy OpenAI-compatible config exists, but no provider-neutral setup | Add optional hosted/local setup, secret references, policy, and connectivity proof through #95/#99/#29. |
+| Shadow-mode build request | Partial | Conversation defaults require shadow/review mode | Add an explicit button and Wise command, plan preview, approval, and persisted outcome in #95. |
+
+### Administration And Publishing
+
+| Capability | Status | Current evidence | Next gate |
+| --- | --- | --- | --- |
+| Administration shell and navigation | Partial | Authenticated Vibe shell and panels for dashboard, users, add-ons, content, media, and terminal | Replace demonstration data and connect complete governed services. |
+| Authentication and credentials | Partial | Login/logout, gateways, credential models, and password operations | Add session, recovery, policy, audit, and managed identity administration. |
+| Users | Partial | Basic admin listing, lookup, save, and credential status APIs | Add complete role, permission, tenant, lifecycle, invitation, and self-service controls. |
+| Roles, permissions, and explicit denies | Partial | Gateways plus agent/profile policy objects and tests | Provide one application/tenant/user administration surface with policy explanation. |
+| Tenant and application administration | Planned | Scope contracts exist in intake, profiles, and agents | Implement lifecycle and control-plane requirements in #103. |
+| Settings | Partial | Layered config and environment contracts exist | Add validated application, tenant, principal, provider, and secret-reference UI and commands. |
+| Pages/content | Partial | Basic content CRUD, templates, slug, URI, publish flag, and admin panel | Add revisions, preview, workflow, scheduling, taxonomy, deletion/recovery, and policy. |
+| Media | Partial | Admin panel and create modal exist | Complete storage, upload, metadata, policy, transformations, deletion, and API evidence. |
+| Navigation | Partial | Vibe menu composition and permission-aware menu objects exist | Add menu administration, stable destinations, and content/add-on contribution workflow. |
+| Themes | Partial | Vibe rendering, includes, sections, escaping, trusted markup, and host overrides exist | Add discovery, preview, activation, update, compatibility, accessibility, and rollback. |
+| Search, localization, comments, and taxonomy | Exploratory | Adjacent primitives exist but no complete Opus product contract | Decide core versus add-on ownership and open bounded issues. |
+
+### Commands, Generation, And Automation
+
+| Capability | Status | Current evidence | Next gate |
+| --- | --- | --- | --- |
+| Wise headless command host | Available | One structured host for CLI/programmatic execution, confirmation, diagnostics, and exit status; #9 closed | Keep channel behavior and release compatibility tested. |
+| Interactive CLI | Partial | `cmd i` loop with structured execution and pinned confirmations | Add discoverable setup/help and operator documentation before claiming availability. |
+| Browser terminal/TTY | Partial | Admin panel, xterm assets, and optional Ratchet transport exist | Select the production transport and add authentication, reconnect, resize, cancellation, isolation, and load proof under #13. |
+| UI/CLI command parity | Partial | Shared service boundaries exist for some operations | Publish a parity matrix and route every supported control through one owning operation. |
+| Vibe rendering and bounded file generation | Available | Syntax validation, deterministic rendering, safe paths, and structured results | Add reviewed catalogs and approval/rollback workflows. |
+| General code scaffolding | Partial | `CodeManager` and Vibe generation service exist; the default code command remains unregistered | Define scaffold types, preview/diff, authorization, validation, and rollback under #13/#95. |
+| Canonical add-on generator and validator | Partial | Composer binary, structural validation, templates, and standalone/embedded tests exist | Finish lifecycle and compatibility acceptance in #43. |
+| Curated starter add-on profile | Planned | The initial MCP service, contact-intake, and Annex-profile package set is accepted | Define the versioned, skippable, permission-gated distribution profile and independent lifecycle proof in #119. |
+| Add-on feature groups, tags, and impact analysis | Planned | Product requirements define many-to-many organization without conflating tags and dependencies | Deliver scalable administration, shared API/Wise services, and fail-closed lifecycle previews in #120. |
+| Scheduled work, queues, todos, notes, calendars, goals, and steps | Partial | Wise resources and scoped profile maps exist | Add persistent profile adapters, user/tenant administration, policy, and operational views in #99. |
+
+### Conversation, Inference, And Agents
+
+| Capability | Status | Current evidence | Next gate |
+| --- | --- | --- | --- |
+| BotMan web and CLI conversation adapters | Partial | Chat route, widget, CLI driver, and middleware exist | Bind complete scoped conversation outcomes, identity, provider selection, and error presentation. |
+| Deterministic conversation and command seeds | Available | Versioned intents, safe fallbacks, and shadow/review defaults exist | Add idempotent persistence and administration in #99. |
+| Scoped private Wise profiles | Partial | Application/tenant/principal policy and profile isolation are tested | Complete the function adapter, persistent resources, delegation administration, and concurrency proof in #99. |
+| Central agent capability map | Available | Versioned root map, validation, filtered discovery/invocation, and deny-by-default resolution; #66 closed | Add operator configuration and complete runtime/provider acceptance. |
+| Add-on specialist capability maps | Available | Declared/generated/central/disabled modes and leakage tests exist | Complete add-on lifecycle integration and administration. |
+| Provider-neutral runtime composition | Partial | Descriptors, factories, lifecycle, execution fences, cancellation, and state stores exist | Add provider/profile adapters, configuration, teardown, and production recovery in #29. |
+| Central-to-specialist delegation | Partial | Bounded Automata delegation and normalized outcomes exist | Add explicit peer collaboration, operator visibility, approval, and production proof in #29. |
+| Multiple providers and self-hosted models | Planned | Runtime interfaces permit opaque provider profiles | Implement settings, routing, fallback, budget, privacy, and health contracts. |
+| Optional Blue Fission inference service | Exploratory | Product need identified; no owning service or release evidence exists | Define provider contract, operating policy, privacy, cost, availability, and fallback before commitment. |
+| Machine-learning observation and promotion | Partial | Shadow defaults, privacy exclusions, scoped cache identity, and review rules exist | Add reviewed persistence, evaluation, approval, activation, rollback, and audit in #99. |
+
+### Governance, Operations, And Ecosystem
+
+| Capability | Status | Current evidence | Next gate |
+| --- | --- | --- | --- |
+| Structured outcomes and diagnostics | Partial | Command presentations, readiness normalization, reason codes, and correlation context exist | Make coverage consistent across every core operation. |
+| Unified activity history and explainability | Partial | Intake revisions, command diagnostics, agent state, and package traces are separate | Build the #124 redacted operator timeline with evidence, grant, approval, retry, cancellation, and rollback context. |
+| Approval and shadow execution | Partial | Policy contracts require review and pin continuations | Add queue, review, approval/rejection, scheduling, execution, and revocation administration. |
+| Health, readiness, logs, metrics, and support evidence | Partial | Runtime and lifecycle readiness primitives exist | Complete operator dashboards, alerts, repair actions, retention, and support bundles. |
+| Backup, restore, export, and deletion | Planned | Accepted managed/self-hosted requirements | Implement and prove in #103 and #104. |
+| Core/add-on/theme updates and rollback | Planned | Dependency and package audits exist | Add signed update channels, compatibility plans, maintenance mode, backup, health check, and rollback in #104/#105. |
+| Resettable demonstration host | Planned | #122 defines the native isolation, expiry, reset, audit, and outbound-denial contract | Prove it after #104 distribution and #107 evidence contracts, with add-on-owned synthetic fixtures. |
+| Managed Opus service | Planned | Product boundary accepted | Deliver isolated provisioning and operating evidence in #103. |
+| Self-hosted public distribution | Planned | Product boundary accepted | Deliver reproducible public artifacts, machine-readable path ownership/conflict policy, downstream conformance commands, and lifecycle evidence in #104. |
+| Add-on marketplace | Planned | Discovery, trust, entitlement, and install separation accepted | Deliver the dedicated application in #105. |
+| Annex capability directory | Planned | Directory boundary and authorization separation accepted | Deliver versioned discovery and conformance through #105 and Annex-owned contracts. |
+| Materia conformance publication | Planned | Runtime and dependency proofs provide starting evidence | Publish an immutable release matrix in #107. |
+| Arkheion service promotion | Planned | Shared host/add-on boundary is documented | Prove the promotion contract in #106 without moving add-on domains into core. |
+| Accessibility, localization, telemetry, and support policy | Exploratory | Required release concerns are recognized | Assign owners, baselines, consent rules, and tracked delivery issues. |
+
+The detailed product boundary is in [PRODUCT.md](PRODUCT.md), and functional
+requirements and release gates are in [PRD.md](PRD.md).
+
 ## Architecture Invariants
 
 - Opus owns application composition and policy. Direct upstream libraries retain
@@ -48,8 +173,18 @@ It has five connected product responsibilities:
 - Managed-hosting policy must not leak into the reusable self-hosted package.
 - Add-on domain behavior stays in the add-on. A service host composes a reviewed
   release and does not fork that behavior.
+- Every hosted domain capability must first be a standalone, independently
+  versioned add-on that passes generic Opus conformance and produces a
+  marketplace-ready artifact.
+- Service repositories own deployment overlays and operations only. Behavioral
+  fixes must return to the add-on and be released before service consumption.
 - Marketplace discovery, package entitlement, installation approval, runtime
   authorization, and agent capability grants are separate decisions.
+- Starter-package availability, selection, installation, activation, network
+  exposure, credentials, and agent grants are separate decisions.
+- Feature groups and tags are many-to-many organizational metadata; only
+  package manifests and resolved capability contracts establish authoritative
+  dependencies.
 - Annex directory metadata can describe a compatible capability but cannot
   authorize or execute it.
 - Central and specialist agents are provider-neutral and deny-by-default.
@@ -78,6 +213,72 @@ It has five connected product responsibilities:
 The tracks can advance in parallel, but a later promotion cannot bypass an
 earlier dependency or evidence gate.
 
+The reviewed delivery order is organized into planning windows, not release
+date promises.
+
+### 0-30 Day Contract Window
+
+1. Land the extension-point catalog in #110/PR #111 and continue bounded
+   lifecycle, request/response, rendering, settings, and interoperability
+   adoption without weakening post-filter invariants.
+2. Prove the reproducible self-hosted distribution in #104, including exact
+   version identity, install/start, health/readiness, configuration validation,
+   machine-readable path ownership/conflict policy, downstream conformance
+   commands, recovery, and rollback evidence.
+3. Publish the ownership and conformance taxonomy in #107 and use Kapsle #81,
+   after its #109 tenant-status correction, as the first standalone add-on
+   canary. Validate Hoom independently after Kapsle passes.
+4. Complete #120 feature grouping and dependency-aware lifecycle impact, and
+   define operator-visible unavailable, disabled, degraded, retry, dead-letter,
+   and recovery behavior for optional runtimes in #125 without disabling the
+   host application.
+5. Prove resettable synthetic tenant host conformance in #122, then permit #119
+   to compose a synthetic-only starter profile from reviewed add-on artifacts.
+
+### 31-90 Day Product Window
+
+1. Complete resumable onboarding and side-effect-free guidance in #95 and
+   #101, consuming the scoped profile contracts already delivered under #99.
+2. Prove the independent add-on/service-host template in #106 with workers,
+   telemetry, rollback, secret ownership, and cost attribution.
+3. Deliver the minimum marketplace and Annex directory service in #105 only
+   after direct installation and lifecycle conformance are reproducible.
+4. Advance further add-on and service waves according to measured need, then
+   deliver managed-platform work in #103 only after the preceding gates pass.
+
+This ordering is a planning dependency graph. It does not authorize release,
+deployment, spending, or production promotion.
+
+### Production Consumer Calibration
+
+A production consumer is a demand signal, not a source of Opus domain
+semantics. Reviewed operating feedback prioritizes reusable platform work in
+this order:
+
+1. stable authentication, tenant and policy context, billing-access boundaries,
+   health, and onboarding contracts;
+2. versioned read/write request-result contracts, documents, messaging, and
+   provider adapters;
+3. bounded asynchronous workers and operational integration support;
+4. advanced generation, comprehension, decision support, and real-time features
+   only after the preceding gates are stable;
+5. independent service extraction only when measured load, support, or cost
+   justifies it and the add-on-first promotion contract already passes.
+
+An unreleased Opus change must not become a hidden prerequisite for a consumer
+cutover. Every requested platform release identifies the exact gate it unlocks,
+and integrations retain a versioned adapter plus feature-flagged degraded or
+manual operation. Consumer-owned identity, policy, durable workflow state, and
+user-visible outcomes remain with the consumer unless an explicit reusable
+contract says otherwise.
+
+The first external conformance pilot must use an allowlisted, versioned,
+synthetic input and produce a deterministic dry-run plan with all provider
+writes disabled. Evidence covers valid, duplicate, replayed, stale, missing-
+consent, invalid-mapping, unavailable-provider, denied-action, and traceable-
+outcome cases. The pilot cannot block the consumer's production cutover or
+transfer domain authority into Opus.
+
 ### Phase 0: Foundation and Repeatability
 
 - Resolve all required dependencies from reviewed public releases.
@@ -94,42 +295,18 @@ earlier dependency or evidence gate.
 - Keep test fixtures provider-neutral, offline by default, and free of protected
   data.
 
-### Phase 1: Managed Platform Alpha
-
-- Provision and remove an isolated application through an idempotent workflow.
-- Establish tenant/application identity, lifecycle, quotas, audit, backup,
-  recovery, export, and deletion.
-- Exercise the admin surface, Wise command parity, central agent, one specialist
-  add-on, and dry-run automation.
-- Define support, incident, metering, billing, and service-level boundaries.
-- Run production-shaped internal workloads before external availability.
-
-### Phase 2: Marketplace and Directory Alpha
-
-- Publish one reviewed add-on release with provenance, signature,
-  compatibility, license, maturity, and lifecycle evidence.
-- Publish one Annex-compatible directory entry with a versioned manifest, trust
-  references, freshness, and capability metadata.
-- Prove public and organization-private visibility without metadata leakage.
-- Prove search, inspection, policy review, install, update, rollback, withdraw,
-  and deprecate paths.
-- Keep discovery separate from execution and privilege grants.
-
-### Phase 3: Arkheion First Service Wave
-
-- Use the shared promotion contract for the first approved add-on services.
-- Deploy each service as a dedicated Opus installation on OCI.
-- Prove API, Wise command, specialist-agent, and Annex manifest compatibility
-  where those surfaces are declared.
-- Prove TLS, secrets, persistence, tenancy, rate limits, observability, backup,
-  rollout, rollback, and disaster recovery.
-- Expand to later Arkheion services only after their prerequisites and current
-  portfolio priority are explicit.
-
-### Phase 4: Self-Hosted Public Release
+### Phase 1: Conformance And Self-Hosted Release Candidate
 
 - Freeze a supported upstream compatibility matrix.
-- Produce reproducible source and distribution archives with source/dist parity.
+- Complete the versioned extension catalog in #110 and resolve release-blocking
+  package conformance defects.
+- Produce reproducible source and distribution archives with source/dist parity
+  under #104.
+- Publish a machine-readable path-ownership/conflict manifest and reusable
+  downstream install, update, recovery, and rollback conformance commands;
+  preserve unrelated host-owned files and reject unrelated-history merges.
+- Publish the ownership and Materia conformance taxonomy in #107 and validate
+  the first standalone add-on canary.
 - Publish checksums, provenance, dependency and license inventories, release
   notes, migration guidance, and security/support policies.
 - Verify documented web and CLI installation, upgrade, backup, recovery, and
@@ -140,7 +317,60 @@ earlier dependency or evidence gate.
 - Tie the release to an immutable Materia conformance snapshot.
 - Exclude all private deployment assets and separately licensed themes.
 
-### Phase 5: Production Expansion
+### Phase 2: Official Add-On And Service-Host Proof
+
+- Validate one official add-on end to end as the extension conformance canary,
+  then repeat with a distinct identity-oriented add-on.
+- Publish the #119 starter-profile manifest and prove all, none, and selected
+  package installation without implicit activation or authority.
+- Deliver #120 feature groups, tags, filtering, and lifecycle impact previews
+  before using the starter profile as a foundation for larger installations.
+- Prove direct Composer installation before marketplace delivery.
+- Use the shared #106 promotion contract to build one lean service-host
+  template without moving package-owned domain behavior into Opus core.
+- Prove API, Wise command, specialist-agent, and Annex manifest compatibility
+  only where those surfaces are declared.
+- Keep deployment, spending, DNS, and production promotion behind explicit
+  human and operating-policy approval.
+
+### Phase 3: Marketplace And Directory Minimum Service
+
+- Operate the marketplace and Annex directory as a separate Opus application.
+- Publish one reviewed add-on release with provenance, signature,
+  compatibility, license, maturity, and lifecycle evidence.
+- Publish one Annex-compatible directory entry with a versioned manifest,
+  trust references, freshness, and capability metadata.
+- Prove public and organization-private visibility without metadata leakage.
+- Prove search, inspection, policy review, install, update, rollback, withdraw,
+  and deprecate paths.
+- Keep discovery, entitlement, installation approval, runtime grants, and
+  execution as separate decisions.
+
+### Phase 4: Guided Application Experience
+
+- Complete resumable onboarding, private profiles, provider-neutral setup, and
+  side-effect-free consulting guidance under #95, #99, and #101.
+- Exercise the admin surface, Wise command parity, central agent, one
+  specialist, and dry-run automation.
+- Compose one package-owned deterministic fixture through a standalone runtime
+  and an Opus host with matching checksum and normalized outcome; keep scenario,
+  simulation, renderer, and walkthrough semantics in their owning packages.
+- Add explainable history, approval, generation preview/apply/rollback, and
+  complete user/tenant administration.
+- Advance additional add-on and service work in evidence- and value-based
+  waves rather than by catalog breadth.
+
+### Phase 5: Managed Platform Alpha
+
+- Provision and remove an isolated application through an idempotent workflow.
+- Establish tenant/application identity, lifecycle, quotas, audit, backup,
+  recovery, export, and deletion.
+- Define support, incident, metering, billing, cost-control, and service-level
+  boundaries.
+- Prove self-host parity, tenant isolation, rollback, and bounded operating cost.
+- Run production-shaped internal workloads before external availability.
+
+### Phase 6: Production Expansion
 
 - Advance managed platform and service availability by measured readiness rather
   than catalog size.
@@ -200,14 +430,18 @@ promotion in [#106](https://github.com/BlueFissionTech/opus/issues/106).
 
 Each Arkheion capability follows this progression:
 
-1. package-owned contract;
-2. canonical Opus add-on;
-3. clean embedded-host evidence;
-4. reviewed marketplace artifact;
-5. dedicated Opus service composition;
-6. OCI operational evidence;
-7. controlled enterprise availability;
-8. broader availability only when maturity, support, and business gates are met.
+1. package-owned contract and authoritative add-on repository;
+2. immutable, independently versioned canonical Opus add-on;
+3. clean installation and complete lifecycle evidence in a generic Opus host;
+4. tenancy, authorization, Wise/agent, Annex, health, upgrade, rollback, and
+   uninstall evidence where those surfaces are declared;
+5. reviewed marketplace-ready artifact, published according to its approved
+   public, private, or limited-availability policy;
+6. dedicated Opus service composition that contains no authoritative domain
+   fork;
+7. OCI operational, service-objective, recovery, and cost evidence;
+8. controlled enterprise availability;
+9. broader availability only when maturity, support, and business gates are met.
 
 The separately licensed Snow theme may be supplied to approved Arkheion
 deployments, but it is not an Opus default and must never enter public
@@ -230,9 +464,16 @@ must identify the applicable evidence:
 
 - source commit, package versions, archive or image digest, and provenance;
 - compatibility and migration matrix;
+- stable request/result contract versions and owning repositories;
 - unit, contract, integration, lifecycle, and production-shaped test results;
 - security audit, threat boundaries, authorization, tenancy, and redaction
   evidence;
+- service objectives, idempotency, retries, cancellation, dead-letter behavior,
+  feature flags, graceful fallback or manual operation, and decommission plan;
+- tenant/authentication/IDOR fixtures, retry/replay/degraded behavior, measured
+  latency/error/queue evidence, and bounded staging-cohort results where an
+  external production consumer is involved;
+- resource and cost baseline with the outcome or capacity measure it supports;
 - performance, load, timeout, cancellation, retry, and recovery behavior;
 - health, readiness, diagnostics, logs, metrics, traces, and alert coverage;
 - backup, restore, rollout, rollback, and disaster-recovery evidence;
@@ -241,8 +482,8 @@ must identify the applicable evidence:
 - the versioned DevElation extension-point catalog, payload compatibility,
   execution order, post-filter invariant tests, and deprecation evidence tracked
   in [#110](https://github.com/BlueFissionTech/opus/issues/110);
-- explicit maturity: planned, experimental, evolving, stable, deprecated, or
-  unavailable.
+- the four-value capability State, separate release lifecycle, and separate
+  operational availability defined by the conformance schema above.
 
 Unknown evidence remains unknown. It must not be inferred from adjacent package
 or deployment success.
