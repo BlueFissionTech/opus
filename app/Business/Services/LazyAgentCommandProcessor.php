@@ -30,7 +30,7 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
         try {
             $processor = $this->processor();
         } catch (Throwable) {
-            $this->publishRuntimeAction('opus.agent.command_runtime.unavailable', [
+            $this->publishRuntimeAction(ExtensionPointCatalog::AGENT_COMMAND_RUNTIME_UNAVAILABLE, [
                 'status' => 'unavailable',
                 'reason' => 'command_runtime_unavailable',
                 'retryable' => true,
@@ -64,7 +64,7 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
         }
 
         $this->processor = $processor;
-        $this->publishRuntimeAction('opus.agent.command_runtime.ready', [
+        $this->publishRuntimeAction(ExtensionPointCatalog::AGENT_COMMAND_RUNTIME_READY, [
             'status' => 'ready',
             'source' => $this->factory === null ? 'application' : 'factory',
         ]);

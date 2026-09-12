@@ -62,7 +62,7 @@ final class ConversationalLearningCatalog
             ->mergeRecursive($tenant)
             ->mergeRecursive($principal);
 
-        $filtered = DevElation::apply('opus.conversation.settings', [
+        $filtered = DevElation::apply(ExtensionPointCatalog::CONVERSATION_SETTINGS, [
             'settings' => $settings->toArray(),
             'layers' => [
                 'application' => $application,
@@ -122,7 +122,7 @@ final class ConversationalLearningCatalog
             'review' => $this->review->toArray(),
         ];
 
-        $filtered = DevElation::apply('opus.conversation.configuration', [
+        $filtered = DevElation::apply(ExtensionPointCatalog::CONVERSATION_CONFIGURATION, [
             'configuration' => $configuration,
             'profile' => [
                 'scope' => $profile->key(),
