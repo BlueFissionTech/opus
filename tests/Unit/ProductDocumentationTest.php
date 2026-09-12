@@ -106,6 +106,7 @@ class ProductDocumentationTest extends TestCase
             'Run `help ai-powered applications`.',
             '<Command>help ai-powered applications</Command>',
             'Build `AI`-powered applications.',
+            'Configure `AI` for this application.',
         ] as $content) {
             $this->assertMatchesRegularExpression(
                 self::BLANKET_CAPABILITY_PATTERN,
@@ -217,7 +218,7 @@ class ProductDocumentationTest extends TestCase
                 '/\bAIResource\b/',
                 '#(<Command>\s*(?:list|show|find|get|do|help)\s+)ai(?=\s|</Command>)#i',
                 '/(`(?:list|show|find|get|do|help)\s+)ai(?=\s|`)/i',
-                '/(?<![A-Za-z0-9_-])`ai`(?![A-Za-z0-9_-])/i',
+                '/(?<![A-Za-z0-9_-])`ai`(?![A-Za-z0-9_-])/',
                 '#common/config/ai\.php#i',
             ],
             [
