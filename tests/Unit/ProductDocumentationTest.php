@@ -88,7 +88,8 @@ class ProductDocumentationTest extends TestCase
 
     public function testCompatibilityIdentifiersRemainValidInterfaceCopy(): void
     {
-        $content = 'Run `list ai for "provider"` or `ai` with AIResource from common/config/ai.php.';
+        $content = 'Run `/list ai for "provider"`, <Command>/help ai</Command>, or `/ai` '
+            . 'with AIResource from common/config/ai.php.';
 
         $this->assertDoesNotMatchRegularExpression(
             self::BLANKET_CAPABILITY_PATTERN,
@@ -218,9 +219,9 @@ class ProductDocumentationTest extends TestCase
         return preg_replace(
             [
                 '/\bAIResource\b/',
-                '#(<Command>\s*(?:list|show|find|get|do|help)\s+)ai(?=\s|</Command>)#',
-                '/(`(?:list|show|find|get|do|help)\s+)ai(?=\s|`)/',
-                '/(?<![A-Za-z0-9_-])`ai`(?![A-Za-z0-9_-])/',
+                '#(<Command>\s*/?(?:list|show|find|get|do|help)\s+)ai(?=\s|</Command>)#',
+                '/(`\/?(?:list|show|find|get|do|help)\s+)ai(?=\s|`)/',
+                '/(?<![A-Za-z0-9_-])`\/?ai`(?![A-Za-z0-9_-])/',
                 '#common/config/ai\.php#i',
             ],
             [
