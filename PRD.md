@@ -546,8 +546,8 @@ Initial measures are release gates rather than adoption targets:
 - One central-to-specialist delegation proves no central, peer, profile, or
   tenant tool leakage.
 - One generated scaffold can be reviewed, written, validated, and rolled back.
-- One add-on can install, activate, update, deactivate, and remove repeatedly
-  with exact readiness results.
+- One add-on can install, activate, suspend, resume, upgrade, deactivate, and
+  remove repeatedly with exact readiness results.
 - A starter profile can install all, none, or a selected subset of its packages
   without granting network or agent authority implicitly.
 - An operator can group and tag at least 100 add-ons, and a lifecycle preview

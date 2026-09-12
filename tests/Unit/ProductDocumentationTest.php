@@ -105,6 +105,7 @@ class ProductDocumentationTest extends TestCase
             '<Command>help ai for AI-powered applications</Command>',
             'Run `help ai-powered applications`.',
             '<Command>help ai-powered applications</Command>',
+            'Build `AI`-powered applications.',
         ] as $content) {
             $this->assertMatchesRegularExpression(
                 self::BLANKET_CAPABILITY_PATTERN,
@@ -139,6 +140,10 @@ class ProductDocumentationTest extends TestCase
         );
         $this->assertStringContainsString('many-to-many feature groups', $documents['PRD.md']);
         $this->assertStringContainsString('complete #120 impact contract', $documents['PRD.md']);
+        $this->assertStringContainsString(
+            'install, activate, suspend, resume, upgrade, deactivate, and',
+            $documents['PRD.md']
+        );
         $this->assertStringContainsString('fail-closed lifecycle previews', $documents['ROADMAP.md']);
         $this->assertStringContainsString(
             '`unreleased`, `supported`, `deprecated`, `retired`, or `not_applicable`',
@@ -212,7 +217,7 @@ class ProductDocumentationTest extends TestCase
                 '/\bAIResource\b/',
                 '#(<Command>\s*(?:list|show|find|get|do|help)\s+)ai(?=\s|</Command>)#i',
                 '/(`(?:list|show|find|get|do|help)\s+)ai(?=\s|`)/i',
-                '/`ai`/i',
+                '/(?<![A-Za-z0-9_-])`ai`(?![A-Za-z0-9_-])/i',
                 '#common/config/ai\.php#i',
             ],
             [
