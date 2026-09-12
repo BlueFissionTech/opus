@@ -31,14 +31,77 @@ final class ExtensionPointCatalog extends Service
         self::CONVERSATION_CONFIGURATION,
     ];
 
-    private const KINDS_BY_NAME = [
-        self::INTAKE_DEFAULTS => 'filter',
-        self::INTAKE_SESSION_TRANSITIONED => 'action',
-        self::AGENT_COMMAND_CONTEXT => 'filter',
-        self::AGENT_COMMAND_RUNTIME_READY => 'action',
-        self::AGENT_COMMAND_RUNTIME_UNAVAILABLE => 'action',
-        self::CONVERSATION_SETTINGS => 'filter',
-        self::CONVERSATION_CONFIGURATION => 'filter',
+    private const RUNTIME_CONTRACTS = [
+        self::INTAKE_DEFAULTS => [
+            'kind' => 'filter',
+            'area' => 'application_intake',
+            'phase' => 'before_session_creation',
+            'owner' => 'ApplicationIntakeService',
+            'mutability' => 'replace_value',
+            'exception_policy' => 'propagate_before_write',
+            'payload_type' => 'object',
+            'return_type' => 'object',
+        ],
+        self::INTAKE_SESSION_TRANSITIONED => [
+            'kind' => 'action',
+            'area' => 'application_intake',
+            'phase' => 'after_persistence',
+            'owner' => 'ApplicationIntakeService',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'propagate_after_commit',
+            'payload_type' => 'object',
+            'return_type' => 'void',
+        ],
+        self::AGENT_COMMAND_CONTEXT => [
+            'kind' => 'filter',
+            'area' => 'agent_wise_runtime',
+            'phase' => 'after_authoritative_context_resolution',
+            'owner' => 'AgentCommandContextProvider',
+            'mutability' => 'replace_value',
+            'exception_policy' => 'propagate_before_execution',
+            'payload_type' => 'object',
+            'return_type' => 'object',
+        ],
+        self::AGENT_COMMAND_RUNTIME_READY => [
+            'kind' => 'action',
+            'area' => 'agent_wise_runtime',
+            'phase' => 'after_runtime_construction',
+            'owner' => 'LazyAgentCommandProcessor',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'return_type' => 'void',
+        ],
+        self::AGENT_COMMAND_RUNTIME_UNAVAILABLE => [
+            'kind' => 'action',
+            'area' => 'agent_wise_runtime',
+            'phase' => 'after_runtime_construction_failure',
+            'owner' => 'LazyAgentCommandProcessor',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'return_type' => 'void',
+        ],
+        self::CONVERSATION_SETTINGS => [
+            'kind' => 'filter',
+            'area' => 'scoped_profiles_conversation',
+            'phase' => 'after_layer_composition',
+            'owner' => 'ConversationalLearningCatalog',
+            'mutability' => 'replace_value',
+            'exception_policy' => 'propagate_before_use',
+            'payload_type' => 'object',
+            'return_type' => 'object',
+        ],
+        self::CONVERSATION_CONFIGURATION => [
+            'kind' => 'filter',
+            'area' => 'scoped_profiles_conversation',
+            'phase' => 'after_scoped_configuration_composition',
+            'owner' => 'ConversationalLearningCatalog',
+            'mutability' => 'replace_value',
+            'exception_policy' => 'propagate_before_use',
+            'payload_type' => 'object',
+            'return_type' => 'object',
+        ],
     ];
 
     private const INVENTORY_STATUSES = ['hooked', 'intentionally_closed', 'stronger_abstraction'];
@@ -224,16 +287,13 @@ final class ExtensionPointCatalog extends Service
         if (!$kindIsSupported) {
             $invalid->push($name . ' has an invalid kind');
         }
-        $expectedKind = Arr::make(self::KINDS_BY_NAME)->get($name);
-        if ($kindIsSupported && Str::is($expectedKind) && $kind !== $expectedKind) {
-            $invalid->push($name . ' has kind ' . $kind . ' but runtime kind is ' . $expectedKind);
-        }
         Arr::make(['area', 'phase', 'owner', 'mutability', 'exception_policy', 'ordering'])
             ->each(function (string $field) use ($definition, $invalid, $name): void {
                 if (!$this->isNonemptyString($definition->get($field))) {
                     $invalid->push($name . ' is missing ' . $field);
                 }
             });
+        $this->validateRuntimeContract($definition, $name, $invalid);
         if ($definition->get('ordering') !== self::EXECUTION_ORDER) {
             $invalid->push($name . ' has an unsupported execution order');
         }
@@ -345,6 +405,51 @@ final class ExtensionPointCatalog extends Service
             }
             $covered->push($name);
         });
+    }
+
+    private function validateRuntimeContract(Arr $definition, string $name, Arr $invalid): void
+    {
+        if (!Arr::make(self::NAMES)->has($name, true)) {
+            return;
+        }
+
+        $contract = Arr::make(self::RUNTIME_CONTRACTS)->get($name);
+        if (!Arr::is($contract)) {
+            $invalid->push($name . ' is missing its runtime contract');
+            return;
+        }
+
+        $contract = Arr::make($contract);
+        Arr::make(['kind', 'area', 'phase', 'owner', 'mutability', 'exception_policy'])
+            ->each(function (string $field) use ($contract, $definition, $invalid, $name): void {
+                $actual = $definition->get($field);
+                $expected = $contract->get($field);
+                if ($actual === $expected) {
+                    return;
+                }
+                if ($field === 'kind' && Str::is($actual) && Str::is($expected)) {
+                    $invalid->push(
+                        $name . ' has kind ' . $actual . ' but runtime kind is ' . $expected
+                    );
+                    return;
+                }
+                $invalid->push($name . ' does not match runtime ' . $field);
+            });
+
+        Arr::make(['payload' => 'payload_type', 'returns' => 'return_type'])
+            ->each(function (string $contractField, string $shape) use (
+                $contract,
+                $definition,
+                $invalid,
+                $name
+            ): void {
+                $schema = $definition->get($shape);
+                if (Arr::is($schema)
+                    && Arr::make($schema)->get('type') !== $contract->get($contractField)
+                ) {
+                    $invalid->push($name . ' does not match runtime ' . $shape . ' type');
+                }
+            });
     }
 
     private function validateSchema(

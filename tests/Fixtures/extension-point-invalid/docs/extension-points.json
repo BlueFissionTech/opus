@@ -42,6 +42,19 @@
       "invariants": []
     },
     {
+      "name": "opus.intake.session.transitioned",
+      "kind": "action",
+      "area": "application_intake",
+      "phase": "after_persistence",
+      "owner": "ApplicationIntakeService",
+      "payload": {"type": "object"},
+      "returns": {"type": "void"},
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": []
+    },
+    {
       "name": "opus.agent.command_context",
       "kind": "action",
       "area": "agent_wise_runtime",
