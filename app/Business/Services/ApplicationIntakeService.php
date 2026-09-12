@@ -59,7 +59,7 @@ final class ApplicationIntakeService
         }
 
         try {
-            return $this->persistTransition('started', $candidate);
+            $saved = $this->repository->save($candidate);
         } catch (RuntimeException $exception) {
             if ($exception->getMessage() !== 'intake_session_already_exists') {
                 throw $exception;
@@ -75,6 +75,10 @@ final class ApplicationIntakeService
 
             return $existing;
         }
+
+        $this->publishTransition('started', $saved);
+
+        return $saved;
     }
 
     public function find(string $sessionId): ?ApplicationIntakeSession
@@ -156,11 +160,18 @@ final class ApplicationIntakeService
     ): ApplicationIntakeSession {
         $saved = $this->repository->save($session);
 
+        $this->publishTransition($transition, $saved);
+
+        return $saved;
+    }
+
+    private function publishTransition(
+        string $transition,
+        ApplicationIntakeSession $saved
+    ): void {
         DevElation::do(ExtensionPointCatalog::INTAKE_SESSION_TRANSITIONED, [[
             'transition' => $transition,
             'session' => $saved->toArray(),
         ]]);
-
-        return $saved;
     }
 }

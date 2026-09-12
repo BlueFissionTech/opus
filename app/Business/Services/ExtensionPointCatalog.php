@@ -40,7 +40,9 @@ final class ExtensionPointCatalog extends Service
             'mutability' => 'replace_value',
             'exception_policy' => 'propagate_before_write',
             'payload_type' => 'object',
+            'payload_required' => ['defaults', 'context'],
             'return_type' => 'object',
+            'return_required' => ['defaults'],
         ],
         self::INTAKE_SESSION_TRANSITIONED => [
             'kind' => 'action',
@@ -50,7 +52,9 @@ final class ExtensionPointCatalog extends Service
             'mutability' => 'observe_only',
             'exception_policy' => 'propagate_after_commit',
             'payload_type' => 'object',
+            'payload_required' => ['transition', 'session'],
             'return_type' => 'void',
+            'return_required' => [],
         ],
         self::AGENT_COMMAND_CONTEXT => [
             'kind' => 'filter',
@@ -60,7 +64,9 @@ final class ExtensionPointCatalog extends Service
             'mutability' => 'replace_value',
             'exception_policy' => 'propagate_before_execution',
             'payload_type' => 'object',
+            'payload_required' => ['agent_id', 'active_addons', 'addon_states', 'capabilities'],
             'return_type' => 'object',
+            'return_required' => [],
         ],
         self::AGENT_COMMAND_RUNTIME_READY => [
             'kind' => 'action',
@@ -70,7 +76,9 @@ final class ExtensionPointCatalog extends Service
             'mutability' => 'observe_only',
             'exception_policy' => 'ignore_observer_failure',
             'payload_type' => 'object',
+            'payload_required' => ['status', 'source'],
             'return_type' => 'void',
+            'return_required' => [],
         ],
         self::AGENT_COMMAND_RUNTIME_UNAVAILABLE => [
             'kind' => 'action',
@@ -80,7 +88,9 @@ final class ExtensionPointCatalog extends Service
             'mutability' => 'observe_only',
             'exception_policy' => 'ignore_observer_failure',
             'payload_type' => 'object',
+            'payload_required' => ['status', 'reason', 'retryable'],
             'return_type' => 'void',
+            'return_required' => [],
         ],
         self::CONVERSATION_SETTINGS => [
             'kind' => 'filter',
@@ -90,7 +100,9 @@ final class ExtensionPointCatalog extends Service
             'mutability' => 'replace_value',
             'exception_policy' => 'propagate_before_use',
             'payload_type' => 'object',
+            'payload_required' => ['settings', 'layers'],
             'return_type' => 'object',
+            'return_required' => ['settings'],
         ],
         self::CONVERSATION_CONFIGURATION => [
             'kind' => 'filter',
@@ -100,7 +112,9 @@ final class ExtensionPointCatalog extends Service
             'mutability' => 'replace_value',
             'exception_policy' => 'propagate_before_use',
             'payload_type' => 'object',
+            'payload_required' => ['configuration', 'profile'],
             'return_type' => 'object',
+            'return_required' => ['configuration'],
         ],
     ];
 
@@ -436,8 +450,10 @@ final class ExtensionPointCatalog extends Service
                 $invalid->push($name . ' does not match runtime ' . $field);
             });
 
-        Arr::make(['payload' => 'payload_type', 'returns' => 'return_type'])
-            ->each(function (string $contractField, string $shape) use (
+        Arr::make([
+            'payload' => ['type' => 'payload_type', 'required' => 'payload_required'],
+            'returns' => ['type' => 'return_type', 'required' => 'return_required'],
+        ])->each(function (array $contractFields, string $shape) use (
                 $contract,
                 $definition,
                 $invalid,
@@ -445,9 +461,20 @@ final class ExtensionPointCatalog extends Service
             ): void {
                 $schema = $definition->get($shape);
                 if (Arr::is($schema)
-                    && Arr::make($schema)->get('type') !== $contract->get($contractField)
+                    && Arr::make($schema)->get('type') !== $contract->get($contractFields['type'])
                 ) {
                     $invalid->push($name . ' does not match runtime ' . $shape . ' type');
+                }
+
+                $schema = Arr::is($schema) ? Arr::make($schema) : null;
+                $actualRequired = $schema !== null && $schema->hasKey('required')
+                    ? $schema->get('required')
+                    : [];
+                $expectedRequired = $contract->get($contractFields['required'], []);
+                if (!$this->sameStringSet($actualRequired, $expectedRequired)) {
+                    $invalid->push(
+                        $name . ' does not match runtime ' . $shape . ' required keys'
+                    );
                 }
             });
     }
@@ -532,5 +559,24 @@ final class ExtensionPointCatalog extends Service
     private function isNonemptyString($value): bool
     {
         return Str::is($value) && Str::make($value)->trim()->isNotEmpty();
+    }
+
+    private function sameStringSet($actual, $expected): bool
+    {
+        if (!Arr::is($actual) || !array_is_list($actual)
+            || !Arr::is($expected) || !array_is_list($expected)
+        ) {
+            return false;
+        }
+
+        $actual = Arr::make($actual);
+        $expected = Arr::make($expected);
+
+        return $actual->count() === $expected->count()
+            && $actual->unique()->count() === $actual->count()
+            && $expected->unique()->count() === $expected->count()
+            && $actual->filter(
+                fn ($value): bool => Str::is($value) && $expected->has($value, true)
+            )->count() === $actual->count();
     }
 }

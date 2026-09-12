@@ -147,6 +147,10 @@ final class ExtensionPointCatalogTest extends TestCase
             'opus.intake.session.transitioned does not match runtime exception_policy',
             $invalid->val()
         );
+        $this->assertContains(
+            'opus.intake.session.transitioned does not match runtime payload required keys',
+            $invalid->val()
+        );
         $this->assertContains('opus.agent.command_context has an invalid payload schema', $invalid->val());
         $this->assertContains(
             'opus.agent.command_context invariants must contain nonempty strings',
