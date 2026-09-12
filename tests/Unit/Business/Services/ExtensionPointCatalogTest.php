@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
+use RuntimeException;
 use SplFileInfo;
 
 final class ExtensionPointCatalogTest extends TestCase
@@ -192,6 +193,18 @@ final class ExtensionPointCatalogTest extends TestCase
             'invalid_container extension_points must be a list',
             $invalid->val()
         );
+    }
+
+    public function testDuplicateJsonObjectMembersFailBeforeNormalization(): void
+    {
+        $catalog = new ExtensionPointCatalog(
+            dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'Fixtures'
+                . DIRECTORY_SEPARATOR . 'extension-point-duplicate'
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('duplicate object members');
+        $catalog->manifest();
     }
 
     private function rawHookNameViolations(string $root, array $exemptPaths = []): Arr

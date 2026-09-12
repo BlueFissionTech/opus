@@ -191,11 +191,13 @@ final class ExtensionPointCatalog extends Service
         if (!Str::is($contents)) {
             throw new RuntimeException('Extension-point catalog could not be read.');
         }
-
         $decoded = HTTP::jsonDecode($contents, true);
         $decodedShape = HTTP::jsonDecode($contents, false);
         if (!Arr::is($decoded) || !$decodedShape instanceof \stdClass) {
             throw new RuntimeException('Extension-point catalog is not valid JSON.');
+        }
+        if ($this->hasDuplicateObjectMembers($contents)) {
+            throw new RuntimeException('Extension-point catalog contains duplicate object members.');
         }
 
         $this->manifest = Arr::toArray($decoded, true);
@@ -671,5 +673,133 @@ final class ExtensionPointCatalog extends Service
                     && Str::is($value)
                     && $expected->get($key) === $value
             )->count() === $actual->count();
+    }
+
+    private function hasDuplicateObjectMembers(string $json): bool
+    {
+        $offset = 0;
+
+        return $this->scanJsonValue($json, $offset);
+    }
+
+    private function scanJsonValue(string $json, int &$offset): bool
+    {
+        $this->skipJsonWhitespace($json, $offset);
+        $token = $json[$offset] ?? '';
+
+        if ($token === '{') {
+            return $this->scanJsonObject($json, $offset);
+        }
+        if ($token === '[') {
+            return $this->scanJsonArray($json, $offset);
+        }
+        if ($token === '"') {
+            $this->scanJsonString($json, $offset);
+            return false;
+        }
+
+        $length = strlen($json);
+        while ($offset < $length
+            && !Str::make(",]} \t\r\n")->contains($json[$offset])
+        ) {
+            $offset++;
+        }
+
+        return false;
+    }
+
+    private function scanJsonObject(string $json, int &$offset): bool
+    {
+        $keys = Arr::make([]);
+        $offset++;
+        $this->skipJsonWhitespace($json, $offset);
+
+        if (($json[$offset] ?? '') === '}') {
+            $offset++;
+            return false;
+        }
+
+        while ($offset < strlen($json)) {
+            $rawKey = $this->scanJsonString($json, $offset);
+            $key = HTTP::jsonDecode($rawKey, false);
+            if (!Str::is($key) || $keys->has($key, true)) {
+                return true;
+            }
+            $keys->push($key);
+
+            $this->skipJsonWhitespace($json, $offset);
+            $offset++;
+            if ($this->scanJsonValue($json, $offset)) {
+                return true;
+            }
+            $this->skipJsonWhitespace($json, $offset);
+
+            if (($json[$offset] ?? '') === '}') {
+                $offset++;
+                return false;
+            }
+            $offset++;
+            $this->skipJsonWhitespace($json, $offset);
+        }
+
+        return false;
+    }
+
+    private function scanJsonArray(string $json, int &$offset): bool
+    {
+        $offset++;
+        $this->skipJsonWhitespace($json, $offset);
+
+        if (($json[$offset] ?? '') === ']') {
+            $offset++;
+            return false;
+        }
+
+        while ($offset < strlen($json)) {
+            if ($this->scanJsonValue($json, $offset)) {
+                return true;
+            }
+            $this->skipJsonWhitespace($json, $offset);
+
+            if (($json[$offset] ?? '') === ']') {
+                $offset++;
+                return false;
+            }
+            $offset++;
+            $this->skipJsonWhitespace($json, $offset);
+        }
+
+        return false;
+    }
+
+    private function scanJsonString(string $json, int &$offset): string
+    {
+        $start = $offset;
+        $offset++;
+        $length = strlen($json);
+
+        while ($offset < $length) {
+            if ($json[$offset] === '\\') {
+                $offset += 2;
+                continue;
+            }
+            if ($json[$offset] === '"') {
+                $offset++;
+                break;
+            }
+            $offset++;
+        }
+
+        return substr($json, $start, $offset - $start);
+    }
+
+    private function skipJsonWhitespace(string $json, int &$offset): void
+    {
+        $length = strlen($json);
+        while ($offset < $length
+            && Str::make(" \t\r\n")->contains($json[$offset])
+        ) {
+            $offset++;
+        }
     }
 }
