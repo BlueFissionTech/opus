@@ -65,33 +65,22 @@ final class ExtensionPointCatalogTest extends TestCase
 
     public function testApplicationCodeDoesNotExposeRawUncataloguedHookNames(): void
     {
-        $violations = Arr::make([]);
         $root = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'app';
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
-
-        foreach ($iterator as $file) {
-            if (!$file instanceof SplFileInfo || !$file->isFile() || $file->getExtension() !== 'php') {
-                continue;
-            }
-
-            $source = FileSystem::fileContents($file->getPathname());
-            if (!Str::is($source) || !Str::make($source)->contains('DevElation::')) {
-                continue;
-            }
-
-            Arr::make(token_get_all($source))->each(function ($token) use ($file, $violations): void {
-                if (!Arr::is($token) || Arr::make($token)->get(0) !== T_CONSTANT_ENCAPSED_STRING) {
-                    return;
-                }
-
-                $name = Str::make((string) Arr::make($token)->get(1))->trim("'\"")->val();
-                if (Str::make($name)->matches('/^opus\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/')) {
-                    $violations->push($file->getPathname() . ': raw extension-point name ' . $name);
-                }
-            });
-        }
+        $catalogPath = $root . DIRECTORY_SEPARATOR . 'Business' . DIRECTORY_SEPARATOR . 'Services'
+            . DIRECTORY_SEPARATOR . 'ExtensionPointCatalog.php';
+        $violations = $this->rawHookNameViolations($root, [$catalogPath]);
 
         $this->assertSame([], $violations->val(), $violations->join(PHP_EOL)->val());
+    }
+
+    public function testRawHookScanIncludesConstantsOnlyFiles(): void
+    {
+        $root = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'Fixtures'
+            . DIRECTORY_SEPARATOR . 'extension-point-hidden';
+        $violations = $this->rawHookNameViolations($root);
+
+        $this->assertCount(1, $violations->val());
+        $this->assertStringContainsString('opus.hidden.constant', (string) $violations->get(0));
     }
 
     public function testBoundaryInventoryUsesExplicitSupportedStates(): void
@@ -167,5 +156,40 @@ final class ExtensionPointCatalogTest extends TestCase
             'opus.agent.command_context does not belong to boundary area other_area',
             $invalid->val()
         );
+    }
+
+    private function rawHookNameViolations(string $root, array $exemptPaths = []): Arr
+    {
+        $violations = Arr::make([]);
+        $exempt = Arr::make($exemptPaths);
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
+
+        foreach ($iterator as $file) {
+            if (!$file instanceof SplFileInfo
+                || !$file->isFile()
+                || $file->getExtension() !== 'php'
+                || $exempt->has($file->getPathname(), true)
+            ) {
+                continue;
+            }
+
+            $source = FileSystem::fileContents($file->getPathname());
+            if (!Str::is($source)) {
+                continue;
+            }
+
+            Arr::make(token_get_all($source))->each(function ($token) use ($file, $violations): void {
+                if (!Arr::is($token) || Arr::make($token)->get(0) !== T_CONSTANT_ENCAPSED_STRING) {
+                    return;
+                }
+
+                $name = Str::make((string) Arr::make($token)->get(1))->trim("'\"")->val();
+                if (Str::make($name)->matches('/^opus\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/')) {
+                    $violations->push($file->getPathname() . ': raw extension-point name ' . $name);
+                }
+            });
+        }
+
+        return $violations;
     }
 }
