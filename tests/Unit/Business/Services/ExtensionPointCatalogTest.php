@@ -136,11 +136,11 @@ final class ExtensionPointCatalogTest extends TestCase
             $invalid->val()
         );
         $this->assertContains(
-            'opus.agent.command_context has unsupported mutability for filter',
+            'opus.agent.command_context has kind action but runtime kind is filter',
             $invalid->val()
         );
         $this->assertContains(
-            'opus.agent.command_context has unsupported exception_policy for filter',
+            'opus.agent.command_context has an unsupported returns type for action',
             $invalid->val()
         );
         $this->assertContains('opus.agent.command_context has an invalid payload schema', $invalid->val());

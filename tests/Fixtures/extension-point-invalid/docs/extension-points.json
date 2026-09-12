@@ -43,7 +43,7 @@
     },
     {
       "name": "opus.agent.command_context",
-      "kind": "filter",
+      "kind": "action",
       "area": "agent_wise_runtime",
       "phase": "after_authoritative_context_resolution",
       "owner": "AgentCommandContextProvider",

@@ -31,6 +31,16 @@ final class ExtensionPointCatalog extends Service
         self::CONVERSATION_CONFIGURATION,
     ];
 
+    private const KINDS_BY_NAME = [
+        self::INTAKE_DEFAULTS => 'filter',
+        self::INTAKE_SESSION_TRANSITIONED => 'action',
+        self::AGENT_COMMAND_CONTEXT => 'filter',
+        self::AGENT_COMMAND_RUNTIME_READY => 'action',
+        self::AGENT_COMMAND_RUNTIME_UNAVAILABLE => 'action',
+        self::CONVERSATION_SETTINGS => 'filter',
+        self::CONVERSATION_CONFIGURATION => 'filter',
+    ];
+
     private const INVENTORY_STATUSES = ['hooked', 'intentionally_closed', 'stronger_abstraction'];
     private const EXECUTION_ORDER = 'priority_ascending_then_registration_order';
     private const VALUE_SCHEMA_TYPES = [
@@ -42,17 +52,6 @@ final class ExtensionPointCatalog extends Service
         'boolean',
         'null',
         'mixed',
-    ];
-    private const RETURN_SCHEMA_TYPES = [
-        'object',
-        'array',
-        'string',
-        'integer',
-        'number',
-        'boolean',
-        'null',
-        'mixed',
-        'void',
     ];
     private const MUTABILITY_BY_KIND = [
         'filter' => ['replace_value'],
@@ -225,6 +224,10 @@ final class ExtensionPointCatalog extends Service
         if (!$kindIsSupported) {
             $invalid->push($name . ' has an invalid kind');
         }
+        $expectedKind = Arr::make(self::KINDS_BY_NAME)->get($name);
+        if ($kindIsSupported && Str::is($expectedKind) && $kind !== $expectedKind) {
+            $invalid->push($name . ' has kind ' . $kind . ' but runtime kind is ' . $expectedKind);
+        }
         Arr::make(['area', 'phase', 'owner', 'mutability', 'exception_policy', 'ordering'])
             ->each(function (string $field) use ($definition, $invalid, $name): void {
                 if (!$this->isNonemptyString($definition->get($field))) {
@@ -362,13 +365,14 @@ final class ExtensionPointCatalog extends Service
         if (!$this->isNonemptyString($type)) {
             $invalid->push($name . ' has an invalid ' . $shape . ' schema');
         }
-        $supportedTypes = $shape === 'returns' && $kind === 'action'
-            ? self::RETURN_SCHEMA_TYPES
-            : self::VALUE_SCHEMA_TYPES;
-        if ($this->isNonemptyString($type)
-            && !Arr::make($supportedTypes)->has($type, true)
-        ) {
-            $invalid->push($name . ' has an unsupported ' . $shape . ' type');
+        if ($this->isNonemptyString($type)) {
+            if ($shape === 'returns' && $kind === 'action' && $type !== 'void') {
+                $invalid->push($name . ' has an unsupported returns type for action');
+            } elseif (($shape !== 'returns' || $kind !== 'action')
+                && !Arr::make(self::VALUE_SCHEMA_TYPES)->has($type, true)
+            ) {
+                $invalid->push($name . ' has an unsupported ' . $shape . ' type');
+            }
         }
 
         foreach (['required', 'properties'] as $field) {
