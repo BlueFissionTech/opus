@@ -126,6 +126,22 @@ final class ExtensionPointCatalogTest extends TestCase
         $this->assertContains('opus.intake.defaults is missing owner', $invalid->val());
         $this->assertContains('opus.intake.defaults is missing mutability', $invalid->val());
         $this->assertContains('opus.intake.defaults is missing exception_policy', $invalid->val());
+        $this->assertContains(
+            'opus.test.unsupported_policy has unsupported mutability for filter',
+            $invalid->val()
+        );
+        $this->assertContains(
+            'opus.test.unsupported_policy has unsupported exception_policy for filter',
+            $invalid->val()
+        );
+        $this->assertContains(
+            'opus.agent.command_context has unsupported mutability for filter',
+            $invalid->val()
+        );
+        $this->assertContains(
+            'opus.agent.command_context has unsupported exception_policy for filter',
+            $invalid->val()
+        );
         $this->assertContains('opus.agent.command_context has an invalid payload schema', $invalid->val());
         $this->assertContains(
             'opus.agent.command_context invariants must contain nonempty strings',
@@ -138,6 +154,11 @@ final class ExtensionPointCatalogTest extends TestCase
         $this->assertContains('application_intake is missing rationale', $invalid->val());
         $this->assertContains('application_intake references an unknown extension point', $invalid->val());
         $this->assertContains('boundary inventory area is duplicated: application_intake', $invalid->val());
+        $this->assertContains(
+            'empty_hook_area is hooked but has no extension points',
+            $invalid->val()
+        );
+        $this->assertContains('other_area is not hooked but lists extension points', $invalid->val());
         $this->assertContains(
             'opus.intake.defaults is assigned to multiple boundary areas',
             $invalid->val()

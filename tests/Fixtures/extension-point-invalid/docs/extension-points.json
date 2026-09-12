@@ -23,8 +23,8 @@
       "owner": "ApplicationIntakeService",
       "payload": {"type": []},
       "returns": {"type": "object"},
-      "mutability": "replace_value",
-      "exception_policy": "propagate_before_write",
+      "mutability": "replace_in_place",
+      "exception_policy": "ignore_all_failures",
       "ordering": "priority_ascending_then_registration_order",
       "invariants": [42]
     },
@@ -49,10 +49,23 @@
       "owner": "AgentCommandContextProvider",
       "payload": {"type": []},
       "returns": {"type": "object"},
-      "mutability": "replace_value",
-      "exception_policy": "propagate_before_execution",
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
       "ordering": "priority_ascending_then_registration_order",
       "invariants": [42]
+    },
+    {
+      "name": "opus.test.unsupported_policy",
+      "kind": "filter",
+      "area": "test_area",
+      "phase": "before_use",
+      "owner": "TestOwner",
+      "payload": {"type": "object"},
+      "returns": {"type": "object"},
+      "mutability": "replace_in_place",
+      "exception_policy": "ignore_all_failures",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": []
     }
   ],
   "boundary_inventory": [
@@ -72,10 +85,17 @@
     },
     {
       "area": "other_area",
-      "status": "hooked",
+      "status": "stronger_abstraction",
       "owner": "OtherService",
       "extension_points": ["opus.intake.defaults", "opus.agent.command_context"],
       "rationale": "invalid ownership and duplicate coverage"
+    },
+    {
+      "area": "empty_hook_area",
+      "status": "hooked",
+      "owner": "EmptyHookOwner",
+      "extension_points": [],
+      "rationale": "invalid empty hooked boundary"
     }
   ]
 }

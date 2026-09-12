@@ -33,6 +33,18 @@ final class ExtensionPointCatalog extends Service
 
     private const INVENTORY_STATUSES = ['hooked', 'intentionally_closed', 'stronger_abstraction'];
     private const EXECUTION_ORDER = 'priority_ascending_then_registration_order';
+    private const MUTABILITY_BY_KIND = [
+        'filter' => ['replace_value'],
+        'action' => ['observe_only'],
+    ];
+    private const EXCEPTION_POLICY_BY_KIND = [
+        'filter' => [
+            'propagate_before_write',
+            'propagate_before_execution',
+            'propagate_before_use',
+        ],
+        'action' => ['propagate_after_commit', 'ignore_observer_failure'],
+    ];
 
     private string $manifestPath;
     private ?array $manifest = null;
@@ -187,7 +199,9 @@ final class ExtensionPointCatalog extends Service
         $catalogued->push($name);
         $ownership->set($name, $definition->get('area'));
 
-        if (!Arr::make(['filter', 'action'])->has($definition->get('kind'), true)) {
+        $kind = $definition->get('kind');
+        $kindIsSupported = Arr::make(['filter', 'action'])->has($kind, true);
+        if (!$kindIsSupported) {
             $invalid->push($name . ' has an invalid kind');
         }
         Arr::make(['area', 'phase', 'owner', 'mutability', 'exception_policy', 'ordering'])
@@ -198,6 +212,24 @@ final class ExtensionPointCatalog extends Service
             });
         if ($definition->get('ordering') !== self::EXECUTION_ORDER) {
             $invalid->push($name . ' has an unsupported execution order');
+        }
+        if ($kindIsSupported) {
+            $this->validatePolicyValue(
+                $definition,
+                'mutability',
+                self::MUTABILITY_BY_KIND[$kind],
+                $kind,
+                $name,
+                $invalid
+            );
+            $this->validatePolicyValue(
+                $definition,
+                'exception_policy',
+                self::EXCEPTION_POLICY_BY_KIND[$kind],
+                $kind,
+                $name,
+                $invalid
+            );
         }
         Arr::make(['payload', 'returns'])->each(
             fn (string $shape) => $this->validateSchema(
@@ -245,7 +277,9 @@ final class ExtensionPointCatalog extends Service
         }
         $areas->push($area);
 
-        if (!Arr::make(self::INVENTORY_STATUSES)->has($boundary->get('status'), true)) {
+        $status = $boundary->get('status');
+        $statusIsSupported = Arr::make(self::INVENTORY_STATUSES)->has($status, true);
+        if (!$statusIsSupported) {
             $invalid->push($area . ' has an invalid inventory status');
         }
         foreach (['owner', 'rationale'] as $field) {
@@ -258,6 +292,12 @@ final class ExtensionPointCatalog extends Service
         if (!Arr::is($names) || !array_is_list($names)) {
             $invalid->push($area . ' extension_points must be a list');
             return;
+        }
+        if ($statusIsSupported && $status === 'hooked' && Arr::make($names)->isEmpty()) {
+            $invalid->push($area . ' is hooked but has no extension points');
+        }
+        if ($statusIsSupported && $status !== 'hooked' && Arr::make($names)->isNotEmpty()) {
+            $invalid->push($area . ' is not hooked but lists extension points');
         }
         Arr::make($names)->each(function ($name) use (
             $area,
@@ -316,6 +356,23 @@ final class ExtensionPointCatalog extends Service
                     $invalid->push($name . ' has invalid ' . $shape . ' ' . $field);
                 }
             });
+        }
+    }
+
+    private function validatePolicyValue(
+        Arr $definition,
+        string $field,
+        array $supported,
+        string $kind,
+        string $name,
+        Arr $invalid
+    ): void {
+        $value = $definition->get($field);
+        if (!$this->isNonemptyString($value)) {
+            return;
+        }
+        if (!Arr::make($supported)->has($value, true)) {
+            $invalid->push($name . ' has unsupported ' . $field . ' for ' . $kind);
         }
     }
 
