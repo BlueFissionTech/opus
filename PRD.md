@@ -241,6 +241,10 @@ Current status: Partial under #95.
 - Test provider reachability and model capability separately from task
   execution through an explicitly authorized, side-effect-free probe with a
   bounded timeout and budget.
+- Require a host-level egress allowlist, allowed schemes, redirect controls,
+  connection-time address validation, and default denial of loopback, private,
+  link-local, cloud-metadata, and DNS-rebound destinations unless the exact
+  trusted destination is explicitly permitted by deployment policy.
 - Configure routing, fallback, budgets, timeouts, data-use policy, and allowed
   agents by application and tenant.
 - Allow an optional Blue Fission provider without giving it special runtime
@@ -462,6 +466,8 @@ Current status: Planned under #106 and #107.
   providers; permit an explicitly authorized, side-effect-free health probe to
   contact the configured endpoint without executing application work,
   training, or mutation.
+- Apply the same egress allowlist, scheme, redirect, address, and DNS-rebinding
+  controls to every probe and revalidate the destination on each connection.
 - Provide equivalent authorized web and Wise controls for disable, inspect,
   retry, replay, cancel, dead-letter review, manual recovery, and accepted
   degraded operation.
@@ -480,6 +486,9 @@ Current status: Partial under #125.
 - Revalidate authorization after extension filters.
 - Keep secrets and raw provider payloads out of logs, hooks, maps, and public
   catalogs.
+- Treat provider health probes as outbound requests subject to default-deny
+  destination and redirect policy rather than trusting actor authorization
+  alone.
 - Fence tenant, principal, agent, continuation, and execution identities.
 - Require explicit approval for privileged or destructive actions.
 

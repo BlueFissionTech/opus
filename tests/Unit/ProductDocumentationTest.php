@@ -98,7 +98,12 @@ class ProductDocumentationTest extends TestCase
 
     public function testOrdinaryProseCannotUseCommandVerbsToHideBlanketLanguage(): void
     {
-        foreach (['help AI-powered teams', 'do AI-driven work'] as $content) {
+        foreach ([
+            'help AI-powered teams',
+            'do AI-driven work',
+            'Run `help ai for AI-powered applications`.',
+            '<Command>help ai for AI-powered applications</Command>',
+        ] as $content) {
             $this->assertMatchesRegularExpression(
                 self::BLANKET_CAPABILITY_PATTERN,
                 $this->withoutCompatibilityIdentifiers($content)
@@ -159,6 +164,8 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringContainsString('### Optional Runtime Availability And Recovery', $product);
         $this->assertStringContainsString('issue #125 owns the complete host resilience', $product);
         $this->assertStringContainsString('side-effect-free health probe', $product);
+        $this->assertStringContainsString('explicit host-level egress allowlist', $product);
+        $this->assertStringContainsString('Provider-free deterministic operation', $product);
         $this->assertStringContainsString('machine-readable path', $product);
         $this->assertStringContainsString('path-ownership and conflict policy', $requirements);
         $this->assertStringContainsString('standalone and Opus-hosted execution', $requirements);
@@ -198,12 +205,18 @@ class ProductDocumentationTest extends TestCase
         return preg_replace(
             [
                 '/\bAIResource\b/',
-                '#<Command>\s*(?:list|show|find|get|do|help)\s+ai\b[^<]*</Command>#i',
-                '/`(?:list|show|find|get|do|help)\s+ai(?:\s+[^`]*)?`/i',
+                '#(<Command>\s*(?:list|show|find|get|do|help)\s+)ai\b#i',
+                '/(`(?:list|show|find|get|do|help)\s+)ai\b/i',
                 '/`ai`/i',
                 '#common/config/ai\.php#i',
             ],
-            '[compatibility identifier]',
+            [
+                '[compatibility identifier]',
+                '$1[compatibility identifier]',
+                '$1[compatibility identifier]',
+                '[compatibility identifier]',
+                '[compatibility identifier]',
+            ],
             $content
         ) ?? $content;
     }

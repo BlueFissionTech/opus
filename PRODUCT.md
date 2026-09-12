@@ -201,6 +201,12 @@ training, or mutation. Authorized administration and Wise commands must expose
 equivalent controls while preserving tenant, role, capability, approval,
 idempotency, timeout, budget, audit, and correlation context.
 
+Probe destinations are subject to an explicit host-level egress allowlist,
+allowed schemes, redirect policy, and address validation at configuration and
+connection time. Loopback, private, link-local, cloud-metadata, and DNS-rebound
+destinations are denied by default unless a deployment policy explicitly
+authorizes the exact trusted destination.
+
 Status: Partial. Lazy command-runtime failure handling and structured unavailable
 results exist; issue #125 owns the complete host resilience and recovery control
 plane.
@@ -353,8 +359,9 @@ co-install composition claim.
 ## Provider And Model Contract
 
 Inference is optional and provider-neutral at the Opus boundary. A provider may
-be hosted, self-hosted, local, or a deterministic fallback. Provider selection
-must not broaden an agent's command grants.
+be hosted, self-hosted, or local. Provider-free deterministic operation is a
+separate no-provider path and does not create provider profiles or health
+records. Provider selection must not broaden an agent's command grants.
 
 The current repository still contains an OpenAI-compatible configuration key
 and connector binding, but installation does not collect or validate a
