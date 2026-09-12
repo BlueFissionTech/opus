@@ -110,6 +110,7 @@ class ProductDocumentationTest extends TestCase
             'Configure `AI` for this application.',
             'Run `help AI`.',
             '<Command>help AI</Command>',
+            'Build AIResource-powered applications.',
         ] as $content) {
             $this->assertMatchesRegularExpression(
                 self::BLANKET_CAPABILITY_PATTERN,
@@ -216,9 +217,15 @@ class ProductDocumentationTest extends TestCase
 
     private function withoutCompatibilityIdentifiers(string $content): string
     {
+        $content = preg_replace(
+            '/(?<![A-Za-z0-9_-])AIResource(?=-(?:powered|first|enabled|driven)\b)/',
+            'AI',
+            $content
+        ) ?? $content;
+
         return preg_replace(
             [
-                '/\bAIResource\b/',
+                '/(?<![A-Za-z0-9_-])AIResource(?![A-Za-z0-9_-])/',
                 '#(<Command>\s*/?(?:list|show|find|get|do|help)\s+)ai(?=\s|</Command>)#',
                 '/(`\/?(?:list|show|find|get|do|help)\s+)ai(?=\s|`)/',
                 '/(?<![A-Za-z0-9_-])`\/?ai`(?![A-Za-z0-9_-])/',
