@@ -103,6 +103,8 @@ class ProductDocumentationTest extends TestCase
             'do AI-driven work',
             'Run `help ai for AI-powered applications`.',
             '<Command>help ai for AI-powered applications</Command>',
+            'Run `help ai-powered applications`.',
+            '<Command>help ai-powered applications</Command>',
         ] as $content) {
             $this->assertMatchesRegularExpression(
                 self::BLANKET_CAPABILITY_PATTERN,
@@ -147,6 +149,7 @@ class ProductDocumentationTest extends TestCase
     public function testAddOnsMustProveStandaloneValueBeforeServicePromotion(): void
     {
         $root = dirname(__DIR__, 2);
+        $readme = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'README.md');
         $product = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'PRODUCT.md');
         $requirements = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'PRD.md');
         $roadmap = (string) file_get_contents($root . DIRECTORY_SEPARATOR . 'ROADMAP.md');
@@ -166,6 +169,8 @@ class ProductDocumentationTest extends TestCase
         $this->assertStringContainsString('side-effect-free health probe', $product);
         $this->assertStringContainsString('explicit host-level egress allowlist', $product);
         $this->assertStringContainsString('Provider-free deterministic operation', $product);
+        $this->assertStringContainsString('separate provider-free mode', $readme);
+        $this->assertStringNotContainsString('deterministic providers', $readme);
         $this->assertStringContainsString('machine-readable path', $product);
         $this->assertStringContainsString('path-ownership and conflict policy', $requirements);
         $this->assertStringContainsString('standalone and Opus-hosted execution', $requirements);
@@ -205,8 +210,8 @@ class ProductDocumentationTest extends TestCase
         return preg_replace(
             [
                 '/\bAIResource\b/',
-                '#(<Command>\s*(?:list|show|find|get|do|help)\s+)ai\b#i',
-                '/(`(?:list|show|find|get|do|help)\s+)ai\b/i',
+                '#(<Command>\s*(?:list|show|find|get|do|help)\s+)ai(?=\s|</Command>)#i',
+                '/(`(?:list|show|find|get|do|help)\s+)ai(?=\s|`)/i',
                 '/`ai`/i',
                 '#common/config/ai\.php#i',
             ],

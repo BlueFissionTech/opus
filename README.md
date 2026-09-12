@@ -21,8 +21,9 @@ permissions, evidence, and lifecycle.
   and add-ons through one host.
 - **Automation And Commands**: Expose authorized operations through Wise for
   CLI, programmatic, conversational, and agent callers.
-- **Provider-Neutral Inference**: Integrate hosted, self-hosted, local, or
-  deterministic providers through replaceable profiles.
+- **Provider-Neutral Inference**: Integrate hosted, self-hosted, or local
+  providers through replaceable profiles, with deterministic operation kept
+  available as a separate provider-free mode.
 - **Generation And Scaffolding**: Validate and render Vibe templates within
   bounded application paths.
 - **Extensibility**: Install package-owned add-ons and use documented
