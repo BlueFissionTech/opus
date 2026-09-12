@@ -1,0 +1,235 @@
+        <div class="container-fluid p-0">
+
+          <h1 class="h3 mb-3">Users</h1>
+          <!-- metrics -->
+          <div class="row">
+            <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+              <div class="card illustration flex-fill">
+                <div class="card-body p-0 d-flex flex-fill">
+                  <div class="row g-0 w-100">
+                    <div class="col-6">
+                      <div class="illustration-text p-3 m-1">
+                        <h4 class="illustration-text">Welcome Back, {$realname}!</h4>
+                        <p class="mb-0">Opus Users</p>
+                      </div>
+                    </div>
+                    <div class="col-6 align-self-end text-end">
+                      <img src="assets/img/illustrations/customer-support.png" alt="Customer Support" class="img-fluid illustration-img">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+              <div class="card flex-fill">
+                <div class="card-body py-4">
+                  <div class="d-flex align-items-start">
+                    <div class="flex-grow-1">
+                      <h3 class="mb-2">{total_users}</h3>
+                      <p class="mb-2">Total Users</p>
+                      <div class="mb-0">
+                        <span class="badge badge-soft-success me-2"> +5.35% </span>
+                        <span class="text-muted">Since last week</span>
+                      </div>
+                    </div>
+                    <div class="d-inline-block ms-3">
+                      <div class="stat">
+                        <i class="align-middle text-success" data-feather="users"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+              <div class="card flex-fill">
+                <div class="card-body py-4">
+                  <div class="d-flex align-items-start">
+                    <div class="flex-grow-1">
+                      <h3 class="mb-2">{active_users}</h3>
+                      <p class="mb-2">Active Users</p>
+                      <div class="mb-0">
+                        <span class="badge badge-soft-danger me-2"> -4.25% </span>
+                        <span class="text-muted">Since last week</span>
+                      </div>
+                    </div>
+                    <div class="d-inline-block ms-3">
+                      <div class="stat">
+                        <i class="align-middle text-danger" data-feather="activity"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+              <div class="card flex-fill">
+                <div class="card-body py-4">
+                  <div class="d-flex align-items-start">
+                    <div class="flex-grow-1">
+                      <h3 class="mb-2">{user_churn}%</h3>
+                      <p class="mb-2">User Churn</p>
+                      <div class="mb-0">
+                        <span class="badge badge-soft-success me-2"> +8.65% </span>
+                        <span class="text-muted">Since last week</span>
+                      </div>
+                    </div>
+                    <div class="d-inline-block ms-3">
+                      <div class="stat">
+                        <i class="align-middle text-info" data-feather="alert-circle"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- end metrics -->
+          <div class="row">
+            <div class="col-xl-8">
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-actions float-end">
+                    <div class="dropdown position-relative">
+                      <a href="#" data-bs-toggle="dropdown" data-bs-display="static">
+                        <i class="align-middle" data-feather="more-horizontal"></i>
+                      </a>
+
+                      <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item" id="add-btn" href="#">Add new</a>
+                        <a class="dropdown-item" id="delete-btn" href="#">Delete</a>
+                      </div>
+                    </div>
+                  </div>
+                  <h5 class="card-title mb-0">Users</h5>
+                </div>
+                <div class="card-body">
+                  <table id="dataTable" class="table table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        <th>Real Name</th>
+                        <th>Display Name</th>
+                        <th>Manage</th>
+                      </tr>
+                    </thead>
+                    <tfoot>
+                      <tr>
+                        <th>Real Name</th>
+                        <th>Display Name</th>
+                        <th>Manage</th>
+                      </tr>
+                    </tfoot>
+                    <tbody id="user-list">
+                      
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-xl-4">
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-actions float-end">
+                    <div class="dropdown position-relative">
+                      <a href="#" data-bs-toggle="dropdown" data-bs-display="static">
+                        <i class="align-middle" data-feather="more-horizontal"></i>
+                      </a>
+
+                      <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item" href="#">Action</a>
+                        <a class="dropdown-item" href="#">Another action</a>
+                        <a class="dropdown-item" href="#">Something else here</a>
+                      </div>
+                    </div>
+                  </div>
+                  <h5 class="card-title mb-0">{user_realname}</h5>
+                </div>
+                <div class="card-body">
+                  <div id="user-details">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        @include('modules/opus-dialogue-modal.vibe')
+        @include('modules/user-new-modal.vibe')
+        @include('modules/credentials-modal.vibe')
+        <script src="/assets/js/module-user.js"></script>
+        <script type="text/template" id="credential-status-list-item">
+                <option value="{{credential_status_id}}">{{label}}</option>
+        </script>
+        <script type="text/template" id="user-detail-display-item">
+
+            <div id="user-details">
+              <div class="row g-0">
+                <div class="col-sm-3 col-xl-12 col-xxl-3 text-center">
+                  <img src="assets/img/avatars/avatar-3.jpg" width="64" height="64" class="rounded-circle mt-2" alt="{{realname}}">
+                </div>
+                <div class="col-sm-9 col-xl-12 col-xxl-9">
+                  <strong>About me</strong>
+                  <p>{{description}}</p>
+                </div>
+              </div>
+
+              <table class="table table-sm my-2">
+                <tbody>
+                  <tr>
+                    <th>Display name</th>
+                    <td>{{displayname}}</td>
+                  </tr>
+                  <tr>
+                    <th>Organization</th>
+                    <td>{{organization}}</td>
+                  </tr>
+                  <tr>
+                    <th>Email</th>
+                    <td>{{email}}</td>
+                  </tr>
+                  <tr>
+                    <th>Phone</th>
+                    <td>{{phone}}</td>
+                  </tr>
+                  <tr>
+                    <th>Status</th>
+                    <td><span class="badge bg-success">{{status}}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <hr />
+
+              <strong>Activity</strong>
+
+              <ul class="timeline mt-2 mb-0">
+                <li class="timeline-item">
+                  <strong>Signed out</strong>
+                  <span class="float-end text-muted text-sm">30m ago</span>
+                  <p>Nam pretium turpis et arcu. Duis arcu tortor, suscipit...</p>
+                </li>
+                <li class="timeline-item">
+                  <strong>Created invoice #1204</strong>
+                  <span class="float-end text-muted text-sm">2h ago</span>
+                  <p>Sed aliquam ultrices mauris. Integer ante arcu...</p>
+                </li>
+                <li class="timeline-item">
+                  <strong>Discarded invoice #1147</strong>
+                  <span class="float-end text-muted text-sm">3h ago</span>
+                  <p>Nam pretium turpis et arcu. Duis arcu tortor, suscipit...</p>
+                </li>
+                <li class="timeline-item">
+                  <strong>Signed in</strong>
+                  <span class="float-end text-muted text-sm">3h ago</span>
+                  <p>Curabitur ligula sapien, tincidunt non, euismod vitae...</p>
+                </li>
+                <li class="timeline-item">
+                  <strong>Signed up</strong>
+                  <span class="float-end text-muted text-sm">2d ago</span>
+                  <p>Sed aliquam ultrices mauris. Integer ante arcu...</p>
+                </li>
+              </ul>
+
+            </div>
+        </script>

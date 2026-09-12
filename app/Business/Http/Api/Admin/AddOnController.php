@@ -1,6 +1,8 @@
 <?php
 namespace App\Business\Http\Api\Admin;
 
+use App\Business\Services\AddOnLifecycleReadinessService;
+use BlueFission\Arr;
 use BlueFission\Services\Service;
 use BlueFission\Services\Request;
 use BlueFission\Connections\Database\MySQLLink;
@@ -13,6 +15,15 @@ use BlueFission\BlueCore\Domain\AddOn\Models\AddOnModel;
 
 class AddOnController extends Service {
 
+    private AddOnLifecycleReadinessService $readiness;
+
+    public function __construct(?AddOnLifecycleReadinessService $readiness = null)
+    {
+        parent::__construct();
+
+        $this->readiness = $readiness ?? new AddOnLifecycleReadinessService();
+    }
+
     public function index( IAllAddOnsQuery $query ) {
         $installedAddons = $query->fetch();
         $manager = instance('addons');
@@ -23,7 +34,7 @@ class AddOnController extends Service {
             $addons[$addon['name']]->is_active = $addon['is_active'];
         }
 
-        $list = array_values($addons);
+        $list = Arr::make($addons)->values()->val();
 
         return response($list);
     }
@@ -59,7 +70,7 @@ class AddOnController extends Service {
         $manager = instance('addons');
         $status = $manager->install($request->name);
 
-        return $status;
+        return $this->readiness->normalize($status);
     }
 
     public function uninstall( Request $request )
@@ -67,7 +78,7 @@ class AddOnController extends Service {
         $manager = instance('addons');
         $status = $manager->uninstall($request->addon_id);
 
-        return $status;
+        return $this->readiness->normalize($status);
     }
 
     public function activate( Request $request )
@@ -79,6 +90,6 @@ class AddOnController extends Service {
             $status = $manager->activate($request->addon_id);
         }
 
-        return $status;
+        return $this->readiness->normalize($status);
     }
 }

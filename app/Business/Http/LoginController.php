@@ -1,9 +1,8 @@
 <?php
 namespace App\Business\Http;
 
+use App\Business\Presentation\VibeValue;
 use BlueFission\Services\Service;
-use BlueFission\Services\Request;
-
 class LoginController extends Service {
 
 	public function index( ) 
@@ -13,16 +12,16 @@ class LoginController extends Service {
 
     public function login( )
     {
-        return template('app/ezdatta', 'login.html', ['app_name'=>env('APP_NAME')]);
+        return template('default', 'login.vibe', ['url' => VibeValue::url('/login')]);
     }
 
     public function registration( )
     {
-        return template('default', 'register.html');
+        return template('admin', 'register.vibe');
     }
 
     public function forgotPassword( )
     {
-        return template('default', 'forgotpassword.html');
+        return template('admin', 'forgotpassword.vibe');
     }
 }

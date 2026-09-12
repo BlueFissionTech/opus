@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "catalog_version": "1.0.0",
+  "namespace": "opus",
+  "extension_points": [
+    {
+      "name": "opus.intake.defaults",
+      "kind": "action",
+      "kind": "filter"
+    }
+  ],
+  "boundary_inventory": []
+}

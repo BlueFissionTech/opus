@@ -1,6 +1,6 @@
 <?php
-use BlueFission\BlueCore\Menu;
-use BlueFission\BlueCore\MenuItem;
+use App\Business\Presentation\VibeMenu as Menu;
+use App\Business\Presentation\VibeMenuItem as MenuItem;
 use BlueFission\BlueCore\Business\Managers\NavMenuManager;
 
 // Create a new instance of NavMenuManager
@@ -19,11 +19,11 @@ $navMenuManager->registerMenu($topNav);
 
 
 // Create side nav menu and add items
-$sideNav = new Menu('Sidebar', 'admin', 'sections/menu.html', 'sections/menu-item.html');
+$sideNav = new Menu('Sidebar', 'admin', 'sections/menu.vibe', 'sections/menu-item.vibe');
 $sideNav->addItem(new MenuItem('Overview', 'dashboard'));
 
 // Create users and addons menu items with 'admin' role
-$usersMenu = new Menu('Users', 'admin', 'sections/menu-top-item.html', 'sections/menu-sub-item.html');
+$usersMenu = new Menu('Users', 'admin', 'sections/menu-top-item.vibe', 'sections/menu-sub-item.vibe');
 $usersItem = new MenuItem('Manage', 'users', 'admin');
 $usersMenu->addItem($usersItem);
 $sideNav->addItem($usersMenu);

@@ -1,117 +1,115 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Business\Console;
 
+use App\Business\Services\AddOnLifecycleReadinessService;
+use BlueFission\Arr;
 use BlueFission\Services\Service;
+use BlueFission\Str;
 
 class AddOnManager extends Service
 {
-    protected $_addonManager;
+    private object $manager;
+    private AddOnLifecycleReadinessService $readiness;
 
-    public function __construct( )
-    {
-        $addonManager = instance('addons');
-        $this->_addonManager = $addonManager;
+    public function __construct(
+        ?object $manager = null,
+        ?AddOnLifecycleReadinessService $readiness = null
+    ) {
         parent::__construct();
+
+        $this->manager = $manager ?? instance('addons');
+        $this->readiness = $readiness ?? new AddOnLifecycleReadinessService();
     }
 
-    public function install($behavior)
+    public function install($behavior): array
     {
-        $addonName = $behavior?->context['data'] ?? null;
-
-        if (empty($addonName)) {
-            echo "Addon name must be provided.\n";
-            return;
+        $name = $this->addOnName($behavior);
+        if ($name === null) {
+            return $this->readiness->failure('install', 'addon_name_required', 'Add-on name must be provided.');
         }
 
-        $status = $this->_addonManager->install($addonName);
-        echo "Installation completed with status: $status\n";
+        return $this->readiness->normalize($this->manager->install($name));
     }
 
-    public function install_all()
+    public function install_all(): array
     {
-        $status = $this->_addonManager->installAll();
-        echo "Installation of all addons completed with status: $status\n";
+        return $this->readiness->normalize($this->manager->installAll());
     }
 
-    public function uninstall($behavior)
+    public function uninstall($behavior): array
     {
-        $addonName = $behavior?->context['data'] ?? null;
-
-        if (empty($addonName)) {
-            echo "Addon name must be provided.\n";
-            return;
+        $resolved = $this->installedAddOn($behavior, 'uninstall');
+        if (Arr::hasKey($resolved, 'failure')) {
+            return (array) Arr::getPath($resolved, 'failure');
         }
 
-        $addon = $this->_addonManager->getAddOnData($addonName);
-        if (!$addon) {
-            echo "Addon $addonName not found.\n";
-            return;
-        }
-
-        $status = $this->_addonManager->uninstall($addon->addon_id);
-        echo "Uninstallation completed with status: $status\n";
+        return $this->readiness->normalize($this->manager->uninstall(Arr::getPath($resolved, 'id')));
     }
 
-    public function activate($behavior)
+    public function activate($behavior): array
     {
-        $addonName = $behavior?->context['data'] ?? null;
-
-        if (empty($addonName)) {
-            echo "Addon name must be provided.\n";
-            return;
+        $resolved = $this->installedAddOn($behavior, 'activate');
+        if (Arr::hasKey($resolved, 'failure')) {
+            return (array) Arr::getPath($resolved, 'failure');
         }
 
-        $addon = $this->_addonManager->getAddOnData($addonName);
-        if (!$addon) {
-            echo "Addon $addonName not found.\n";
-            return;
-        }
-
-        $status = $this->_addonManager->activate($addon->addon_id);
-        echo "Activation completed with status: $status\n";
+        return $this->readiness->normalize($this->manager->activate(Arr::getPath($resolved, 'id')));
     }
 
-    public function activate_all()
+    public function activate_all(): array
     {
-        $status = $this->_addonManager->activateAll();
-        echo "Activation of all addons completed with status: $status\n";
+        return $this->readiness->normalize($this->manager->activateAll());
     }
 
-    public function deactivate($behavior)
+    public function deactivate($behavior): array
     {
-        $addonName = $behavior?->context['data'] ?? null;
-        
-        if (empty($addonName)) {
-            echo "Addon name must be provided.\n";
-            return;
+        $resolved = $this->installedAddOn($behavior, 'deactivate');
+        if (Arr::hasKey($resolved, 'failure')) {
+            return (array) Arr::getPath($resolved, 'failure');
         }
 
-        $addon = $this->_addonManager->getAddOnData($addonName);
-        if (!$addon) {
-            echo "Addon $addonName not found.\n";
-            return;
-        }
-
-        $status = $this->_addonManager->deactivate($addon->addon_id);
-        echo "Deactivation completed with status: $status\n";
+        return $this->readiness->normalize($this->manager->deactivate(Arr::getPath($resolved, 'id')));
     }
 
-    public function showAll()
+    public function showAll(): array
     {
-        $addons = $this->_addonManager->showAllAddOns();
+        return $this->readiness->listing((array) $this->manager->showAllAddOns());
+    }
 
-        if (empty($addons)) {
-            echo "No addons found.\n";
-            return;
+    private function addOnName($behavior): ?string
+    {
+        $name = Arr::getPath((array) ($behavior?->context ?? []), 'data');
+        if (!Str::is($name) || Str::make((string) $name)->trim()->isEmpty()) {
+            return null;
         }
 
-        echo "Showing all addons:\n";
-        foreach ($addons as $addon) {
-            echo "Addon: {$addon->name}\n";
-            echo "Description: {$addon->description}\n";
-            echo "Path: {$addon->path}\n";
-            echo "-----------------------------------\n";
+        return Str::make((string) $name)->trim()->val();
+    }
+
+    private function installedAddOn($behavior, string $action): array
+    {
+        $name = $this->addOnName($behavior);
+        if ($name === null) {
+            return ['failure' => $this->readiness->failure(
+                $action,
+                'addon_name_required',
+                'Add-on name must be provided.'
+            )];
         }
+
+        $addOn = $this->manager->getAddOnData($name);
+        $id = is_object($addOn) ? ($addOn->addon_id ?? null) : null;
+        if ($id === null) {
+            return ['failure' => $this->readiness->failure(
+                $action,
+                'addon_not_found',
+                "Add-on {$name} was not found."
+            )];
+        }
+
+        return ['id' => $id];
     }
 }

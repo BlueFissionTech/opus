@@ -1,0 +1,10 @@
+{
+  "fixture": "examples/jenss/fixtures/missing.json",
+  "scripts": {
+    "proof": {
+      "path": "examples/jenss/proof.jss",
+      "mode": "parse",
+      "required": true
+    }
+  }
+}

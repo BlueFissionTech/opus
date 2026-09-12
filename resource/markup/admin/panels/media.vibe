@@ -1,0 +1,49 @@
+        <div class="container-fluid p-0">
+
+          <h1 class="h3 mb-3">Media</h1>
+          <div class="row">
+            <div class="col-xl-12">
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-actions float-end">
+                    <div class="dropdown position-relative">
+                      <a href="#" data-bs-toggle="dropdown" data-bs-display="static">
+                        <i class="align-middle" data-feather="more-horizontal"></i>
+                      </a>
+
+                      <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item" id="media-add-new" href="#">Add new</a>
+                        <a class="dropdown-item" id="media-delete" href="#">Delete</a>
+                      </div>
+                    </div>
+                  </div>
+                  <h5 class="card-title mb-0">Media</h5>
+                </div>
+                <div class="card-body">
+                  <table id="dataTable" class="table table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Manage</th>
+                      </tr>
+                    </thead>
+                    <tfoot>
+                      <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Manage</th>
+                      </tr>
+                    </tfoot>
+                    <tbody id="user-list">
+                      
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        @include('modules/media-new-modal.vibe')
+        <script src="/assets/js/module-medias.js"></script>

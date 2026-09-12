@@ -5,10 +5,18 @@ use BlueFission\BlueCore\Business\Managers\NavMenuManager;
 use BlueFission\BlueCore\Business\Managers\DatasourceManager;
 use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use App\Business\MysqlConnector;
+use App\Business\Presentation\PackageTheme;
+use App\Business\Services\RuntimePathResolver;
+use App\Business\Services\VibeThemeRenderer;
+use App\Business\Services\ConversationalLearningCatalog;
+use App\Business\Services\LazyAgentCommandProcessor;
+use App\Business\Services\WiseProfilePolicyResolver;
+use App\Domain\Onboarding\IApplicationIntakeRepository;
+use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
-use BlueFission\BlueCore\Theme;
 use BlueFission\BlueCore\IExtension;
+use BlueFission\Wise\Cmd\ICommandProcessor;
 
 /**
  * Class AppRegistration
@@ -64,7 +72,13 @@ class AppRegistration implements IExtension {
 	 * Register different components in the app
 	 */
 	public function registrations() {
-		
+		$templateRenderer = new VibeThemeRenderer();
+		$profilePolicies = new WiseProfilePolicyResolver(
+			(array) require $this->applicationRoot() . 'mapping/wise_profiles.php'
+		);
+		$conversationCatalog = new ConversationalLearningCatalog(
+			(array) require $this->applicationRoot() . 'mapping/conversation.php'
+		);
 
 		// $this->delegate('core', Core::class);
 		$this->delegate('session', Session::class);
@@ -72,6 +86,10 @@ class AppRegistration implements IExtension {
 		$this->delegate('nav', NavMenuManager::class);
 		$this->delegate('addons', AddOnManager::class);
 		$this->delegate('datasource', DatasourceManager::class);
+		$this->delegate('template', $templateRenderer);
+		$this->delegate('vibe.theme', $templateRenderer);
+		$this->delegate('wise.profile.policy', $profilePolicies);
+		$this->delegate('conversation.catalog', $conversationCatalog);
 
 		$this->delegate('mysql', MysqlConnector::class);
 	}
@@ -90,6 +108,8 @@ class AppRegistration implements IExtension {
 		$this->bind('BlueFission\BlueCore\Domain\AddOn\Repositories\IAddOnRepository', 'BlueFission\BlueCore\Domain\AddOn\Repositories\AddOnRepositorySql');
 
 		$this->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
+		$this->bind(IApplicationIntakeRepository::class, ApplicationIntakeRepositorySql::class);
+		$this->bind(ICommandProcessor::class, LazyAgentCommandProcessor::class);
 	}
 
 	/**
@@ -105,8 +125,7 @@ class AppRegistration implements IExtension {
 
 
 		$this->bindArgs( ['link'=>\App::makeInstance('BlueFission\Connections\Database\MySQLLink'), 'storage'=>\App::makeInstance('BlueFission\Data\Storage\MySQLBulk')], 'BlueFission\BlueCore\Business\Managers\DatasourceManager');
-		
-		$this->bindArgs( ['storage'=>new Session(['location'=>'cache','name'=>'system'])], 'BlueFission\Wise\Cmd\CommandProcessor');
+
 	}
 
 	public function addons()
@@ -117,8 +136,9 @@ class AppRegistration implements IExtension {
 
 	public function themes()
 	{
-		$this->theme(new Theme('app/default', 'default'));
-		$this->theme(new Theme('app/admin', 'admin'));
+		$paths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover();
+		$this->theme(new PackageTheme('app/default', $paths->themeRoot('default')));
+		$this->theme(new PackageTheme('app/admin', $paths->themeRoot('admin')));
 	}
 
 	// Helpers
@@ -136,6 +156,12 @@ class AppRegistration implements IExtension {
 
 	private function configuration($name) {
 		return $this->_app->configuration($name);
+	}
+
+	private function applicationRoot(): string {
+		return defined('APP_ROOT')
+			? (string) constant('APP_ROOT')
+			: dirname(__DIR__, 2) . DIRECTORY_SEPARATOR;
 	}
 
 	private function theme($theme) {

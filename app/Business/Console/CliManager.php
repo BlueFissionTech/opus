@@ -1,87 +1,138 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Business\Console;
 
-use BotMan\BotMan\BotMan;
-use BlueFission\Services\Service;
 use App\Business\Console\BotMan\CommandLineDriver;
-// use BlueFission\Wise\Cmd\CommandProcessor;
+use App\Business\Services\AgentCommandContextProvider;
+use App\Business\Services\WiseCommandHost;
+use App\Domain\Console\CommandPresentation;
+use BlueFission\Arr;
+use BlueFission\Services\Service;
+use BlueFission\Str;
+use BotMan\BotMan\BotMan;
 
-class CliManager extends Service {
+class CliManager extends Service
+{
+    private AgentCommandContextProvider $contextProvider;
 
-	// protected $_processor;
+    public function __construct(
+        private WiseCommandHost $commandHost,
+        ?AgentCommandContextProvider $contextProvider = null
+    ) {
+        $this->contextProvider = $contextProvider ?? new AgentCommandContextProvider();
+        parent::__construct();
+    }
 
-	public function __construct()
+    public function cmd(): int
     {
-		parent::__construct();
-		// $this->_processor = $commandProcessor;
-	}
+        print "Type your message. Type '.' on a line by itself when you're done.\n";
 
-	public function cmd()
-	{
-		$core = instance('core');
-		print "Type your message. Type '.' on a line by itself when you're done.\n";
+        $input = fopen('php://stdin', 'r');
+        $exitCode = 0;
 
-		$fp = fopen('php://stdin', 'r');
-		$last_line = false;
-		$message = '';
-		while (!$last_line) {
-		    $next_line = trim(fgets($fp, 1024)); // read the special file to get the user input from keyboard
-		    if ("." == $next_line) {
-		      $last_line = true;
-		    } else {
-		      $message .= $next_line;
+        while (is_resource($input)) {
+            $nextLine = fgets($input, 1024);
+            if ($nextLine === false) {
+                break;
+            }
 
-		      if ( $next_line == 'chat' ) {
-		      	$convo = instance('convo');
-		      	$transcript = $convo->generateRecentDialogueText(1000, 30000);
-		      	echo $transcript;
-		      } elseif ( $next_line == 'history' ) {
-		      	$thread = instance('thread');
-		      	$transcript = $thread->history();
-		      	echo $transcript;
-		      } else {
-			      // $response = $this->_processor->process($next_line);
-			      $core->handle($next_line);
-			      $response = $core->output();
-			      
-			      echo "\n$response\n\n";
-			  }
-		    }
-		}
-	}
+            $nextLine = Str::make($nextLine)->trim()->val();
+            if ($nextLine === '.') {
+                break;
+            }
 
-	public function chat()
-	{
-		print "Type your message. Type '.' on a line by itself when you're done.\n";
-		echo '> ';
-	    $app = \App::instance();
-	    $botman = $app->service('botman');
+            $presentation = $this->execute($nextLine);
+            $this->write($presentation);
+            $exitCode = $presentation->exitCode();
 
-	    $driver = $botman->getDriver();
-	    $driver->setBotMan($botman);
+            if ($presentation->confirmationRequired()
+                && Str::isNotEmpty((string) $presentation->continuationToken())
+            ) {
+                print 'Proceed? [y/N] ';
+                $answer = Str::make((string) fgets($input, 16))->trim()->lower()->val();
+                $presentation = $this->resume(
+                    (string) $presentation->continuationToken(),
+                    Arr::has(['y', 'yes'], $answer)
+                );
+                $this->write($presentation);
+                $exitCode = $presentation->exitCode();
+            }
+        }
 
-	    $fp = fopen('php://stdin', 'r');
-	    $last_line = false;
-	    while (!$last_line) {
-        	printf("%c%c",0x08,0x08);
-			echo "\e[0m> ";
+        return $exitCode;
+    }
 
-	        $next_line = trim(fgets($fp, 1024)); // read the special file to get the user input from keyboard
-	        if ("." == $next_line) {
-	            $last_line = true;
-	        } else {
-	            $this->setBotMessage($botman, $next_line);
-	            $botman->listen();
-	        }
-		}
-	}
+    public function execute(string|array $input, array $context = []): CommandPresentation
+    {
+        $context = Arr::isNotEmpty($context)
+            ? $context
+            : $this->contextProvider->forActor('cli');
 
-	public function setBotMessage($botman, $next_line)
-	{
-	    $driver = $botman->getDriver();
-	    if ($driver instanceof CommandLineDriver) {
-	        $incomingMessage = new \BotMan\BotMan\Messages\Incoming\IncomingMessage($next_line, 'cli', 'cli');
-	        $driver->setMessage($incomingMessage);
-	    }
-	}
+        return $this->commandHost->execute($input, $context);
+    }
+
+    public function resume(string $token, bool $approved, array $context = []): CommandPresentation
+    {
+        $context = Arr::isNotEmpty($context)
+            ? $this->contextProvider->forContinuation($context)
+            : $this->contextProvider->forActor('cli');
+
+        return $this->commandHost->resume($token, $approved, $context);
+    }
+
+    public function chat(): void
+    {
+        print "Type your message. Type '.' on a line by itself when you're done.\n";
+        echo '> ';
+        $app = \App::instance();
+        $botman = $app->service('botman');
+
+        $driver = $botman->getDriver();
+        $driver->setBotMan($botman);
+
+        $input = fopen('php://stdin', 'r');
+        while (is_resource($input)) {
+            printf("%c%c", 0x08, 0x08);
+            echo "\e[0m> ";
+
+            $nextLine = fgets($input, 1024);
+            if ($nextLine === false) {
+                break;
+            }
+
+            $nextLine = Str::make($nextLine)->trim()->val();
+            if ($nextLine === '.') {
+                break;
+            }
+
+            $this->setBotMessage($botman, $nextLine);
+            $botman->listen();
+        }
+    }
+
+    public function setBotMessage(BotMan $botman, string $nextLine): void
+    {
+        $driver = $botman->getDriver();
+        if ($driver instanceof CommandLineDriver) {
+            $incomingMessage = new \BotMan\BotMan\Messages\Incoming\IncomingMessage(
+                $nextLine,
+                'cli',
+                'cli'
+            );
+            $driver->setMessage($incomingMessage);
+        }
+    }
+
+    private function write(CommandPresentation $presentation): void
+    {
+        if (Str::isNotEmpty($presentation->outputText())) {
+            echo PHP_EOL . $presentation->outputText() . PHP_EOL . PHP_EOL;
+        }
+
+        if (Str::isNotEmpty($presentation->diagnosticText())) {
+            fwrite(STDERR, $presentation->diagnosticText() . PHP_EOL);
+        }
+    }
 }

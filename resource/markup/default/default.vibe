@@ -1,0 +1,44 @@
+@template('layouts/app-shell.vibe')
+
+@section('title')
+{$name}
+@endsection
+
+@section('navigation')
+<a class="nav-link active" href="/">Home</a>
+<a class="nav-link" href="#features">Features</a>
+<a class="nav-link" href="#contact">Contact</a>
+@endsection
+
+@section('main')
+<h1 class="cover-heading">{$title}.</h1>
+<p class="lead">Build automation, inference, and integration applications from a shared operational platform.</p>
+<p class="lead">
+  <a href="#features" class="btn btn-lg btn-secondary">Learn more</a>
+</p>
+@endsection
+
+@section('footer')
+<p>{$name}</p>
+@endsection
+
+@section('assets')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botman-web-widget@1.0.1/dist/widget.css">
+@endsection
+
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/botman-web-widget@0/build/js/widget.js"></script>
+<script>
+  var botmanWidget = {
+    frameEndpoint: '/chatwindow',
+    aboutText: 'powered by BotMan',
+    introMessage: "Hi! I'm your Opus assistant.",
+    chatServer: '/api/chat',
+    title: {$chatTitle},
+    mainColor: '#c0c0c0',
+    bubbleBackground: '#c0c0c0',
+    headerTextColor: '#ffffff',
+    placeholderText: 'Type a message...'
+  };
+</script>
+@endsection

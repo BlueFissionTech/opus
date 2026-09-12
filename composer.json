@@ -18,18 +18,6 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/bluefissiontech/bluecore"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/bluefissiontech/automata"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/bluefissiontech/chronicler"
-        },
-        {
-            "type": "vcs",
             "url": "https://github.com/bluefissiontech/wise"
         },
         {
@@ -50,14 +38,6 @@
         },
         {
             "type": "vcs",
-            "url": "https://github.com/bluefissiontech/simpleclients"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/bluefissiontech/synthetiq"
-        },
-        {
-            "type": "vcs",
             "url": "https://github.com/bluefissiontech/jenerator"
         },
         {
@@ -71,30 +51,35 @@
     ],
     "require": {
         "php": "^8.2",
-        "bluefission/automata": "v1.0.0-alpha.2 as dev-master",
-        "bluefission/bluecore": "dev-main",
-        "bluefission/chronicler": "v0.1.2-alpha as dev-main",
-        "bluefission/develation": "v1.3.39 as dev-master",
+        "bluefission/automata": "^1.0.0@alpha",
+        "bluefission/bluecore": "^0.1.1@alpha",
+        "bluefission/chronicler": "^0.1.2-alpha",
+        "bluefission/develation": "^1.3.43",
         "bluefission/opus-addon-hoom": "dev-main",
         "bluefission/opus-addon-kapsle": "dev-main",
-        "bluefission/presence": "dev-main",
-        "bluefission/simpleclients": "dev-master",
+        "bluefission/presence": "0.1.0-alpha.3",
+        "bluefission/simpleclients": "^0.1.0@alpha",
         "bluefission/synematic": "dev-main",
+        "bluefission/synthetiq": "^0.1.0@alpha",
         "bluefission/vibrato": "dev-main",
-        "bluefission/wise": "dev-main",
-        "cboden/ratchet": "^0.4.4",
         "composer/installers": "^1.11",
         "fakerphp/faker": "^1.24",
         "php-http/discovery": "^1.19",
         "symfony/http-client": "^7.3"
     },
     "require-dev": {
+        "bluefission/wise": "0.1.0-alpha.2",
         "phpunit/phpunit": "^9.5"
+    },
+    "suggest": {
+        "bluefission/wise": "Install to enable the Wise command environment, command processor, and resource mappings.",
+        "cboden/ratchet": "Install to enable the optional terminal WebSocket transport when the host dependency graph is compatible."
     },
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "use-github-api": false,
         "allow-plugins": {
             "composer/installers": true,
             "php-http/discovery": true,
@@ -112,6 +97,9 @@
             "Tests\\": "tests/"
         }
     },
+    "bin": [
+        "bin/opus-addon.php"
+    ],
     "archive": {
       "exclude": [
         ".babelrc"
@@ -120,6 +108,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "scripts": {
+        "audit:composer-vcs": "@php bin/audit-composer-vcs.php",
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ]

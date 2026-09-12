@@ -6,30 +6,69 @@ use BlueFission\Wise\Res\HowToResource;
 use BlueFission\Wise\Res\ResourceHelper;
 use BlueFission\Wise\Res\FeatureResource;
 use BlueFission\Wise\Res\SearchResource;
-use BlueFission\Wise\Res\WebBrowserResource;
 use BlueFission\Wise\Res\WeatherResource;
 use BlueFission\Wise\Res\NewsResource;
-use BlueFission\Wise\Res\SystemResourceResource;
+use BlueFission\Wise\Res\SystemResource;
 use BlueFission\Wise\Res\VariableResource;
 use BlueFission\Wise\Res\StackResource;
 use BlueFission\Wise\Res\QueueResource;
 use BlueFission\Wise\Res\FileResource;
+use BlueFission\Wise\Commands\FileResource as LegacyFileResource;
 use BlueFission\Wise\Res\NoteResource;
 use BlueFission\Wise\Res\TodoResource;
 use BlueFission\Wise\Res\StepResource;
 use BlueFission\Wise\Res\ScheduleResource;
-use BlueFission\Wise\Res\ResourceResource;
-use BlueFission\Wise\Res\MessageResource;
 use BlueFission\Wise\Res\EntityResource;
 use BlueFission\Wise\Res\AIResource;
 use BlueFission\Wise\Res\APIResource;
 use BlueFission\Wise\Res\ActionResource;
+use BlueFission\Wise\Res\CommandResource;
+use App\Business\Services\WiseIntegrationGuard;
+use App\Business\Services\WiseResourceClassResolver;
 use App\Business\Commands\UserResource;
 
 $app = App::instance();
 
 $app->register( 'skill', 'do', 'runSkill' );
 $app->register( 'skill', 'list', 'listSkills' );
+
+$app->delegate( 'user', UserResource::class );
+$app->register( 'user', 'list', 'handle' );
+$app->register( 'user', 'find', 'handle' );
+$app->register( 'user', 'update', 'handle' );
+$app->register( 'user', 'help', 'handle' );
+$app->register( 'user', 'prompt', 'handle' );
+$app->register( 'user', 'get', 'handle' );
+
+$wiseTypes = [
+    FeatureResource::class,
+    ActionResource::class,
+    APIResource::class,
+    EncyclopediaResource::class,
+    CalculatorResource::class,
+    SearchResource::class,
+    HowToResource::class,
+    WeatherResource::class,
+    NewsResource::class,
+    TodoResource::class,
+    EntityResource::class,
+    StepResource::class,
+    ScheduleResource::class,
+    SystemResource::class,
+    ResourceHelper::class,
+    VariableResource::class,
+    QueueResource::class,
+    StackResource::class,
+    FileResource::class,
+    NoteResource::class,
+    AIResource::class,
+    CommandResource::class,
+];
+
+$wiseProfile = (string) env('WISE_INTEGRATION', WiseIntegrationGuard::REQUIRED);
+if (!(new WiseIntegrationGuard())->allows($wiseProfile, $wiseTypes)) {
+    return;
+}
 
 $app->delegate( 'feature', FeatureResource::class );
 $app->register( 'feature', 'list', 'handle' );
@@ -74,21 +113,6 @@ $app->register( 'web', 'next', 'handle' );
 $app->register( 'web', 'previous', 'handle' );
 $app->register( 'web', 'go', 'handle' );
 $app->register( 'web', 'help', 'handle' );
-
-$app->delegate( 'website', WebBrowserResource::class );
-$app->register( 'website', 'make', 'create' );
-$app->register( 'website', 'open', 'browse' );
-$app->register( 'website', 'show', 'viewPageContent' );
-$app->register( 'website', 'list', 'listItems' );
-$app->register( 'website', 'select', 'selectItem' );
-$app->register( 'website', 'input', 'fillForm' );
-$app->register( 'website', 'go', 'clickElement' );
-$app->register( 'website', 'submit', 'submitForm' );
-$app->register( 'website', 'previous', 'handle' );
-$app->register( 'website', 'next', 'handle' );
-$app->register( 'website', 'less', 'less' );
-$app->register( 'website', 'more', 'more' );
-$app->register( 'website', 'save', 'bookmark' );
 
 $app->delegate( 'howto', HowToResource::class );
 $app->register( 'howto', 'find', 'search' );
@@ -150,24 +174,16 @@ $app->register( 'schedule', 'delete', 'process' );
 $app->register( 'schedule', 'edit', 'process' );
 $app->register( 'schedule', 'help', 'process' );
 
-$app->delegate( 'system', SystemResourceResource::class );
+$app->delegate( 'system', SystemResource::class );
 $app->register( 'system', 'get', 'handle' );
 
-$app->delegate( 'resource', ResourceResource::class );
+$app->delegate( 'resource', ResourceHelper::class );
 $app->register( 'resource', 'list', 'handle' );
 $app->register( 'resource', 'next', 'handle' );
 $app->register( 'resource', 'previous', 'handle' );
 $app->register( 'resource', 'show', 'handle' );
 $app->register( 'resource', 'more', 'showAll' );
 $app->register( 'resource', 'help', 'handle' );
-
-$app->delegate( 'user', UserResource::class );
-$app->register( 'user', 'list', 'handle' );
-$app->register( 'user', 'find', 'handle' );
-$app->register( 'user', 'update', 'handle' );
-$app->register( 'user', 'help', 'handle' );
-$app->register( 'user', 'prompt', 'handle' );
-$app->register( 'user', 'get', 'handle' );
 
 $app->delegate( 'variable', VariableResource::class );
 $app->register( 'variable', 'show', 'handle' );
@@ -188,7 +204,10 @@ $app->delegate( 'stack', StackResource::class );
 $app->register( 'stack', 'add', 'handle' );
 $app->register( 'stack', 'get', 'handle' );
 
-$app->delegate( 'file', FileResource::class );
+$app->delegate(
+    'file',
+    WiseResourceClassResolver::resolve(FileResource::class, LegacyFileResource::class)
+);
 $app->register( 'file', 'make', 'handle' );
 $app->register( 'file', 'edit', 'handle' );
 $app->register( 'file', 'add', 'handle' );
@@ -217,12 +236,7 @@ $app->register( 'ai', 'get', 'handle' );
 $app->register( 'ai', 'do', 'handle' );
 $app->register( 'ai', 'help', 'handle' );
 
-$app->delegate( 'transcript', MessageResource::class );
-$app->register( 'transcript', 'find', 'handle' );
-$app->register( 'transcript', 'show', 'handle' );
-$app->register( 'transcript', 'help', 'handle' );
-
-$app->delegate( 'command', ResourceHelper::class );
+$app->delegate( 'command', CommandResource::class );
 // $app->register( 'command', 'parse', 'parse' );
 $app->register( 'command', 'list', 'list' );
 $app->register( 'command', 'get', 'all' );

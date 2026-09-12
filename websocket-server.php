@@ -1,16 +1,27 @@
 <?php
-require 'vendor/autoload.php';
+$runtimePaths = require __DIR__ . '/common/bootstrap/runtime.php';
+require $runtimePaths->packageRoot() . '/common/helpers/functions.php';
+require $runtimePaths->packageRoot() . '/common/helpers/settings.php';
+set_time_limit(0);
 
 use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;
 use Ratchet\WebSocket\WsServer;
 use React\EventLoop\Factory;
-use React\Socket\Server;
 use App\Terminal;
+use BlueFission\Async\Sock;
+
+if (!Sock::isAvailable()) {
+    fwrite(
+        STDERR,
+        "The optional terminal WebSocket transport is unavailable. "
+        . "Install cboden/ratchet in a compatible host to enable it.\n"
+    );
+    exit(1);
+}
 
 $loop = Factory::create();
 $port = 8080;
-// $socket = new Server("0.0.0.0:{$port}", $loop);
 
 try {
     $server = IoServer::factory(

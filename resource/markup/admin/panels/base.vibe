@@ -1,0 +1,263 @@
+        <div class="container-fluid p-0">
+          <div id="entry-listing-screen">
+            <h1 class="h3 mb-3">Entries</h1>
+            <!-- metrics -->
+            <div class="row">
+              <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                <div class="card flex-fill">
+                  <div class="card-body py-4">
+                    <div class="d-flex align-items-start">
+                      <div class="flex-grow-1">
+                        <h3 class="mb-2">{kpi_01_value}</h3>
+                        <p class="mb-2">{kpi_01_name}</p>
+                        <div class="mb-0">
+                          <span class="badge badge-soft-success me-2"> +5.35% </span>
+                          <span class="text-muted">Since last week</span>
+                        </div>
+                      </div>
+                      <div class="d-inline-block ms-3">
+                        <div class="stat">
+                          <i class="align-middle text-success" data-feather="users"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                <div class="card flex-fill">
+                  <div class="card-body py-4">
+                    <div class="d-flex align-items-start">
+                      <div class="flex-grow-1">
+                        <h3 class="mb-2">{kpi_02_value}</h3>
+                        <p class="mb-2">{kpi_02_name}</p>
+                        <div class="mb-0">
+                          <span class="badge badge-soft-danger me-2"> -4.25% </span>
+                          <span class="text-muted">Since last week</span>
+                        </div>
+                      </div>
+                      <div class="d-inline-block ms-3">
+                        <div class="stat">
+                          <i class="align-middle text-danger" data-feather="activity"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                <div class="card flex-fill">
+                  <div class="card-body py-4">
+                    <div class="d-flex align-items-start">
+                      <div class="flex-grow-1">
+                        <h3 class="mb-2">{kpi_03_value}</h3>
+                        <p class="mb-2">{kpi_03_name}</p>
+                        <div class="mb-0">
+                          <span class="badge badge-soft-success me-2"> +8.65% </span>
+                          <span class="text-muted">Since last week</span>
+                        </div>
+                      </div>
+                      <div class="d-inline-block ms-3">
+                        <div class="stat">
+                          <i class="align-middle text-info" data-feather="alert-circle"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                <div class="card flex-fill">
+                  <div class="card-body py-4">
+                    <div class="d-flex align-items-start">
+                      <div class="flex-grow-1">
+                        <h3 class="mb-2">{kpi_04_value}</h3>
+                        <p class="mb-2">{kpi_04_name}</p>
+                        <div class="mb-0">
+                          <span class="badge badge-soft-success me-2"> +8.65% </span>
+                          <span class="text-muted">Since last week</span>
+                        </div>
+                      </div>
+                      <div class="d-inline-block ms-3">
+                        <div class="stat">
+                          <i class="align-middle text-info" data-feather="alert-circle"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- end metrics -->
+            <div class="row">
+              <div class="col-xl-8">
+                <div class="card">
+                  <div class="card-header">
+                    <div class="card-actions float-end">
+                      <div class="dropdown position-relative">
+                        <button href="#" id="entry-add-btn" class="btn btn-primary btn-sm" data-bs-display="static">
+                          <i class="align-middle" data-feather="plus-square"></i> Add New
+                        </button> 
+                        <button href="#" id="entry-delete-btn" class="btn btn-danger btn-sm" data-bs-display="static">
+                          <i class="align-middle" data-feather="minus-square"></i> Delete
+                        </button>
+                        <a href="#" data-bs-toggle="dropdown" data-bs-display="static">
+                          <i class="align-middle" data-feather="more-horizontal"></i>
+                        </a>
+
+                        <div class="dropdown-menu dropdown-menu-end">
+                          <a class="dropdown-item" id="reload-list-btn" href="#"><i class="align-middle" data-feather="refresh-cw"></i> Reload</a>
+                        </div>
+                      </div>
+                    </div>
+                    <h5 class="card-title mb-0">Entries</h5>
+                  </div>
+                  <div class="card-body">
+                    <table id="dataTable" class="table table-striped" style="width:100%">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Description</th>
+                          <th>Status</th>
+                          <th>Manage</th>
+                        </tr>
+                      </thead>
+                      <tfoot>
+                        <tr>
+                          <th>Name</th>
+                          <th>Description</th>
+                          <th>Status</th>
+                          <th>Manage</th>
+                        </tr>
+                      </tfoot>
+                      <tbody id="entry-list">
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-xl-4">
+                <div class="card">
+                  <div class="card-header">
+                    <div class="card-actions float-end">
+                      <div class="dropdown position-relative">
+                        <a href="#" data-bs-toggle="dropdown" data-bs-display="static">
+                          <i class="align-middle" data-feather="more-horizontal"></i>
+                        </a>
+
+                        <div class="dropdown-menu dropdown-menu-end">
+                          <a class="dropdown-item" href="#">Action</a>
+                          <a class="dropdown-item" href="#">Another action</a>
+                          <a class="dropdown-item" href="#">Something else here</a>
+                        </div>
+                      </div>
+                    </div>
+                    <h5 class="card-title mb-0">{entry_name}</h5>
+                  </div>
+                  <div class="card-body">
+                    <div id="entry-details">
+                      Select an entry to view details.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="entry-edit-screen">
+            <h1 class="h3 mb-3">
+              <a href="#" class="home-btn">
+                <i class="align-middle" data-feather="chevrons-left"></i>
+              </a>
+              Entry Information
+            </h1>
+            <form id="entry-edit-form">
+              <div class="row">
+                <div class="col-12 col-lg-12">
+                  <div class="card">
+                    <div class="card-header">
+                      <h5 class="card-title mb-0">Title</h5>
+                    </div>
+                    <div class="card-body">
+                      <input type="hidden" class="entry-id-field" name="entry-id-field">
+                      <div class="form-group">
+                        <label for="entry-content" class="form-control-label">
+                          Name
+                        </label>
+                        <input type="text" class="form-control entry-name-field" name="entry-name-field" placeholder="Name">
+                      </div>
+                      <div class="form-group">
+                        <label for="entry-content" class="form-control-label">
+                          Description
+                        </label>
+                        <textarea class="form-control entry-description-field" name="entry-description-field" rows="2" placeholder="Description"></textarea>
+                      </div>
+                      <div class="form-group">
+                        <div class="form-check form-switch">
+                          <input class="form-check-input entry-status-field" name="entry-status-field" type="checkbox" value="1" id="flexSwitchCheckDefault">
+                          <label class="form-check-label" for="flexSwitchCheckDefault">Entry is active?</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card">
+                    <div class="card-header">
+                      <h5 class="card-title mb-0">Options</h5>
+                    </div>
+                    <div class="card-body">
+                      <div>
+                        <label class="form-check">
+                          <input class="form-check-input" type="checkbox" value="">
+                          <span class="form-check-label">
+                            Option one is this and that&mdash;be sure to include why it's great
+                          </span>
+                        </label>
+                                  <label class="form-check">
+                          <input class="form-check-input" type="checkbox" value="">
+                          <span class="form-check-label">
+                            Option two is disabled
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <button type="submit" class="btn btn-primary" id="entry-save-btn">Submit</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <script src="/assets/js/module-entries.js"></script>
+        <script type="text/template" id="credential-status-list-item">
+                <option value="{{credential_status_id}}">{{label}}</option>
+        </script>
+        <script type="text/template" id="entry-detail-display-item">
+
+            <div id="entry-details">
+              <div class="row g-0">
+                <div class="col-sm-9 col-xl-12 col-xxl-9">
+                  <strong>Description</strong>
+                  <p>{{description}}</p>
+                </div>
+              </div>
+
+              <table class="table table-sm my-2">
+                <tbody>
+                  <tr>
+                    <th>name</th>
+                    <td>{{name}}</td>
+                  </tr>
+                  <tr>
+                    <th>Status</th>
+                    <td>{{status}}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+            </div>
+        </script>
