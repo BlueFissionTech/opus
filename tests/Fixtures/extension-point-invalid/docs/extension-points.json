@@ -47,8 +47,12 @@
       "area": "application_intake",
       "phase": "after_persistence",
       "owner": "ApplicationIntakeService",
-      "payload": {"type": "object", "required": ["foo"]},
-      "returns": {"type": "void"},
+      "payload": {
+        "type": "object",
+        "required": ["foo"],
+        "properties": {"transition": "boolean", "session": "object"}
+      },
+      "returns": {"type": "void", "required": {}},
       "mutability": "observe_only",
       "exception_policy": "ignore_observer_failure",
       "ordering": "priority_ascending_then_registration_order",
@@ -78,7 +82,7 @@
       "mutability": "replace_in_place",
       "exception_policy": "ignore_all_failures",
       "ordering": "priority_ascending_then_registration_order",
-      "invariants": []
+      "invariants": {}
     }
   ],
   "boundary_inventory": [
@@ -109,6 +113,13 @@
       "owner": "EmptyHookOwner",
       "extension_points": [],
       "rationale": "invalid empty hooked boundary"
+    },
+    {
+      "area": "invalid_container",
+      "status": "intentionally_closed",
+      "owner": "InvalidContainerOwner",
+      "extension_points": {},
+      "rationale": "invalid extension-point container"
     }
   ]
 }

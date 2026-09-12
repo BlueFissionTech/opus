@@ -19,7 +19,10 @@
       },
       "returns": {
         "type": "object",
-        "required": ["defaults"]
+        "required": ["defaults"],
+        "properties": {
+          "defaults": "object"
+        }
       },
       "mutability": "replace_value",
       "exception_policy": "propagate_before_write",
@@ -62,7 +65,13 @@
       "owner": "AgentCommandContextProvider",
       "payload": {
         "type": "object",
-        "required": ["agent_id", "active_addons", "addon_states", "capabilities"]
+        "required": ["agent_id", "active_addons", "addon_states", "capabilities"],
+        "properties": {
+          "agent_id": "string",
+          "active_addons": "array",
+          "addon_states": "object",
+          "capabilities": "array"
+        }
       },
       "returns": {
         "type": "object"
@@ -84,7 +93,11 @@
       "owner": "LazyAgentCommandProcessor",
       "payload": {
         "type": "object",
-        "required": ["status", "source"]
+        "required": ["status", "source"],
+        "properties": {
+          "status": "string",
+          "source": "string"
+        }
       },
       "returns": {
         "type": "void"
@@ -105,7 +118,12 @@
       "owner": "LazyAgentCommandProcessor",
       "payload": {
         "type": "object",
-        "required": ["status", "reason", "retryable"]
+        "required": ["status", "reason", "retryable"],
+        "properties": {
+          "status": "string",
+          "reason": "string",
+          "retryable": "boolean"
+        }
       },
       "returns": {
         "type": "void"
@@ -126,11 +144,18 @@
       "owner": "ConversationalLearningCatalog",
       "payload": {
         "type": "object",
-        "required": ["settings", "layers"]
+        "required": ["settings", "layers"],
+        "properties": {
+          "settings": "object",
+          "layers": "object"
+        }
       },
       "returns": {
         "type": "object",
-        "required": ["settings"]
+        "required": ["settings"],
+        "properties": {
+          "settings": "object"
+        }
       },
       "mutability": "replace_value",
       "exception_policy": "propagate_before_use",
@@ -148,11 +173,18 @@
       "owner": "ConversationalLearningCatalog",
       "payload": {
         "type": "object",
-        "required": ["configuration", "profile"]
+        "required": ["configuration", "profile"],
+        "properties": {
+          "configuration": "object",
+          "profile": "object"
+        }
       },
       "returns": {
         "type": "object",
-        "required": ["configuration"]
+        "required": ["configuration"],
+        "properties": {
+          "configuration": "object"
+        }
       },
       "mutability": "replace_value",
       "exception_policy": "propagate_before_use",

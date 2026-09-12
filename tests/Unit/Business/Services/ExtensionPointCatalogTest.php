@@ -136,6 +136,10 @@ final class ExtensionPointCatalogTest extends TestCase
             $invalid->val()
         );
         $this->assertContains(
+            'opus.test.unsupported_policy invariants must be a list',
+            $invalid->val()
+        );
+        $this->assertContains(
             'opus.agent.command_context has kind action but runtime kind is filter',
             $invalid->val()
         );
@@ -149,6 +153,14 @@ final class ExtensionPointCatalogTest extends TestCase
         );
         $this->assertContains(
             'opus.intake.session.transitioned does not match runtime payload required keys',
+            $invalid->val()
+        );
+        $this->assertContains(
+            'opus.intake.session.transitioned does not match runtime payload properties',
+            $invalid->val()
+        );
+        $this->assertContains(
+            'opus.intake.session.transitioned has invalid returns required',
             $invalid->val()
         );
         $this->assertContains('opus.agent.command_context has an invalid payload schema', $invalid->val());
@@ -174,6 +186,10 @@ final class ExtensionPointCatalogTest extends TestCase
         );
         $this->assertContains(
             'opus.agent.command_context does not belong to boundary area other_area',
+            $invalid->val()
+        );
+        $this->assertContains(
+            'invalid_container extension_points must be a list',
             $invalid->val()
         );
     }

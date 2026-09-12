@@ -41,8 +41,10 @@ final class ExtensionPointCatalog extends Service
             'exception_policy' => 'propagate_before_write',
             'payload_type' => 'object',
             'payload_required' => ['defaults', 'context'],
+            'payload_properties' => ['defaults' => 'object', 'context' => 'object'],
             'return_type' => 'object',
             'return_required' => ['defaults'],
+            'return_properties' => ['defaults' => 'object'],
         ],
         self::INTAKE_SESSION_TRANSITIONED => [
             'kind' => 'action',
@@ -53,8 +55,10 @@ final class ExtensionPointCatalog extends Service
             'exception_policy' => 'propagate_after_commit',
             'payload_type' => 'object',
             'payload_required' => ['transition', 'session'],
+            'payload_properties' => ['transition' => 'string', 'session' => 'object'],
             'return_type' => 'void',
             'return_required' => [],
+            'return_properties' => [],
         ],
         self::AGENT_COMMAND_CONTEXT => [
             'kind' => 'filter',
@@ -65,8 +69,15 @@ final class ExtensionPointCatalog extends Service
             'exception_policy' => 'propagate_before_execution',
             'payload_type' => 'object',
             'payload_required' => ['agent_id', 'active_addons', 'addon_states', 'capabilities'],
+            'payload_properties' => [
+                'agent_id' => 'string',
+                'active_addons' => 'array',
+                'addon_states' => 'object',
+                'capabilities' => 'array',
+            ],
             'return_type' => 'object',
             'return_required' => [],
+            'return_properties' => [],
         ],
         self::AGENT_COMMAND_RUNTIME_READY => [
             'kind' => 'action',
@@ -77,8 +88,10 @@ final class ExtensionPointCatalog extends Service
             'exception_policy' => 'ignore_observer_failure',
             'payload_type' => 'object',
             'payload_required' => ['status', 'source'],
+            'payload_properties' => ['status' => 'string', 'source' => 'string'],
             'return_type' => 'void',
             'return_required' => [],
+            'return_properties' => [],
         ],
         self::AGENT_COMMAND_RUNTIME_UNAVAILABLE => [
             'kind' => 'action',
@@ -89,8 +102,14 @@ final class ExtensionPointCatalog extends Service
             'exception_policy' => 'ignore_observer_failure',
             'payload_type' => 'object',
             'payload_required' => ['status', 'reason', 'retryable'],
+            'payload_properties' => [
+                'status' => 'string',
+                'reason' => 'string',
+                'retryable' => 'boolean',
+            ],
             'return_type' => 'void',
             'return_required' => [],
+            'return_properties' => [],
         ],
         self::CONVERSATION_SETTINGS => [
             'kind' => 'filter',
@@ -101,8 +120,10 @@ final class ExtensionPointCatalog extends Service
             'exception_policy' => 'propagate_before_use',
             'payload_type' => 'object',
             'payload_required' => ['settings', 'layers'],
+            'payload_properties' => ['settings' => 'object', 'layers' => 'object'],
             'return_type' => 'object',
             'return_required' => ['settings'],
+            'return_properties' => ['settings' => 'object'],
         ],
         self::CONVERSATION_CONFIGURATION => [
             'kind' => 'filter',
@@ -113,8 +134,10 @@ final class ExtensionPointCatalog extends Service
             'exception_policy' => 'propagate_before_use',
             'payload_type' => 'object',
             'payload_required' => ['configuration', 'profile'],
+            'payload_properties' => ['configuration' => 'object', 'profile' => 'object'],
             'return_type' => 'object',
             'return_required' => ['configuration'],
+            'return_properties' => ['configuration' => 'object'],
         ],
     ];
 
@@ -145,6 +168,7 @@ final class ExtensionPointCatalog extends Service
 
     private string $manifestPath;
     private ?array $manifest = null;
+    private ?\stdClass $manifestShape = null;
 
     public function __construct(?string $root = null)
     {
@@ -169,11 +193,13 @@ final class ExtensionPointCatalog extends Service
         }
 
         $decoded = HTTP::jsonDecode($contents, true);
-        if (!Arr::is($decoded)) {
+        $decodedShape = HTTP::jsonDecode($contents, false);
+        if (!Arr::is($decoded) || !$decodedShape instanceof \stdClass) {
             throw new RuntimeException('Extension-point catalog is not valid JSON.');
         }
 
         $this->manifest = Arr::toArray($decoded, true);
+        $this->manifestShape = $decodedShape;
 
         return $this->manifest;
     }
@@ -212,9 +238,13 @@ final class ExtensionPointCatalog extends Service
         $this->validateList($manifest, 'extension_points', $invalid);
         $this->validateList($manifest, 'boundary_inventory', $invalid);
 
+        $extensionShapes = $this->manifestListShape('extension_points');
+        $boundaryShapes = $this->manifestListShape('boundary_inventory');
+
         Arr::make($this->extensionPoints())->each(
-            fn ($definition) => $this->validateExtensionPoint(
+            fn ($definition, $index) => $this->validateExtensionPoint(
                 $definition,
+                $extensionShapes[$index] ?? null,
                 $catalogued,
                 $ownership,
                 $invalid
@@ -223,8 +253,9 @@ final class ExtensionPointCatalog extends Service
 
         $areas = Arr::make([]);
         Arr::make($this->boundaryInventory())->each(
-            fn ($boundary) => $this->validateBoundary(
+            fn ($boundary, $index) => $this->validateBoundary(
                 $boundary,
+                $boundaryShapes[$index] ?? null,
                 $areas,
                 $catalogued,
                 $covered,
@@ -264,19 +295,30 @@ final class ExtensionPointCatalog extends Service
     private function validateList(Arr $manifest, string $key, Arr $invalid): void
     {
         $value = $manifest->get($key);
-        if (!Arr::is($value) || !array_is_list($value)) {
+        if (!Arr::is($value)
+            || !array_is_list($value)
+            || !Arr::is($this->manifestShape?->{$key} ?? null)
+        ) {
             $invalid->push($key . ' must be a list');
         }
     }
 
+    private function manifestListShape(string $key): array
+    {
+        $value = $this->manifestShape?->{$key} ?? null;
+
+        return Arr::is($value) ? $value : [];
+    }
+
     private function validateExtensionPoint(
         $definition,
+        $definitionShape,
         Arr $catalogued,
         Arr $ownership,
         Arr $invalid
     ): void
     {
-        if (!Arr::is($definition)) {
+        if (!Arr::is($definition) || !$definitionShape instanceof \stdClass) {
             $invalid->push('extension-point entry must be an object');
             return;
         }
@@ -332,6 +374,7 @@ final class ExtensionPointCatalog extends Service
         Arr::make(['payload', 'returns'])->each(
             fn (string $shape) => $this->validateSchema(
                 $definition->get($shape),
+                $definitionShape->{$shape} ?? null,
                 $shape,
                 Str::is($kind) ? $kind : '',
                 $name,
@@ -340,7 +383,10 @@ final class ExtensionPointCatalog extends Service
         );
 
         $invariants = $definition->get('invariants');
-        if (!Arr::is($invariants) || !array_is_list($invariants)) {
+        if (!Arr::is($invariants)
+            || !array_is_list($invariants)
+            || !Arr::is($definitionShape->invariants ?? null)
+        ) {
             $invalid->push($name . ' invariants must be a list');
         } else {
             Arr::make($invariants)->each(function ($invariant) use ($invalid, $name): void {
@@ -353,13 +399,14 @@ final class ExtensionPointCatalog extends Service
 
     private function validateBoundary(
         $boundary,
+        $boundaryShape,
         Arr $areas,
         Arr $catalogued,
         Arr $covered,
         Arr $ownership,
         Arr $invalid
     ): void {
-        if (!Arr::is($boundary)) {
+        if (!Arr::is($boundary) || !$boundaryShape instanceof \stdClass) {
             $invalid->push('boundary inventory entry must be an object');
             return;
         }
@@ -388,7 +435,10 @@ final class ExtensionPointCatalog extends Service
         }
 
         $names = $boundary->get('extension_points');
-        if (!Arr::is($names) || !array_is_list($names)) {
+        if (!Arr::is($names)
+            || !array_is_list($names)
+            || !Arr::is($boundaryShape->extension_points ?? null)
+        ) {
             $invalid->push($area . ' extension_points must be a list');
             return;
         }
@@ -451,8 +501,16 @@ final class ExtensionPointCatalog extends Service
             });
 
         Arr::make([
-            'payload' => ['type' => 'payload_type', 'required' => 'payload_required'],
-            'returns' => ['type' => 'return_type', 'required' => 'return_required'],
+            'payload' => [
+                'type' => 'payload_type',
+                'required' => 'payload_required',
+                'properties' => 'payload_properties',
+            ],
+            'returns' => [
+                'type' => 'return_type',
+                'required' => 'return_required',
+                'properties' => 'return_properties',
+            ],
         ])->each(function (array $contractFields, string $shape) use (
                 $contract,
                 $definition,
@@ -476,18 +534,29 @@ final class ExtensionPointCatalog extends Service
                         $name . ' does not match runtime ' . $shape . ' required keys'
                     );
                 }
+
+                $actualProperties = $schema !== null && $schema->hasKey('properties')
+                    ? $schema->get('properties')
+                    : [];
+                $expectedProperties = $contract->get($contractFields['properties'], []);
+                if (!$this->sameStringMap($actualProperties, $expectedProperties)) {
+                    $invalid->push(
+                        $name . ' does not match runtime ' . $shape . ' properties'
+                    );
+                }
             });
     }
 
     private function validateSchema(
         $schema,
+        $schemaShape,
         string $shape,
         string $kind,
         string $name,
         Arr $invalid
     ): void
     {
-        if (!Arr::is($schema)) {
+        if (!Arr::is($schema) || !$schemaShape instanceof \stdClass) {
             $invalid->push($name . ' has an invalid ' . $shape . ' schema');
             return;
         }
@@ -513,7 +582,14 @@ final class ExtensionPointCatalog extends Service
             }
 
             $values = $schema->get($field);
-            if (!Arr::is($values) || ($field === 'required' && !array_is_list($values))) {
+            $rawValues = $schemaShape->{$field} ?? null;
+            $hasExpectedContainer = $field === 'required'
+                ? Arr::is($rawValues)
+                : $rawValues instanceof \stdClass;
+            if (!Arr::is($values)
+                || !$hasExpectedContainer
+                || ($field === 'required' && !array_is_list($values))
+            ) {
                 $invalid->push($name . ' has invalid ' . $shape . ' ' . $field);
                 continue;
             }
@@ -577,6 +653,23 @@ final class ExtensionPointCatalog extends Service
             && $expected->unique()->count() === $expected->count()
             && $actual->filter(
                 fn ($value): bool => Str::is($value) && $expected->has($value, true)
+            )->count() === $actual->count();
+    }
+
+    private function sameStringMap($actual, $expected): bool
+    {
+        if (!Arr::is($actual) || !Arr::is($expected)) {
+            return false;
+        }
+
+        $actual = Arr::make($actual);
+        $expected = Arr::make($expected);
+
+        return $actual->count() === $expected->count()
+            && $actual->filter(
+                fn ($value, $key): bool => Str::is($key)
+                    && Str::is($value)
+                    && $expected->get($key) === $value
             )->count() === $actual->count();
     }
 }
