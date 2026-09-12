@@ -128,6 +128,10 @@ final class ExtensionPointCatalogTest extends TestCase
             $invalid->val()
         );
         $this->assertContains(
+            'opus.test.unsupported_policy has an unsupported returns type',
+            $invalid->val()
+        );
+        $this->assertContains(
             'opus.test.unsupported_policy has unsupported returns property type: retryable',
             $invalid->val()
         );

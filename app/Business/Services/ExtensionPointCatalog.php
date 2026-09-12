@@ -256,6 +256,7 @@ final class ExtensionPointCatalog extends Service
             fn (string $shape) => $this->validateSchema(
                 $definition->get($shape),
                 $shape,
+                Str::is($kind) ? $kind : '',
                 $name,
                 $invalid
             )
@@ -343,7 +344,13 @@ final class ExtensionPointCatalog extends Service
         });
     }
 
-    private function validateSchema($schema, string $shape, string $name, Arr $invalid): void
+    private function validateSchema(
+        $schema,
+        string $shape,
+        string $kind,
+        string $name,
+        Arr $invalid
+    ): void
     {
         if (!Arr::is($schema)) {
             $invalid->push($name . ' has an invalid ' . $shape . ' schema');
@@ -354,9 +361,13 @@ final class ExtensionPointCatalog extends Service
         $type = $schema->get('type');
         if (!$this->isNonemptyString($type)) {
             $invalid->push($name . ' has an invalid ' . $shape . ' schema');
-        } elseif (!Arr::make(
-            $shape === 'returns' ? self::RETURN_SCHEMA_TYPES : self::VALUE_SCHEMA_TYPES
-        )->has($type, true)) {
+        }
+        $supportedTypes = $shape === 'returns' && $kind === 'action'
+            ? self::RETURN_SCHEMA_TYPES
+            : self::VALUE_SCHEMA_TYPES;
+        if ($this->isNonemptyString($type)
+            && !Arr::make($supportedTypes)->has($type, true)
+        ) {
             $invalid->push($name . ' has an unsupported ' . $shape . ' type');
         }
 
