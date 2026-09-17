@@ -87,3 +87,50 @@ and review standards in `AGENTS.standards.md`.
   concise artifact logs, clarify issues, or advance relevant discussion-room
   topics, stopping when further work becomes speculation better suited for
   human review.
+
+## Weekday Repository Triage
+
+- Maintain one continuing heartbeat task for repository triage so each run
+  returns to the same task history. Run Monday through Friday at a coordinated
+  15-minute increment between 08:00 and 17:00 in `America/New_York`, favoring
+  noon. The current preferred slot is 12:15. Coordinate changes through Keryx
+  with Pelorus and affected sibling repositories before moving the cadence.
+- If the heartbeat is missing, disabled, duplicated, or collides with another
+  ecosystem automation, report it to the operator and request or perform its
+  re-establishment when authorized. Prefer updating the existing heartbeat to
+  creating another task.
+- At the start of each run, inspect and respond to unread Keryx messages and
+  joined discussion rooms. Acknowledge completed coordination so it does not
+  recur, route package-specific work to the responsible upstream or sibling,
+  and send concise completion or blocker updates to affected repositories and
+  rooms.
+- Next, triage GitHub review comments, pull requests, issues, CI, and associated
+  project items. Make bounded requested updates on an issue branch, stage new
+  work in focused pull requests, and close items only after their completion or
+  merge is verified. Ask the operator when approval, product direction, access,
+  or a consequential choice is required.
+- Operator direction has first authority. When priorities or resourcing are not
+  explicit, request guidance from Pelorus through Keryx before selecting among
+  competing tasks. Push back on work outside Opus platform responsibilities and
+  ask for its rationale rather than absorbing another package's domain.
+- Continue processing new messages delivered during the run until actionable
+  work is exhausted or a human decision is required. Keep the batch small
+  enough for human review; use remaining capacity for safe refactors, tests,
+  examples, documentation, and measured optimizations rather than speculative
+  features.
+- When no Pelorus, Keryx, GitHub, or project work remains, finish reviewable
+  work already present in active worktrees. Commit and push only when authorized
+  and validated. Use Keryx-approved orchestration to stop stale test containers,
+  avoid unrelated workloads, tidy temporary artifacts, reconcile worktrees, and
+  leave the central checkout on an updated protected branch without direct
+  commits to that branch.
+- Periodically review enduring source and history patterns and keep
+  `AGENTS.standards.md`, specifications, architecture, and roadmap documents
+  aligned with evidence. Treat creative, philosophical, product-direction, and
+  major standards decisions as Pelorus or operator decisions; do not create
+  documentation churn merely to fill a quiet run.
+- Use an elevated sandbox for credential-dependent GitHub operations when the
+  environment permits it. Keep Keryx as the gateway for cross-repository,
+  GitHub, and Docker work. If Keryx is unavailable, start it in the background
+  through the repository-provided helper when authorized; never replace that
+  path with raw Docker commands or expose secrets.
