@@ -109,10 +109,17 @@ final class InstalledDependencyAudit
         if ($contents === false) {
             throw new RuntimeException('Required dependency metadata is unreadable.');
         }
-        $data = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
-        if (!is_array($data)) {
+        // Preserve JSON container types before associative decoding erases {} versus [].
+        $container = json_decode($contents, false, 512, JSON_THROW_ON_ERROR);
+        if ($container instanceof \stdClass) {
+            if (!property_exists($container, 'packages') || !is_array($container->packages)
+                || (property_exists($container, 'packages-dev') && !is_array($container->{'packages-dev'}))
+            ) {
+                throw new RuntimeException('Package metadata must contain a package list.');
+            }
+        } elseif (!is_array($container)) {
             throw new RuntimeException('Dependency metadata must be a JSON object or package list.');
         }
-        return $data;
+        return json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
     }
 }

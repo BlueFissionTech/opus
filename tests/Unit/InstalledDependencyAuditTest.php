@@ -104,6 +104,51 @@ final class InstalledDependencyAuditTest extends TestCase
         ];
     }
 
+    /** @dataProvider malformedJsonContainers */
+    public function testJsonObjectsCannotMasqueradeAsPackageLists(string $lock, string $installed): void
+    {
+        $root = sys_get_temp_dir() . '/opus-metadata-shape-' . bin2hex(random_bytes(8));
+        mkdir($root);
+        try {
+            file_put_contents($root . '/composer.lock', $lock);
+            file_put_contents($root . '/installed.json', $installed);
+            $this->expectException(RuntimeException::class);
+            (new InstalledDependencyAudit())->auditFiles($root . '/composer.lock', $root . '/installed.json');
+        } finally {
+            unlink($root . '/composer.lock');
+            unlink($root . '/installed.json');
+            rmdir($root);
+        }
+    }
+
+    public static function malformedJsonContainers(): array
+    {
+        return [
+            'empty installed object' => ['{"packages":[]}', '{}'],
+            'installed package object' => ['{"packages":[]}', '{"packages":{}}'],
+            'lock package object' => ['{"packages":{}}', '[]'],
+            'lock dev package object' => ['{"packages":[],"packages-dev":{}}', '[]'],
+        ];
+    }
+
+    public function testEmptyComposerOneAndTwoPackageListsRemainValid(): void
+    {
+        $root = sys_get_temp_dir() . '/opus-empty-metadata-' . bin2hex(random_bytes(8));
+        mkdir($root);
+        try {
+            file_put_contents($root . '/composer.lock', '{"packages":[],"packages-dev":[]}');
+            foreach (['[]', '{"packages":[]}'] as $installed) {
+                file_put_contents($root . '/installed.json', $installed);
+                $report = (new InstalledDependencyAudit())->auditFiles($root . '/composer.lock', $root . '/installed.json');
+                $this->assertSame('pass', $report['status']);
+            }
+        } finally {
+            unlink($root . '/composer.lock');
+            unlink($root . '/installed.json');
+            rmdir($root);
+        }
+    }
+
     public function testAbsentMetadataFailsBeforeAutoload(): void
     {
         $this->expectException(RuntimeException::class);
@@ -161,6 +206,7 @@ final class InstalledDependencyAuditTest extends TestCase
             'matching development' => [$matching, [], 0, 'pass'],
             'matching production' => [$matching, ['--no-dev'], 0, 'pass'],
             'missing package' => ['{"packages":[]}', [], 1, 'drift'],
+            'empty installed object' => ['{}', [], 2, 'unavailable'],
             'corrupt metadata' => ['{"secret":"do-not-print",', [], 2, 'unavailable'],
         ];
     }
