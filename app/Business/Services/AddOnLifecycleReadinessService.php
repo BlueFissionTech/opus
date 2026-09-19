@@ -62,7 +62,7 @@ final class AddOnLifecycleReadinessService extends Service
 
     private function normalizeLifecycle(Arr $outcome): array
     {
-        $reasons = Arr::make([]);
+        $reasons = $this->shapeProblems($outcome);
         $optionalHookFailureOnly = $this->aggregateFailureIsOptionalHookOnly($outcome);
         $hooks = Arr::make(Arr::is($outcome->get('hooks')) ? $outcome->get('hooks') : [])
             ->map(fn ($hook): array => $this->normalizeHook(Arr::make((array) $hook), $reasons))
@@ -136,6 +136,18 @@ final class AddOnLifecycleReadinessService extends Service
 
     private function normalizeHook(Arr $hook, Arr $reasons): array
     {
+        if (!Flag::isBool($hook->get('ok'))
+            || (Arr::hasKey($hook->val(), 'status') && !Str::is($hook->get('status')))
+        ) {
+            $message = 'Add-on hook result must contain a boolean ok value and a string status when present.';
+            $reasons->push($this->reason('addon_hook_result_invalid', 'hook', $message));
+            $hook->set('ok', false);
+            $hook->set('status', 'invalid');
+            $hook->set('error', $message);
+
+            return $hook->toArray();
+        }
+
         $status = Str::make((string) $hook->get('status'))->trim()->lower()->val();
         if ($status === 'missing_callable') {
             $hook->set('ok', true);
@@ -226,7 +238,7 @@ final class AddOnLifecycleReadinessService extends Service
         $changes = $normalized
             ->filter(fn (array $result): bool => Flag::parseBool(Arr::getPath($result, 'changed', false)))
             ->values();
-        $reasons = Arr::make([]);
+        $reasons = $this->shapeProblems($outcome);
         $failures->each(function (array $result) use ($reasons): void {
             $reasons->mergeRecursive((array) Arr::getPath($result, 'readiness.reasons', []));
         });
@@ -255,7 +267,7 @@ final class AddOnLifecycleReadinessService extends Service
         }
         $total = $normalized->count();
         $failed = $failures->count();
-        $blocked = $failed > 0 || $independentAggregateFailure;
+        $blocked = $reasons->isNotEmpty() || $failed > 0 || $independentAggregateFailure;
 
         $outcome->set('ok', !$blocked);
         $outcome->set('changed', $changes->count() > 0);
@@ -281,6 +293,44 @@ final class AddOnLifecycleReadinessService extends Service
         ]);
 
         return $outcome->toArray();
+    }
+
+    private function shapeProblems(Arr $outcome): Arr
+    {
+        $reasons = Arr::make([]);
+        if (!Flag::isBool($outcome->get('ok'))) {
+            $reasons->push($this->reason(
+                'addon_lifecycle_result_invalid',
+                'lifecycle',
+                'Add-on lifecycle result must contain a boolean ok value.'
+            ));
+        }
+
+        Arr::make(['hooks', 'results'])->each(function (string $field) use ($outcome, $reasons): void {
+            if (Arr::hasKey($outcome->val(), $field) && !Arr::is($outcome->get($field))) {
+                $reasons->push($this->reason(
+                    'addon_lifecycle_result_invalid',
+                    $field,
+                    "Add-on {$field} must be an array of results."
+                ));
+            }
+        });
+
+        Arr::make(self::REQUIRED_STAGES)->each(function (string $code, string $stage) use ($outcome, $reasons): void {
+            if (!Arr::hasKey($outcome->val(), $stage) || $outcome->get($stage) === []) {
+                return;
+            }
+            $result = $outcome->get($stage);
+            if (!Arr::is($result) || !Flag::isBool(Arr::getPath((array) $result, 'ok'))) {
+                $reasons->push($this->reason(
+                    'addon_stage_result_invalid',
+                    $stage,
+                    "Add-on {$stage} result must contain a boolean ok value."
+                ));
+            }
+        });
+
+        return $reasons;
     }
 
     private function successfulNextAction(string $action): ?string

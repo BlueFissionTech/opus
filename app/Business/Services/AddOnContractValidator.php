@@ -617,25 +617,39 @@ final class AddOnContractValidator extends Service
 
         $themes->each(function ($descriptor, $name) use ($root, $errors): void {
             $descriptor = Arr::make(Arr::is($descriptor) ? $descriptor : []);
-            $directory = Str::make((string) $descriptor->get('directory'))->trim('/\\')->val();
-            $entrypoint = Str::make((string) $descriptor->get('entrypoint'))->trim('/\\')->val();
-            $relative = Str::make($directory)
-                ->append($directory === '' ? '' : '/')
-                ->append($entrypoint)
-                ->replace('\\', '/')
-                ->val();
+            $directory = $descriptor->get('directory');
+            $entrypoint = $descriptor->get('entrypoint');
+            $message = "Theme {$name} must declare a relative, existing .vibe entrypoint under resource/markup.";
+            if (!Str::is($directory) || !Str::is($entrypoint)) {
+                $errors->push($this->problem('theme_entrypoint', 'definition.json', $message));
+                return;
+            }
 
+            $directory = Str::make($directory)->replace('\\', '/')->val();
+            $entrypoint = Str::make($entrypoint)->replace('\\', '/')->val();
+            $relative = Str::make($directory)->trim('/')->append('/')->append($entrypoint)->val();
+            $segments = Str::make($relative)->split('/');
             if ($entrypoint === ''
+                || Str::startsWith($directory, '/')
+                || Str::startsWith($entrypoint, '/')
+                || Str::make($relative)->contains(':')
+                || Str::make($relative)->contains("\0")
+                || $segments->has('..', true)
+                || $segments->has('.', true)
                 || !Str::make($entrypoint)->endsWith('.vibe')
-                || Str::make($relative)->split('/')->has('..', true)
                 || !Str::startsWith($relative, 'resource/markup/')
-                || !FileSystem::fileExists($this->path($root, $relative))
             ) {
-                $errors->push($this->problem(
-                    'theme_entrypoint',
-                    'definition.json',
-                    "Theme {$name} must declare an existing .vibe entrypoint under resource/markup."
-                ));
+                $errors->push($this->problem('theme_entrypoint', 'definition.json', $message));
+                return;
+            }
+
+            $resolved = realpath($this->path($root, $relative));
+            $allowedRoot = Str::make($root)->replace('\\', '/')->append('/resource/markup/')->val();
+            if ($resolved === false
+                || !FileSystem::fileExists($resolved)
+                || !Str::make($resolved)->replace('\\', '/')->startsWith($allowedRoot)
+            ) {
+                $errors->push($this->problem('theme_entrypoint', 'definition.json', $message));
             }
         });
     }

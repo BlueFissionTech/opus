@@ -218,6 +218,17 @@ Acceptance criteria:
 - Installed add-ons do not require Opus to patch their namespace or autoload
   behavior.
 - Add-on readiness checks report package issues as package issues.
+- Theme declarations use string-valued relative directory and entrypoint paths.
+  Reject absolute paths, dot traversal, malformed metadata, missing files and
+  resolved paths outside the package markup tree before reporting validity.
+- Lifecycle readiness requires a boolean `ok` result. Missing or coerced success
+  flags, malformed hook/batch collections, and nonempty datasource results
+  without boolean outcomes are blocked with stable diagnostic codes. Empty
+  datasource arrays remain compatible placeholders for stages not run.
+- Batch readiness preserves completed changes and recounts failed children;
+  malformed evidence is not permission to repeat side effects. An absent optional
+  hook keeps its existing skipped behavior. Readiness describes the reported
+  operation, not authorization, tenant isolation, or a complete runtime proof.
 - Opus exposes lifecycle commands without coupling to add-on implementation
   internals.
 

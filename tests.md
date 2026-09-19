@@ -108,6 +108,17 @@ Webpack starts.
 Tests that require databases, queues, external APIs, model hosts, or secrets
 must remain opt-in. Do not require optional services for the baseline suite.
 
+
+## Strict lifecycle readiness results
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter
+AddOnLifecycleReadinessServiceTest` (put the command on one line).
+The suite checks missing and mistyped success flags, invalid hook and batch
+collections, malformed datasource outcomes, partial changes, accurate batch
+counts, and compatibility with optional missing lifecycle hooks. Also run
+`--filter AddOnManagerTest` for the console adapter, then the full PHPUnit suite.
+These fixtures use no credentials, database, provider, or network services.
+
 ## Installed dependency consistency
 
 Before diagnosing runtime failures, run `php bin/audit-installed-dependencies.php`.
