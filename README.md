@@ -35,6 +35,9 @@ permissions, evidence, and lifecycle.
 
 ## Installation
 
+Use the [installed dependency diagnostic](docs/installation-proof.md) to detect lock/version drift before runtime troubleshooting.
+
+
 Composer only reads repository declarations from the root project. Unreleased
 Blue Fission packages are source-distributed through GitHub VCS. DevElation,
 Automata, BlueCore, Chronicler, SimpleClients, and Synthetiq use their tagged
