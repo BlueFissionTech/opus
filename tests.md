@@ -137,3 +137,11 @@ continuation, or unlock inactive specialist tools. Active specialist tools and
 benign metadata remain available. No provider, database, or credential is used.
 Also run `--filter 'AgentCapabilityMapTest|AgentScopedProfileTest|ExtensionPointCatalogTest'`
 and the full PHPUnit suite for integration coverage.
+
+## Exact-lock runtime baseline
+
+The [recorded development proof](docs/locked-runtime-proof-2026-09-19.md) includes
+reproducible commands, package references and all skipped test identifiers.
+Run against the installation's own Composer autoloader and PHPUnit. Preserve
+JUnit output and shutdown warnings alongside the exit status; dependency
+metadata consistency alone does not establish runtime or release readiness.
