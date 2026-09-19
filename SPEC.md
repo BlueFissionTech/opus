@@ -299,3 +299,12 @@ clean checkout.
   boundaries.
 - Webpack and asset-pipeline cleanup remain separately tracked.
 - Specifications and tests stay synchronized as each slice lands.
+
+## Command-context lifecycle authority
+
+The command-context filter may enrich metadata but cannot replace the activated
+add-on list or lifecycle state map resolved by the host query. The host restores
+both fields after filtering, including when the lifecycle query is unavailable.
+Continuation refresh must reread current activation and cannot resurrect a
+revoked add-on from a hook or prior context. Capability-map resolution must deny
+inactive add-on tools while retaining access to genuinely active add-on tools.

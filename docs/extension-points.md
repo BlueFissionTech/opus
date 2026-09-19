@@ -45,3 +45,18 @@ The boundary inventory in the JSON catalog also records areas that are
 intentionally closed or owned by stronger service, lifecycle, behavior, or
 package abstractions. A method is not extensible merely because an adjacent
 area publishes a hook.
+
+## Lifecycle authority in command context (catalog 1.0.1)
+
+`opus.agent.command_context` may enrich context within the documented actor and
+tenant constraints. Its `active_addons` and `addon_states` fields are read-only
+snapshots: the host restores them from its activated-add-on query after the
+filter runs. A missing or failed query leaves both fields empty; a filter cannot
+turn that unavailable state into activation. Continuations reread current state,
+so prior context and filters cannot revive revoked add-ons.
+
+Extensions that previously replaced these fields must use the authorized add-on
+lifecycle service to change activation. Use capability and profile policy for
+access restrictions; changing a context snapshot is not a lifecycle operation.
+Benign metadata enrichment and the existing actor, tenant, and profile validation
+remain supported. This patch adds no hook names and changes no payload types.
