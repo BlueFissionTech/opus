@@ -107,3 +107,12 @@ Webpack starts.
 
 Tests that require databases, queues, external APIs, model hosts, or secrets
 must remain opt-in. Do not require optional services for the baseline suite.
+
+## Installed dependency consistency
+
+Before diagnosing runtime failures, run `php bin/audit-installed-dependencies.php`.
+For a production-only install, add `--no-dev`. This pre-autoload JSON diagnostic
+compares actual Composer metadata to the lock without booting optional services.
+See [installation proof](docs/installation-proof.md) for exit codes and limits.
+Focused check: `php vendor/phpunit/phpunit/phpunit tests/Unit/InstalledDependencyAuditTest.php`.
+No secrets, provider calls, database, or new dependency installation are required.
