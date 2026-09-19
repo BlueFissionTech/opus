@@ -137,3 +137,7 @@ continuation, or unlock inactive specialist tools. Active specialist tools and
 benign metadata remain available. No provider, database, or credential is used.
 Also run `--filter 'AgentCapabilityMapTest|AgentScopedProfileTest|ExtensionPointCatalogTest'`
 and the full PHPUnit suite for integration coverage.
+
+The lifecycle context suite also covers a valid record followed by a malformed
+record, including continuation refresh and a filter attempting to forge state.
+Both activation fields must be empty after the normalization failure.

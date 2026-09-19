@@ -308,3 +308,8 @@ both fields after filtering, including when the lifecycle query is unavailable.
 Continuation refresh must reread current activation and cannot resurrect a
 revoked add-on from a hook or prior context. Capability-map resolution must deny
 inactive add-on tools while retaining access to genuinely active add-on tools.
+
+Lifecycle reads are atomic for authority: if fetching or normalizing any record
+throws, both the activated add-on list and lifecycle state map are empty.
+Previously parsed records, prior continuation state, and context filters cannot
+restore partial authority after that failure. Actor and tenant scope remain intact.
