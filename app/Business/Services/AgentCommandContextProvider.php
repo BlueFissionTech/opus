@@ -97,6 +97,9 @@ final class AgentCommandContextProvider
             return $context->toArray();
         }
 
+        $filtered->set('active_addons', $context->get('active_addons'));
+        $filtered->set('addon_states', $context->get('addon_states'));
+
         return $filtered->toArray();
     }
 

@@ -22,7 +22,7 @@ final class ExtensionPointCatalogTest extends TestCase
         $catalog = new ExtensionPointCatalog(dirname(__DIR__, 4));
         $report = Arr::make($catalog->readinessReport());
 
-        $this->assertSame('1.0.0', $report->get('catalog_version'));
+        $this->assertSame('1.0.1', $report->get('catalog_version'));
         $this->assertSame(7, $report->get('extension_point_count'));
         $this->assertSame(8, $report->get('boundary_count'));
         $this->assertSame([], $report->get('missing'));

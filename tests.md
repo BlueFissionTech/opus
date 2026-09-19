@@ -127,3 +127,13 @@ compares actual Composer metadata to the lock without booting optional services.
 See [installation proof](docs/installation-proof.md) for exit codes and limits.
 Focused check: `php vendor/phpunit/phpunit/phpunit tests/Unit/InstalledDependencyAuditTest.php`.
 No secrets, provider calls, database, or new dependency installation are required.
+
+## Command-context lifecycle hooks
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter AgentCommandContextLifecycleTest`.
+The fixtures prove that context filters cannot fabricate or erase queried
+activation, recover an unavailable lifecycle query, revive revoked add-ons on
+continuation, or unlock inactive specialist tools. Active specialist tools and
+benign metadata remain available. No provider, database, or credential is used.
+Also run `--filter 'AgentCapabilityMapTest|AgentScopedProfileTest|ExtensionPointCatalogTest'`
+and the full PHPUnit suite for integration coverage.
