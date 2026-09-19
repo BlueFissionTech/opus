@@ -886,6 +886,28 @@ PHP
         $this->assertContains('mapping_contract', $codes);
     }
 
+    public function testThemeReadinessRejectsUnsafeOrMalformedDeclaredPaths(): void
+    {
+        (new AddOnScaffoldService($this->workspace))->generate('theme_paths', 'theme_paths');
+        $root = $this->workspace . '/theme_paths';
+        $definition = $this->readJson($root . '/definition.json');
+        $variants = [
+            ['directory' => '/resource/markup', 'entrypoint' => 'default.vibe'],
+            ['directory' => 'resource/markup', 'entrypoint' => '/default.vibe'],
+            ['directory' => 'resource/markup', 'entrypoint' => '../markup/default.vibe'],
+            ['directory' => 'resource/markup', 'entrypoint' => 'missing.vibe'],
+            ['directory' => ['resource/markup'], 'entrypoint' => 'default.vibe'],
+            ['directory' => 'resource/markup', 'entrypoint' => ['default.vibe']],
+        ];
+        foreach ($variants as $variant) {
+            $definition['themes'] = ['default' => $variant];
+            file_put_contents($root . '/definition.json', json_encode($definition, JSON_THROW_ON_ERROR));
+            $result = (new AddOnContractValidator())->validate($root);
+            $this->assertFalse($result['valid'], json_encode($variant));
+            $this->assertContains('theme_entrypoint', array_column($result['errors'], 'code'));
+        }
+    }
+
     public function testItUsesDeclaredRegistrationAndDirectoryThemeEntrypoints(): void
     {
         (new AddOnScaffoldService($this->workspace))->generate('declared', 'declared');

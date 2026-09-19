@@ -9,6 +9,55 @@ use PHPUnit\Framework\TestCase;
 
 final class AddOnLifecycleReadinessServiceTest extends TestCase
 {
+    /** @dataProvider malformedOutcomes */
+    public function testMalformedResultsCannotReportReady(array $outcome): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize($outcome);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('blocked', $result['readiness']['state']);
+        $this->assertNotEmpty($result['readiness']['reasons']);
+    }
+
+    public static function malformedOutcomes(): array
+    {
+        return [
+            'missing outcome' => [[]],
+            'integer success' => [['ok' => 1]],
+            'string success' => [['ok' => 'false']],
+            'invalid batch' => [['ok' => true, 'results' => 'unavailable']],
+            'invalid child' => [['ok' => true, 'results' => ['unavailable']]],
+            'missing child success' => [['ok' => true, 'results' => [[]]]],
+            'invalid aggregate' => [['results' => [['ok' => true]]]],
+            'invalid hook list' => [['ok' => true, 'hooks' => 'unavailable']],
+            'invalid hook' => [['ok' => true, 'hooks' => ['unavailable']]],
+            'string hook success' => [['ok' => true, 'hooks' => [['ok' => 'false']]]],
+            'invalid migration' => [['ok' => true, 'migrations' => 'unavailable']],
+            'string migration success' => [['ok' => true, 'migrations' => ['ok' => 'false']]],
+            'missing population success' => [['ok' => true, 'population' => ['error' => 'Unknown']]],
+        ];
+    }
+
+    public function testMalformedBatchPreservesCompletedChangesAndRecountsChildren(): void
+    {
+        $result = (new AddOnLifecycleReadinessService())->normalize([
+            'ok' => true,
+            'action' => 'install_all',
+            'succeeded' => 2,
+            'failed' => 0,
+            'results' => [
+                ['ok' => true, 'action' => 'install', 'changed' => true],
+                ['action' => 'install', 'changed' => false],
+            ],
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertTrue($result['changed']);
+        $this->assertSame(1, $result['succeeded']);
+        $this->assertSame(1, $result['failed']);
+        $this->assertSame('retry_lifecycle', $result['nextAction']);
+    }
+
     public function testRequiredDatasourceFailureOverridesOptimisticLifecycleStatus(): void
     {
         $result = (new AddOnLifecycleReadinessService())->normalize([
