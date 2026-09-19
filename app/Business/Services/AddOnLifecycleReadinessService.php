@@ -136,7 +136,7 @@ final class AddOnLifecycleReadinessService extends Service
 
     private function normalizeHook(Arr $hook, Arr $reasons): array
     {
-        if (!is_bool($hook->get('ok'))
+        if (!Flag::isBool($hook->get('ok'))
             || (Arr::hasKey($hook->val(), 'status') && !Str::is($hook->get('status')))
         ) {
             $message = 'Add-on hook result must contain a boolean ok value and a string status when present.';
@@ -298,7 +298,7 @@ final class AddOnLifecycleReadinessService extends Service
     private function shapeProblems(Arr $outcome): Arr
     {
         $reasons = Arr::make([]);
-        if (!is_bool($outcome->get('ok'))) {
+        if (!Flag::isBool($outcome->get('ok'))) {
             $reasons->push($this->reason(
                 'addon_lifecycle_result_invalid',
                 'lifecycle',
@@ -321,7 +321,7 @@ final class AddOnLifecycleReadinessService extends Service
                 return;
             }
             $result = $outcome->get($stage);
-            if (!Arr::is($result) || !is_bool(Arr::getPath((array) $result, 'ok'))) {
+            if (!Arr::is($result) || !Flag::isBool(Arr::getPath((array) $result, 'ok'))) {
                 $reasons->push($this->reason(
                     'addon_stage_result_invalid',
                     $stage,

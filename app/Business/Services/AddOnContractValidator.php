@@ -646,7 +646,7 @@ final class AddOnContractValidator extends Service
             $resolved = realpath($this->path($root, $relative));
             $allowedRoot = Str::make($root)->replace('\\', '/')->append('/resource/markup/')->val();
             if ($resolved === false
-                || !is_file($resolved)
+                || !FileSystem::fileExists($resolved)
                 || !Str::make($resolved)->replace('\\', '/')->startsWith($allowedRoot)
             ) {
                 $errors->push($this->problem('theme_entrypoint', 'definition.json', $message));
