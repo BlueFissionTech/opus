@@ -118,3 +118,12 @@ collections, malformed datasource outcomes, partial changes, accurate batch
 counts, and compatibility with optional missing lifecycle hooks. Also run
 `--filter AddOnManagerTest` for the console adapter, then the full PHPUnit suite.
 These fixtures use no credentials, database, provider, or network services.
+
+## Installed dependency consistency
+
+Before diagnosing runtime failures, run `php bin/audit-installed-dependencies.php`.
+For a production-only install, add `--no-dev`. This pre-autoload JSON diagnostic
+compares actual Composer metadata to the lock without booting optional services.
+See [installation proof](docs/installation-proof.md) for exit codes and limits.
+Focused check: `php vendor/phpunit/phpunit/phpunit tests/Unit/InstalledDependencyAuditTest.php`.
+No secrets, provider calls, database, or new dependency installation are required.
