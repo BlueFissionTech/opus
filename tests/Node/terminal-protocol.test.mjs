@@ -34,7 +34,7 @@ test('confirmation is explicit, single-use, and never queued offline', () => {
 });
 
 test('malformed responses, transport errors and oversized input do not dispatch', () => {
-    const {client, sent, socket} = fixture();
+    const {client, sent} = fixture();
     client.receive('{"type":"ready"}');
     assert.equal(client.submit('界'.repeat(6000)), false);
     client.receive('not-json');

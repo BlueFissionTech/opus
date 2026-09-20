@@ -99,7 +99,7 @@ once. Disconnect/error releases the host and pending token; no child processes o
 polling timers are created. Session/frame limits bound transport-owned state.
 Long-running commands must use host-owned bounded/queued execution. The standalone
 listener requires a trusted host bootstrap and binds to loopback by default.
-Optional transport absence and missing authorization fail closed before listening;
+Optional transport absence and a missing authorization bootstrap fail before listening;
 this transport does not certify deployment authentication.
 
 ### Agent Orchestration
