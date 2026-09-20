@@ -1,4 +1,6 @@
 /node_modules
+# Local agent operating policy; repository standards remain tracked.
+/AGENTS.behavior.md
 /vendor
 /.env
 .DS_Store
