@@ -1,4 +1,6 @@
 /node_modules
+# Local agent operating policy; repository standards remain tracked.
+/AGENTS.behavior.md
 /vendor
 /.env
 .DS_Store
@@ -12,3 +14,7 @@ storage/models/*
 storage/system/*
 /public/assets/*
 error.log
+
+# Local Compose orchestration; installation-specific and not distributed.
+/docker/compose.opus.yml
+/harness.json

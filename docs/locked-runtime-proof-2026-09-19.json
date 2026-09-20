@@ -1,0 +1,781 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-09-19",
+  "scope": "source-root development runtime; not a production release or full integration certification",
+  "source_revision": "665d4736d6a274ba577dc0c1b861e21777aa7509",
+  "lock_sha256": "096d9266576654b1125490f9b6126e0170fab83877d904a40c55ca0d15f56217",
+  "environment": {
+    "os_family": "Windows",
+    "php": "8.2.11",
+    "composer": "2.6.5",
+    "phpunit": "9.6.35"
+  },
+  "installation": {
+    "command": "composer install --no-interaction --no-scripts --no-progress --prefer-dist",
+    "exit_code": 0,
+    "fresh_destination": true,
+    "scripts": false,
+    "plugins": [
+      "composer/installers",
+      "php-http/discovery",
+      "bluefission/bluecore"
+    ],
+    "lock_modified": false,
+    "vendor_patches": false,
+    "custom_autoload_shim": false,
+    "anonymous_download_proven": false,
+    "warnings": [
+      "kapsle_duplicate_enum",
+      "bluecore_nonfatal_shutdown_reporting"
+    ]
+  },
+  "metadata_audit": {
+    "schema_version": 1,
+    "scope": "development",
+    "status": "pass",
+    "expected_count": 94,
+    "installed_count": 94,
+    "differences": [],
+    "limitations": [
+      "metadata_only",
+      "file_integrity_not_checked",
+      "runtime_not_tested"
+    ]
+  },
+  "platform_requirements": {
+    "command": "composer check-platform-reqs",
+    "exit_code": 0
+  },
+  "focused_contracts": {
+    "command": "php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'TemplateHelperIntegrationTest|WiseCommandHostTest|WiseResourceClassResolverTest|ComposerMetadataTest'",
+    "exit_code": 0,
+    "tests": 14,
+    "assertions": 74
+  },
+  "full_suite": {
+    "command": "php vendor/phpunit/phpunit/phpunit --do-not-cache-result --log-junit runtime-junit.xml",
+    "exit_code": 0,
+    "tests": 428,
+    "assertions": 1949,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 11,
+    "skipped_tests": [
+      {
+        "class": "Tests\\Unit\\Business\\Services\\AgentCapabilityMapTest",
+        "method": "testBotMiddlewareResumesWiseContinuationWithTheAuthenticatedContext"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\RuntimePathResolverTest",
+        "method": "testSymlinkedCoreInstallPreservesHostAutoloaderDiscovery"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\RuntimePathResolverTest",
+        "method": "testSymlinkedConfiguredVendorRetainsLexicalHostOwnership"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\RuntimePathResolverTest",
+        "method": "testSymlinkedDefaultVendorRetainsLexicalHostOwnership"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\RuntimePathResolverTest",
+        "method": "testLegacyCoreBesideASymlinkedDefaultVendorRetainsLexicalHostOwnership"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\RuntimePathResolverTest",
+        "method": "testSourceRootWithASymlinkedPackageVendorRetainsLexicalHostOwnership"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\RuntimePathResolverTest",
+        "method": "testResourceSymlinksCannotEscapeTheOwningRoot"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\RuntimePathResolverTest",
+        "method": "testDanglingResourceSymlinksAreRejected"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\VibeGenerationServiceTest",
+        "method": "testItReplacesHardLinkedTargetsWithoutMutatingTheLinkedFile"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\VibeGenerationServiceTest",
+        "method": "testItAppliesConsumerReadableTargetPermissions"
+      },
+      {
+        "class": "Tests\\Unit\\Business\\Services\\VibeGenerationServiceTest",
+        "method": "testItRejectsRenderedFilesThroughWorkspaceSymlinks"
+      }
+    ]
+  },
+  "not_proven": [
+    "production_no_dev_install",
+    "anonymous_package_download",
+    "host_consumer_install",
+    "linux_link_and_permission_security",
+    "optional_botman_transport",
+    "web_database_install_upgrade_recovery",
+    "external_providers",
+    "production_deployment",
+    "all_direct_dependency_capabilities"
+  ],
+  "packages": [
+    {
+      "name": "bluefission/annex-php-sdk",
+      "version": "dev-main",
+      "source_reference": "68d109548791e8dd9d54b3fd8e3542495f0e5ee7",
+      "dist_reference": "68d109548791e8dd9d54b3fd8e3542495f0e5ee7",
+      "development": false
+    },
+    {
+      "name": "bluefission/automata",
+      "version": "v1.0.0-alpha.5",
+      "source_reference": "b3e3e1e7e1238a2df48d630f0d1f896aef279511",
+      "dist_reference": "b3e3e1e7e1238a2df48d630f0d1f896aef279511",
+      "development": false
+    },
+    {
+      "name": "bluefission/bluecore",
+      "version": "v0.1.1-alpha",
+      "source_reference": "0564300a38c2e5d4708face9a9769c519cb11c0a",
+      "dist_reference": "0564300a38c2e5d4708face9a9769c519cb11c0a",
+      "development": false
+    },
+    {
+      "name": "bluefission/chronicler",
+      "version": "v0.1.2-alpha",
+      "source_reference": "450582e557a86cdf049e1bf6c324ac30d286c49e",
+      "dist_reference": "450582e557a86cdf049e1bf6c324ac30d286c49e",
+      "development": false
+    },
+    {
+      "name": "bluefission/develation",
+      "version": "v1.3.43",
+      "source_reference": "1707d69d6e12cb888af16a3dc64f92ab3ca6e2f6",
+      "dist_reference": "1707d69d6e12cb888af16a3dc64f92ab3ca6e2f6",
+      "development": false
+    },
+    {
+      "name": "bluefission/jenerator",
+      "version": "v0.1.0-alpha.1",
+      "source_reference": "1104094715fa49e737bd93c6343642fd5ed76c40",
+      "dist_reference": "1104094715fa49e737bd93c6343642fd5ed76c40",
+      "development": true
+    },
+    {
+      "name": "bluefission/opus-addon-hoom",
+      "version": "dev-main",
+      "source_reference": "98db9a8a50a0d5f76bc330db788d60d5a4eb8c82",
+      "dist_reference": "98db9a8a50a0d5f76bc330db788d60d5a4eb8c82",
+      "development": false
+    },
+    {
+      "name": "bluefission/opus-addon-kapsle",
+      "version": "dev-main",
+      "source_reference": "4e39482dfee0e1bda91c128b45be42b0419df413",
+      "dist_reference": "4e39482dfee0e1bda91c128b45be42b0419df413",
+      "development": false
+    },
+    {
+      "name": "bluefission/presence",
+      "version": "v0.1.0-alpha.3",
+      "source_reference": "5c01dca824a2bccb2c899b59ab9587d21b715515",
+      "dist_reference": "5c01dca824a2bccb2c899b59ab9587d21b715515",
+      "development": false
+    },
+    {
+      "name": "bluefission/simpleclients",
+      "version": "v0.1.0-alpha",
+      "source_reference": "0efa8e3ba0f012d107b7aa1a70040b95e313065e",
+      "dist_reference": "0efa8e3ba0f012d107b7aa1a70040b95e313065e",
+      "development": false
+    },
+    {
+      "name": "bluefission/synematic",
+      "version": "dev-main",
+      "source_reference": "ca21f4415a55b5662899c3a191a42e2d8f8d9873",
+      "dist_reference": "ca21f4415a55b5662899c3a191a42e2d8f8d9873",
+      "development": false
+    },
+    {
+      "name": "bluefission/synthetiq",
+      "version": "v0.1.0-alpha.1",
+      "source_reference": "666ac8f0585fc92f7a1f9de8405e0eba39d31198",
+      "dist_reference": "666ac8f0585fc92f7a1f9de8405e0eba39d31198",
+      "development": false
+    },
+    {
+      "name": "bluefission/vibrato",
+      "version": "dev-main",
+      "source_reference": "3df161b48308e9682c4c387cbf53ed747eca4449",
+      "dist_reference": "3df161b48308e9682c4c387cbf53ed747eca4449",
+      "development": false
+    },
+    {
+      "name": "bluefission/wise",
+      "version": "v0.1.0-alpha.2",
+      "source_reference": "e55c68fd690c529989ccce62c74f2fe62e00edef",
+      "dist_reference": "e55c68fd690c529989ccce62c74f2fe62e00edef",
+      "development": true
+    },
+    {
+      "name": "brick/math",
+      "version": "0.18.0",
+      "source_reference": "82944324d1c1bdb2c2618e89978d4e2ad78d69ad",
+      "dist_reference": "82944324d1c1bdb2c2618e89978d4e2ad78d69ad",
+      "development": true
+    },
+    {
+      "name": "composer/installers",
+      "version": "v1.12.0",
+      "source_reference": "d20a64ed3c94748397ff5973488761b22f6d3f19",
+      "dist_reference": "d20a64ed3c94748397ff5973488761b22f6d3f19",
+      "development": false
+    },
+    {
+      "name": "composer/pcre",
+      "version": "3.4.0",
+      "source_reference": "d5a341b3fb61f3001970940afb1d332968a183ed",
+      "dist_reference": "d5a341b3fb61f3001970940afb1d332968a183ed",
+      "development": false
+    },
+    {
+      "name": "doctrine/instantiator",
+      "version": "2.0.0",
+      "source_reference": "c6222283fa3f4ac679f8b9ced9a4e23f163e80d0",
+      "dist_reference": "c6222283fa3f4ac679f8b9ced9a4e23f163e80d0",
+      "development": true
+    },
+    {
+      "name": "fakerphp/faker",
+      "version": "v1.24.1",
+      "source_reference": "e0ee18eb1e6dc3cda3ce9fd97e5a0689a88a64b5",
+      "dist_reference": "e0ee18eb1e6dc3cda3ce9fd97e5a0689a88a64b5",
+      "development": false
+    },
+    {
+      "name": "firebase/php-jwt",
+      "version": "v7.1.0",
+      "source_reference": "b374a5d1a4f1f67fadc2165cdb284645945e2fc0",
+      "dist_reference": "b374a5d1a4f1f67fadc2165cdb284645945e2fc0",
+      "development": false
+    },
+    {
+      "name": "google/auth",
+      "version": "v1.53.0",
+      "source_reference": "d677d0b0c4bd52ab222a85df8e74e0d491c0cc5a",
+      "dist_reference": "d677d0b0c4bd52ab222a85df8e74e0d491c0cc5a",
+      "development": true
+    },
+    {
+      "name": "google/cloud-core",
+      "version": "v1.73.2",
+      "source_reference": "883bc97bdcd5e09552eb82cb47a752271a310c7a",
+      "dist_reference": "883bc97bdcd5e09552eb82cb47a752271a310c7a",
+      "development": true
+    },
+    {
+      "name": "google/cloud-language",
+      "version": "v0.27.0",
+      "source_reference": "9e94ed3b2a7e3139831d9977862150b984797d3f",
+      "dist_reference": "9e94ed3b2a7e3139831d9977862150b984797d3f",
+      "development": true
+    },
+    {
+      "name": "google/common-protos",
+      "version": "4.14.1",
+      "source_reference": "4eb6813b8068653e055fc8a63dbda3446f3e8869",
+      "dist_reference": "4eb6813b8068653e055fc8a63dbda3446f3e8869",
+      "development": true
+    },
+    {
+      "name": "google/gax",
+      "version": "v1.48.0",
+      "source_reference": "637096f2c70f6bc903ba24aee3a0d974d739aba8",
+      "dist_reference": "637096f2c70f6bc903ba24aee3a0d974d739aba8",
+      "development": true
+    },
+    {
+      "name": "google/grpc-gcp",
+      "version": "0.4.2",
+      "source_reference": "1049c0c15b6a1789fdeb52af688a94d540932469",
+      "dist_reference": "1049c0c15b6a1789fdeb52af688a94d540932469",
+      "development": true
+    },
+    {
+      "name": "google/longrunning",
+      "version": "0.8.1",
+      "source_reference": "309705016290679e6fe14b727f4b1a3e04ae52f4",
+      "dist_reference": "309705016290679e6fe14b727f4b1a3e04ae52f4",
+      "development": true
+    },
+    {
+      "name": "google/protobuf",
+      "version": "v5.35.1",
+      "source_reference": "55bb4a7d6739b5af0927b96213c1371a3afb7cfb",
+      "dist_reference": "55bb4a7d6739b5af0927b96213c1371a3afb7cfb",
+      "development": true
+    },
+    {
+      "name": "graham-campbell/result-type",
+      "version": "v1.1.4",
+      "source_reference": "e01f4a821471308ba86aa202fed6698b6b695e3b",
+      "dist_reference": "e01f4a821471308ba86aa202fed6698b6b695e3b",
+      "development": false
+    },
+    {
+      "name": "grpc/grpc",
+      "version": "1.82.0",
+      "source_reference": "be984cb608f21e96453b3cfe54c748cc7b192250",
+      "dist_reference": "be984cb608f21e96453b3cfe54c748cc7b192250",
+      "development": true
+    },
+    {
+      "name": "guzzlehttp/guzzle",
+      "version": "7.15.2",
+      "source_reference": "744101956d78b7c1384d0cbf379db13e859167bf",
+      "dist_reference": "744101956d78b7c1384d0cbf379db13e859167bf",
+      "development": true
+    },
+    {
+      "name": "guzzlehttp/promises",
+      "version": "2.5.2",
+      "source_reference": "2823687acff28b2dbe67b2508a6b300e2c3fa4ce",
+      "dist_reference": "2823687acff28b2dbe67b2508a6b300e2c3fa4ce",
+      "development": true
+    },
+    {
+      "name": "guzzlehttp/psr7",
+      "version": "2.13.0",
+      "source_reference": "dad89620b7a6edb60c15858442eb2e408b45d8f4",
+      "dist_reference": "dad89620b7a6edb60c15858442eb2e408b45d8f4",
+      "development": true
+    },
+    {
+      "name": "maennchen/zipstream-php",
+      "version": "3.1.2",
+      "source_reference": "aeadcf5c412332eb426c0f9b4485f6accba2a99f",
+      "dist_reference": "aeadcf5c412332eb426c0f9b4485f6accba2a99f",
+      "development": false
+    },
+    {
+      "name": "markbaker/complex",
+      "version": "3.0.2",
+      "source_reference": "95c56caa1cf5c766ad6d65b6344b807c1e8405b9",
+      "dist_reference": "95c56caa1cf5c766ad6d65b6344b807c1e8405b9",
+      "development": false
+    },
+    {
+      "name": "markbaker/matrix",
+      "version": "3.0.1",
+      "source_reference": "728434227fe21be27ff6d86621a1b13107a2562c",
+      "dist_reference": "728434227fe21be27ff6d86621a1b13107a2562c",
+      "development": false
+    },
+    {
+      "name": "monolog/monolog",
+      "version": "3.10.0",
+      "source_reference": "b321dd6749f0bf7189444158a3ce785cc16d69b0",
+      "dist_reference": "b321dd6749f0bf7189444158a3ce785cc16d69b0",
+      "development": true
+    },
+    {
+      "name": "myclabs/deep-copy",
+      "version": "1.13.4",
+      "source_reference": "07d290f0c47959fd5eed98c95ee5602db07e0b6a",
+      "dist_reference": "07d290f0c47959fd5eed98c95ee5602db07e0b6a",
+      "development": true
+    },
+    {
+      "name": "nikic/php-parser",
+      "version": "v5.8.0",
+      "source_reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
+      "dist_reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
+      "development": true
+    },
+    {
+      "name": "nyholm/psr7",
+      "version": "1.8.2",
+      "source_reference": "a71f2b11690f4b24d099d6b16690a90ae14fc6f3",
+      "dist_reference": "a71f2b11690f4b24d099d6b16690a90ae14fc6f3",
+      "development": false
+    },
+    {
+      "name": "orhanerday/open-ai",
+      "version": "2.3",
+      "source_reference": "ba06505bf30ccd6eeb29b4a98a7c5e6510bae674",
+      "dist_reference": "ba06505bf30ccd6eeb29b4a98a7c5e6510bae674",
+      "development": true
+    },
+    {
+      "name": "paragonie/constant_time_encoding",
+      "version": "v3.1.3",
+      "source_reference": "d5b01a39b3415c2cd581d3bd3a3575c1ebbd8e77",
+      "dist_reference": "d5b01a39b3415c2cd581d3bd3a3575c1ebbd8e77",
+      "development": false
+    },
+    {
+      "name": "paragonie/random_compat",
+      "version": "v9.99.100",
+      "source_reference": "996434e5492cb4c3edcb9168db6fbb1359ef965a",
+      "dist_reference": "996434e5492cb4c3edcb9168db6fbb1359ef965a",
+      "development": false
+    },
+    {
+      "name": "phar-io/manifest",
+      "version": "2.0.4",
+      "source_reference": "54750ef60c58e43759730615a392c31c80e23176",
+      "dist_reference": "54750ef60c58e43759730615a392c31c80e23176",
+      "development": true
+    },
+    {
+      "name": "phar-io/version",
+      "version": "3.2.1",
+      "source_reference": "4f7fd7836c6f332bb2933569e566a0d6c4cbed74",
+      "dist_reference": "4f7fd7836c6f332bb2933569e566a0d6c4cbed74",
+      "development": true
+    },
+    {
+      "name": "php-ai/php-ml",
+      "version": "0.10.0",
+      "source_reference": "543f11158c57bf64ef8ddecd5bab51d396d39f50",
+      "dist_reference": "543f11158c57bf64ef8ddecd5bab51d396d39f50",
+      "development": false
+    },
+    {
+      "name": "php-http/discovery",
+      "version": "1.20.0",
+      "source_reference": "82fe4c73ef3363caed49ff8dd1539ba06044910d",
+      "dist_reference": "82fe4c73ef3363caed49ff8dd1539ba06044910d",
+      "development": false
+    },
+    {
+      "name": "phpoffice/phpspreadsheet",
+      "version": "5.9.0",
+      "source_reference": "05e99ebf61238a70227b4d9cc02d0030d34f6339",
+      "dist_reference": "05e99ebf61238a70227b4d9cc02d0030d34f6339",
+      "development": false
+    },
+    {
+      "name": "phpoption/phpoption",
+      "version": "1.9.5",
+      "source_reference": "75365b91986c2405cf5e1e012c5595cd487a98be",
+      "dist_reference": "75365b91986c2405cf5e1e012c5595cd487a98be",
+      "development": false
+    },
+    {
+      "name": "phpseclib/phpseclib",
+      "version": "3.0.56",
+      "source_reference": "7adbbe38cde25e2df2116dbf2673c407e24fa305",
+      "dist_reference": "7adbbe38cde25e2df2116dbf2673c407e24fa305",
+      "development": false
+    },
+    {
+      "name": "phpunit/php-code-coverage",
+      "version": "9.2.32",
+      "source_reference": "85402a822d1ecf1db1096959413d35e1c37cf1a5",
+      "dist_reference": "85402a822d1ecf1db1096959413d35e1c37cf1a5",
+      "development": true
+    },
+    {
+      "name": "phpunit/php-file-iterator",
+      "version": "3.0.6",
+      "source_reference": "cf1c2e7c203ac650e352f4cc675a7021e7d1b3cf",
+      "dist_reference": "cf1c2e7c203ac650e352f4cc675a7021e7d1b3cf",
+      "development": true
+    },
+    {
+      "name": "phpunit/php-invoker",
+      "version": "3.1.1",
+      "source_reference": "5a10147d0aaf65b58940a0b72f71c9ac0423cc67",
+      "dist_reference": "5a10147d0aaf65b58940a0b72f71c9ac0423cc67",
+      "development": true
+    },
+    {
+      "name": "phpunit/php-text-template",
+      "version": "2.0.4",
+      "source_reference": "5da5f67fc95621df9ff4c4e5a84d6a8a2acf7c28",
+      "dist_reference": "5da5f67fc95621df9ff4c4e5a84d6a8a2acf7c28",
+      "development": true
+    },
+    {
+      "name": "phpunit/php-timer",
+      "version": "5.0.3",
+      "source_reference": "5a63ce20ed1b5bf577850e2c4e87f4aa902afbd2",
+      "dist_reference": "5a63ce20ed1b5bf577850e2c4e87f4aa902afbd2",
+      "development": true
+    },
+    {
+      "name": "phpunit/phpunit",
+      "version": "9.6.35",
+      "source_reference": "0edba2f3a0c48df3553cb9b640810b30df60302b",
+      "dist_reference": "0edba2f3a0c48df3553cb9b640810b30df60302b",
+      "development": true
+    },
+    {
+      "name": "psr/cache",
+      "version": "3.0.0",
+      "source_reference": "aa5030cfa5405eccfdcb1083ce040c2cb8d253bf",
+      "dist_reference": "aa5030cfa5405eccfdcb1083ce040c2cb8d253bf",
+      "development": true
+    },
+    {
+      "name": "psr/container",
+      "version": "2.0.2",
+      "source_reference": "c71ecc56dfe541dbd90c5360474fbc405f8d5963",
+      "dist_reference": "c71ecc56dfe541dbd90c5360474fbc405f8d5963",
+      "development": false
+    },
+    {
+      "name": "psr/http-client",
+      "version": "1.0.3",
+      "source_reference": "bb5906edc1c324c9a05aa0873d40117941e5fa90",
+      "dist_reference": "bb5906edc1c324c9a05aa0873d40117941e5fa90",
+      "development": false
+    },
+    {
+      "name": "psr/http-factory",
+      "version": "1.1.0",
+      "source_reference": "2b4765fddfe3b508ac62f829e852b1501d3f6e8a",
+      "dist_reference": "2b4765fddfe3b508ac62f829e852b1501d3f6e8a",
+      "development": false
+    },
+    {
+      "name": "psr/http-message",
+      "version": "2.0",
+      "source_reference": "402d35bcb92c70c026d1a6a9883f06b2ead23d71",
+      "dist_reference": "402d35bcb92c70c026d1a6a9883f06b2ead23d71",
+      "development": false
+    },
+    {
+      "name": "psr/log",
+      "version": "3.0.2",
+      "source_reference": "f16e1d5863e37f8d8c2a01719f5b34baa2b714d3",
+      "dist_reference": "f16e1d5863e37f8d8c2a01719f5b34baa2b714d3",
+      "development": false
+    },
+    {
+      "name": "psr/simple-cache",
+      "version": "3.0.0",
+      "source_reference": "764e0b3939f5ca87cb904f570ef9be2d78a07865",
+      "dist_reference": "764e0b3939f5ca87cb904f570ef9be2d78a07865",
+      "development": false
+    },
+    {
+      "name": "ralouphie/getallheaders",
+      "version": "3.0.3",
+      "source_reference": "120b605dfeb996808c31b6477290a714d356e822",
+      "dist_reference": "120b605dfeb996808c31b6477290a714d356e822",
+      "development": true
+    },
+    {
+      "name": "ramsey/collection",
+      "version": "2.1.1",
+      "source_reference": "344572933ad0181accbf4ba763e85a0306a8c5e2",
+      "dist_reference": "344572933ad0181accbf4ba763e85a0306a8c5e2",
+      "development": true
+    },
+    {
+      "name": "ramsey/uuid",
+      "version": "4.9.3",
+      "source_reference": "1df15849d00943a67d677dc9cfd80795f038c9f8",
+      "dist_reference": "1df15849d00943a67d677dc9cfd80795f038c9f8",
+      "development": true
+    },
+    {
+      "name": "rize/uri-template",
+      "version": "0.4.2",
+      "source_reference": "7ad22944daede547b4542e1c977ec4a81aa20832",
+      "dist_reference": "7ad22944daede547b4542e1c977ec4a81aa20832",
+      "development": true
+    },
+    {
+      "name": "sebastian/cli-parser",
+      "version": "1.0.2",
+      "source_reference": "2b56bea83a09de3ac06bb18b92f068e60cc6f50b",
+      "dist_reference": "2b56bea83a09de3ac06bb18b92f068e60cc6f50b",
+      "development": true
+    },
+    {
+      "name": "sebastian/code-unit",
+      "version": "1.0.8",
+      "source_reference": "1fc9f64c0927627ef78ba436c9b17d967e68e120",
+      "dist_reference": "1fc9f64c0927627ef78ba436c9b17d967e68e120",
+      "development": true
+    },
+    {
+      "name": "sebastian/code-unit-reverse-lookup",
+      "version": "2.0.3",
+      "source_reference": "ac91f01ccec49fb77bdc6fd1e548bc70f7faa3e5",
+      "dist_reference": "ac91f01ccec49fb77bdc6fd1e548bc70f7faa3e5",
+      "development": true
+    },
+    {
+      "name": "sebastian/comparator",
+      "version": "4.0.10",
+      "source_reference": "e4df00b9b3571187db2831ae9aada2c6efbd715d",
+      "dist_reference": "e4df00b9b3571187db2831ae9aada2c6efbd715d",
+      "development": true
+    },
+    {
+      "name": "sebastian/complexity",
+      "version": "2.0.3",
+      "source_reference": "25f207c40d62b8b7aa32f5ab026c53561964053a",
+      "dist_reference": "25f207c40d62b8b7aa32f5ab026c53561964053a",
+      "development": true
+    },
+    {
+      "name": "sebastian/diff",
+      "version": "4.0.6",
+      "source_reference": "ba01945089c3a293b01ba9badc29ad55b106b0bc",
+      "dist_reference": "ba01945089c3a293b01ba9badc29ad55b106b0bc",
+      "development": true
+    },
+    {
+      "name": "sebastian/environment",
+      "version": "5.1.5",
+      "source_reference": "830c43a844f1f8d5b7a1f6d6076b784454d8b7ed",
+      "dist_reference": "830c43a844f1f8d5b7a1f6d6076b784454d8b7ed",
+      "development": true
+    },
+    {
+      "name": "sebastian/exporter",
+      "version": "4.0.8",
+      "source_reference": "14c6ba52f95a36c3d27c835d65efc7123c446e8c",
+      "dist_reference": "14c6ba52f95a36c3d27c835d65efc7123c446e8c",
+      "development": true
+    },
+    {
+      "name": "sebastian/global-state",
+      "version": "5.0.8",
+      "source_reference": "b6781316bdcd28260904e7cc18ec983d0d2ef4f6",
+      "dist_reference": "b6781316bdcd28260904e7cc18ec983d0d2ef4f6",
+      "development": true
+    },
+    {
+      "name": "sebastian/lines-of-code",
+      "version": "1.0.4",
+      "source_reference": "e1e4a170560925c26d424b6a03aed157e7dcc5c5",
+      "dist_reference": "e1e4a170560925c26d424b6a03aed157e7dcc5c5",
+      "development": true
+    },
+    {
+      "name": "sebastian/object-enumerator",
+      "version": "4.0.4",
+      "source_reference": "5c9eeac41b290a3712d88851518825ad78f45c71",
+      "dist_reference": "5c9eeac41b290a3712d88851518825ad78f45c71",
+      "development": true
+    },
+    {
+      "name": "sebastian/object-reflector",
+      "version": "2.0.4",
+      "source_reference": "b4f479ebdbf63ac605d183ece17d8d7fe49c15c7",
+      "dist_reference": "b4f479ebdbf63ac605d183ece17d8d7fe49c15c7",
+      "development": true
+    },
+    {
+      "name": "sebastian/recursion-context",
+      "version": "4.0.6",
+      "source_reference": "539c6691e0623af6dc6f9c20384c120f963465a0",
+      "dist_reference": "539c6691e0623af6dc6f9c20384c120f963465a0",
+      "development": true
+    },
+    {
+      "name": "sebastian/resource-operations",
+      "version": "3.0.4",
+      "source_reference": "05d5692a7993ecccd56a03e40cd7e5b09b1d404e",
+      "dist_reference": "05d5692a7993ecccd56a03e40cd7e5b09b1d404e",
+      "development": true
+    },
+    {
+      "name": "sebastian/type",
+      "version": "3.2.1",
+      "source_reference": "75e2c2a32f5e0b3aef905b9ed0b179b953b3d7c7",
+      "dist_reference": "75e2c2a32f5e0b3aef905b9ed0b179b953b3d7c7",
+      "development": true
+    },
+    {
+      "name": "sebastian/version",
+      "version": "3.0.2",
+      "source_reference": "c6c1022351a901512170118436c764e473f6de8c",
+      "dist_reference": "c6c1022351a901512170118436c764e473f6de8c",
+      "development": true
+    },
+    {
+      "name": "simplehtmldom/simplehtmldom",
+      "version": "2.0-RC2",
+      "source_reference": "3c87726400e59d8e1bc4709cfe82353abeb0f4d1",
+      "dist_reference": "3c87726400e59d8e1bc4709cfe82353abeb0f4d1",
+      "development": false
+    },
+    {
+      "name": "symfony/deprecation-contracts",
+      "version": "v3.7.1",
+      "source_reference": "f3202fa1b5097b0af062dc978b32ecf63404e31d",
+      "dist_reference": "f3202fa1b5097b0af062dc978b32ecf63404e31d",
+      "development": false
+    },
+    {
+      "name": "symfony/http-client",
+      "version": "7.4.x-dev",
+      "source_reference": "e09a5ee86c7c2c6020155cafda2d9fac1f19aef4",
+      "dist_reference": "e09a5ee86c7c2c6020155cafda2d9fac1f19aef4",
+      "development": false
+    },
+    {
+      "name": "symfony/http-client-contracts",
+      "version": "v3.7.1",
+      "source_reference": "41fc42d276aeff21192465331ebbab7d83a743c0",
+      "dist_reference": "41fc42d276aeff21192465331ebbab7d83a743c0",
+      "development": false
+    },
+    {
+      "name": "symfony/polyfill-ctype",
+      "version": "v1.37.0",
+      "source_reference": "141046a8f9477948ff284fa65be2095baafb94f2",
+      "dist_reference": "141046a8f9477948ff284fa65be2095baafb94f2",
+      "development": false
+    },
+    {
+      "name": "symfony/polyfill-mbstring",
+      "version": "v1.38.2",
+      "source_reference": "d3d318bad5e7a1bfbd026009c8bfb8d8f99ae6b6",
+      "dist_reference": "d3d318bad5e7a1bfbd026009c8bfb8d8f99ae6b6",
+      "development": false
+    },
+    {
+      "name": "symfony/polyfill-php80",
+      "version": "v1.37.0",
+      "source_reference": "dfb55726c3a76ea3b6459fcfda1ec2d80a682411",
+      "dist_reference": "dfb55726c3a76ea3b6459fcfda1ec2d80a682411",
+      "development": false
+    },
+    {
+      "name": "symfony/polyfill-php83",
+      "version": "v1.41.0",
+      "source_reference": "5ea99087fb99c273a9b9236ed4c31e78b16103c6",
+      "dist_reference": "5ea99087fb99c273a9b9236ed4c31e78b16103c6",
+      "development": false
+    },
+    {
+      "name": "symfony/service-contracts",
+      "version": "v3.7.1",
+      "source_reference": "c0a284bab1ed8aa0417e3d69250ab437739563a0",
+      "dist_reference": "c0a284bab1ed8aa0417e3d69250ab437739563a0",
+      "development": false
+    },
+    {
+      "name": "theseer/tokenizer",
+      "version": "1.3.1",
+      "source_reference": "b7489ce515e168639d17feec34b8847c326b0b3c",
+      "dist_reference": "b7489ce515e168639d17feec34b8847c326b0b3c",
+      "development": true
+    },
+    {
+      "name": "vlucas/phpdotenv",
+      "version": "v5.6.4",
+      "source_reference": "416df702837983f8d5ff48c9c3fee4f5f57b980b",
+      "dist_reference": "416df702837983f8d5ff48c9c3fee4f5f57b980b",
+      "development": false
+    }
+  ]
+}

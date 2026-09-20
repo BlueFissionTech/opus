@@ -176,7 +176,8 @@ We welcome contributions to improve Opus. If you would like to contribute, pleas
 
 ## License
 
-Opus is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Opus is licensed under the [Apache License, Version 2.0](LICENSE).
+Separately licensed dependencies and assets retain their own license terms.
 
 ## Support
 
