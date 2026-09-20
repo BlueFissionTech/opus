@@ -180,7 +180,7 @@ CI installs the committed Composer lock with application scripts disabled. It
 runs the declared Feature and Unit suites under PHPUnit 9.6; the empty Feature
 suite directory is retained in Git. Existing command, readiness, and lifecycle
 contract tests run with the baseline. Optional network/service tests remain
-opt-in; this workflow supplies no API keys or service credentials.
+opt-in; this workflow supplies no runtime-provider or optional-service credentials.
 
 The frontend gate tests manifest behavior and build-script syntax without an npm
 installation. It does not claim to compile a production bundle or supply private
@@ -228,3 +228,23 @@ Pending approval, invalid, failed, or parse-only results stop the sequence and
 are returned unchanged. Completed effects are not rolled back, and rerunning a
 sequence may repeat them; approval continuation belongs to the shared command
 surface, not automatic sequence resumption.
+
+
+### Authenticated VCS installation in CI
+
+The baseline uses `OPUS_COMPOSER_TOKEN`, an Actions repository secret (or an
+organization secret explicitly available to this repository), for private VCS
+sources. Provision a dedicated credential with read access to every private
+repository in `composer.lock`, including transitive dependencies. GitHub's
+single-repository `GITHUB_TOKEN` cannot substitute for this cross-repository
+access. The workflow passes the secret only to the credential check and Composer
+install step through the environment. The workflow does not upload or cache
+credentials or dependency directories. Composer prefers source clones and keeps the committed lock.
+
+Do not paste a token into source, logs, issue comments, or command arguments.
+Configure it in GitHub Actions secrets. Missing credentials fail explicitly;
+external fork pull requests and Dependabot runs do not receive normal Actions
+secrets and cannot prove private dependency installation. They still run syntax
+and frontend checks. Do not use pull_request_target to execute untrusted PR code
+with this credential. Review external changes before running an authorized branch
+in the trusted repository. Public acquisition remains a separate release gate.

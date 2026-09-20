@@ -31,8 +31,15 @@ jobs:
         run: php bin/lint-php.php
       - name: Validate package metadata
         run: composer validate --strict --no-check-publish --no-plugins
-      - name: Install locked dependencies without application scripts
-        run: composer install --no-interaction --prefer-dist --no-progress --no-scripts
+      - name: Verify private dependency credential
+        env:
+          OPUS_COMPOSER_TOKEN: ${{ secrets.OPUS_COMPOSER_TOKEN }}
+        run: php -r "if (!getenv('OPUS_COMPOSER_TOKEN')) { fwrite(STDERR, 'Configure OPUS_COMPOSER_TOKEN with read access to the locked VCS repositories.' . PHP_EOL); exit(1); }"
+      - name: Install locked VCS dependencies without application scripts
+        env:
+          COMPOSER_AUTH: >-
+            {"github-oauth":{"github.com":"${{ secrets.OPUS_COMPOSER_TOKEN }}"}}
+        run: composer install --no-interaction --prefer-source --no-progress --no-scripts
       - name: Unit and runtime contract tests
         run: php vendor/phpunit/phpunit/phpunit --do-not-cache-result
 
