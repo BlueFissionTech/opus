@@ -9,6 +9,7 @@ use BlueFission\Arr;
 use BlueFission\Data\FileSystem;
 use BlueFission\Str;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\LinkCapability;
 
 class VibeGenerationServiceTest extends TestCase
 {
@@ -111,7 +112,7 @@ class VibeGenerationServiceTest extends TestCase
         if (FileSystem::fileExists($target)) {
             unlink($target);
         }
-        if (!@link($outside, $target)) {
+        if (!LinkCapability::attempt(static fn (): bool => link($outside, $target))) {
             unlink($source);
             unlink($outside);
             $this->markTestSkipped('Hard links are unavailable in this environment.');
@@ -185,7 +186,7 @@ class VibeGenerationServiceTest extends TestCase
             mkdir($outsideDirectory, 0777, true);
         }
 
-        if (!@symlink($outsideDirectory, $link)) {
+        if (!LinkCapability::attempt(static fn (): bool => symlink($outsideDirectory, $link))) {
             unlink($source);
             rmdir($outsideDirectory);
             $this->markTestSkipped('Directory symlinks are unavailable in this environment.');

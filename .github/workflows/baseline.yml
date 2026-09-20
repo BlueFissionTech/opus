@@ -1,0 +1,62 @@
+name: Baseline quality
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    name: PHP 8.2 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+          extensions: mbstring, dom, xml, curl, fileinfo, gd, simplexml, xmlreader, xmlwriter, zip, pdo_sqlite
+      - name: Compile every tracked PHP file
+        run: php bin/lint-php.php
+      - name: Validate package metadata
+        run: composer validate --strict --no-check-publish --no-plugins
+      - name: Verify private dependency credential
+        env:
+          OPUS_COMPOSER_TOKEN: ${{ secrets.OPUS_COMPOSER_TOKEN }}
+        run: php -r "if (!getenv('OPUS_COMPOSER_TOKEN')) { fwrite(STDERR, 'Configure OPUS_COMPOSER_TOKEN with read access to the locked VCS repositories.' . PHP_EOL); exit(1); }"
+      - name: Install locked VCS dependencies without application scripts
+        env:
+          COMPOSER_AUTH: >-
+            {"github-oauth":{"github.com":"${{ secrets.OPUS_COMPOSER_TOKEN }}"}}
+        run: composer install --no-interaction --prefer-source --no-progress --no-scripts
+      - name: Unit and runtime contract tests
+        run: php vendor/phpunit/phpunit/phpunit --do-not-cache-result
+
+  frontend:
+    name: Frontend build configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Check build script syntax
+        run: |
+          node --check webpack.config.js
+          node --check tools/asset-pipeline.cjs
+      - name: Validate asset ownership and manifest failures
+        run: npm run test:assets

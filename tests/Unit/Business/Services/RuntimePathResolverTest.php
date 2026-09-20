@@ -7,6 +7,7 @@ namespace Tests\Unit\Business\Services;
 use App\Business\Services\RuntimePathResolver;
 use BlueFission\Data\FileSystem;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\LinkCapability;
 use ReflectionMethod;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -128,7 +129,7 @@ final class RuntimePathResolverTest extends TestCase
         mkdir($host, 0777, true);
         $this->autoload($host . '/vendor/autoload.php');
         $link = $host . '/core';
-        if (!@symlink($source, $link)) {
+        if (!LinkCapability::attempt(static fn (): bool => symlink($source, $link))) {
             $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
         }
 
@@ -143,7 +144,8 @@ final class RuntimePathResolverTest extends TestCase
     {
         $host = $this->workspace . '/linked-host';
         mkdir($host, 0777, true);
-        $expected = realpath($host) . DIRECTORY_SEPARATOR . 'core';
+        // Entrypoint discovery preserves spelling, including Windows short-name aliases.
+        $expected = str_replace('/', DIRECTORY_SEPARATOR, $host) . DIRECTORY_SEPARATOR . 'core';
 
         $this->assertSame(
             $expected,
@@ -162,7 +164,7 @@ final class RuntimePathResolverTest extends TestCase
         );
 
         $relative = RuntimePathResolver::packageInstallRootFromEntrypoint('core/bin/opus-addon.php');
-        $this->assertSame(realpath(getcwd()) . DIRECTORY_SEPARATOR . 'core', $relative);
+        $this->assertSame(getcwd() . DIRECTORY_SEPARATOR . 'core', $relative);
     }
 
     public function testEntrypointPackageRootMustContainTheSharedRuntimeBootstrap(): void
@@ -176,7 +178,7 @@ final class RuntimePathResolverTest extends TestCase
             $host . '/public/index.php'
         );
 
-        $this->assertSame(realpath($host), $inferredFromFileLink);
+        $this->assertSame(str_replace('/', DIRECTORY_SEPARATOR, $host), $inferredFromFileLink);
         $this->assertFalse(RuntimePathResolver::isPackageInstallRoot($inferredFromFileLink));
         $this->assertTrue(RuntimePathResolver::isPackageInstallRoot($package));
     }
@@ -348,7 +350,7 @@ final class RuntimePathResolverTest extends TestCase
         $host = $this->workspace . '/linked-vendor-host';
         mkdir($host, 0777, true);
         file_put_contents($host . '/composer.json', '{"config":{"vendor-dir":"deps"}}');
-        if (!@symlink($sharedVendor, $host . '/deps')) {
+        if (!LinkCapability::attempt(static fn (): bool => symlink($sharedVendor, $host . '/deps'))) {
             $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
         }
         $lexicalPackage = $host . '/deps/bluefission/opus';
@@ -373,7 +375,7 @@ final class RuntimePathResolverTest extends TestCase
         $this->autoload($sharedVendor . '/autoload.php');
         $host = $this->workspace . '/default-vendor-host';
         mkdir($host, 0777, true);
-        if (!@symlink($sharedVendor, $host . '/vendor')) {
+        if (!LinkCapability::attempt(static fn (): bool => symlink($sharedVendor, $host . '/vendor'))) {
             $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
         }
         $lexicalPackage = $host . '/vendor/bluefission/opus';
@@ -396,7 +398,7 @@ final class RuntimePathResolverTest extends TestCase
         $this->autoload($sharedVendor . '/autoload.php');
         $host = $this->workspace . '/legacy-default-host';
         $package = $this->package($host . '/core');
-        if (!@symlink($sharedVendor, $host . '/vendor')) {
+        if (!LinkCapability::attempt(static fn (): bool => symlink($sharedVendor, $host . '/vendor'))) {
             $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
         }
 
@@ -415,7 +417,7 @@ final class RuntimePathResolverTest extends TestCase
         $sharedVendor = $this->workspace . '/shared-source/vendor';
         $this->autoload($sharedVendor . '/autoload.php');
         $package = $this->package($this->workspace . '/source/opus');
-        if (!@symlink($sharedVendor, $package . '/vendor')) {
+        if (!LinkCapability::attempt(static fn (): bool => symlink($sharedVendor, $package . '/vendor'))) {
             $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
         }
 
@@ -433,7 +435,7 @@ final class RuntimePathResolverTest extends TestCase
         file_put_contents($vendor . '/bin/opus-addon.php', '<?php');
 
         $this->assertSame(
-            realpath($vendor) . DIRECTORY_SEPARATOR . 'autoload.php',
+            str_replace('/', DIRECTORY_SEPARATOR, $vendor) . DIRECTORY_SEPARATOR . 'autoload.php',
             RuntimePathResolver::composerProxyAutoloaderFromEntrypoint(
                 $vendor . '/bin/opus-addon.php'
             )
@@ -471,16 +473,14 @@ final class RuntimePathResolverTest extends TestCase
     {
         $posix = RuntimePathResolver::discover(DIRECTORY_SEPARATOR, DIRECTORY_SEPARATOR);
         $drive = RuntimePathResolver::discover('C:\\', 'C:\\');
-        $unc = RuntimePathResolver::discover(
-            '\\\\server\\share\\vendor\\bluefission\\opus',
-            '\\\\server\\share'
-        );
+        // Test lexical UNC normalization without probing a network share through realpath().
+        $normalize = new ReflectionMethod(RuntimePathResolver::class, 'normalizeLexical');
 
         $this->assertSame(realpath(DIRECTORY_SEPARATOR) ?: DIRECTORY_SEPARATOR, $posix->hostRoot());
         $this->assertSame('C:' . DIRECTORY_SEPARATOR, $drive->hostRoot());
         $this->assertSame(
             DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR . 'server' . DIRECTORY_SEPARATOR . 'share',
-            $unc->hostRoot()
+            $normalize->invoke(null, '\\\\server\\share\\')
         );
     }
 
@@ -547,7 +547,7 @@ final class RuntimePathResolverTest extends TestCase
         file_put_contents($outside . '/template.vibe', '<h1>Outside</h1>');
         mkdir($package . '/resource/themes', 0777, true);
         $link = $package . '/resource/themes/link';
-        if (!@symlink($outside, $link)) {
+        if (!LinkCapability::attempt(static fn (): bool => symlink($outside, $link))) {
             $this->markTestSkipped('Directory symlinks cannot be created in this environment.');
         }
         $resolver = RuntimePathResolver::discover($package);
@@ -567,7 +567,7 @@ final class RuntimePathResolverTest extends TestCase
         $package = $this->package($this->workspace . '/package');
         mkdir($package . '/resource/themes', 0777, true);
         $link = $package . '/resource/themes/link';
-        if (!@symlink($this->workspace . '/outside/missing', $link)) {
+        if (!LinkCapability::attempt(fn (): bool => symlink($this->workspace . '/outside/missing', $link))) {
             $this->markTestSkipped('Dangling directory symlinks cannot be created in this environment.');
         }
         $resolver = RuntimePathResolver::discover($package);
