@@ -14,3 +14,7 @@ storage/models/*
 storage/system/*
 /public/assets/*
 error.log
+
+# Local Compose orchestration; installation-specific and not distributed.
+/docker/compose.opus.yml
+/harness.json
