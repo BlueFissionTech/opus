@@ -5,6 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Registration;
 
 use App\Business\Services\VibeThemeRenderer;
+use App\Business\Services\ConsultingGuidanceService;
+use App\Business\Services\UnavailableConsultingGuidance;
+use App\Domain\Guidance\ConsultingGuidanceInterface;
+use App\Domain\Guidance\GuidanceRequest;
+use App\Domain\Guidance\GuidanceOutcome;
+use BlueFission\Services\Application;
 use App\Business\Services\ConversationalLearningCatalog;
 use App\Business\Services\LazyAgentCommandProcessor;
 use App\Business\Services\WiseProfilePolicyResolver;
@@ -37,6 +43,8 @@ final class AppRegistrationTest extends TestCase
 
         $registration->registrations();
 
+        $this->assertSame(ConsultingGuidanceService::class, $app->delegates['guidance']);
+
         $this->assertInstanceOf(VibeThemeRenderer::class, $app->delegates['template']);
         $this->assertSame($app->delegates['template'], $app->delegates['vibe.theme']);
         $this->assertInstanceOf(
@@ -65,6 +73,8 @@ final class AppRegistrationTest extends TestCase
         $reflection->getProperty('_app')->setValue($registration, $app);
 
         $registration->bindings();
+
+        $this->assertSame(UnavailableConsultingGuidance::class, $app->bindings[ConsultingGuidanceInterface::class]);
 
         $this->assertSame(
             LazyAgentCommandProcessor::class,
@@ -116,5 +126,35 @@ final class AppRegistrationTest extends TestCase
 
         $this->assertStringContainsString('<title>Signin</title>', $login);
         $this->assertStringContainsString('Sign In | Opus', $administration);
+    }
+
+    public function testGuidanceProviderResolvesThroughTheApplicationContainer(): void
+    {
+        $app = (new ReflectionClass(Application::class))->newInstanceWithoutConstructor();
+        $reflection = new ReflectionClass(AppRegistration::class);
+        $registration = $reflection->newInstanceWithoutConstructor();
+        $reflection->getProperty('_app')->setValue($registration, $app);
+        $registration->bindings();
+        $request = new GuidanceRequest([
+            'id' => 'container-proof', 'question' => 'What evidence is missing?',
+            'scope' => ['application' => 'test', 'tenant' => null, 'principal' => 'operator'],
+        ]);
+
+        $default = $app->getDynamicInstance(ConsultingGuidanceService::class)->advise($request, 1)->toArray();
+        self::assertSame('unavailable', $default['status']);
+        self::assertSame(['guidance_provider_unavailable'], $default['reasons']);
+
+        $app->bind(ConsultingGuidanceInterface::class, RegistrationGuidanceProvider::class);
+        $custom = $app->getDynamicInstance(ConsultingGuidanceService::class)->advise($request, 1)->toArray();
+        self::assertSame(['application_provider'], $custom['reasons']);
+        self::assertSame(['host_policy'], $custom['required_approvals']);
+    }
+}
+
+final class RegistrationGuidanceProvider implements ConsultingGuidanceInterface
+{
+    public function advise(GuidanceRequest $request): GuidanceOutcome
+    {
+        return GuidanceOutcome::unavailable($request, 'application_provider');
     }
 }
