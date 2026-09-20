@@ -90,6 +90,18 @@ Acceptance criteria:
   output, and diagnostic data without writing directly to terminal streams.
   The invoking host owns presentation and process termination.
 
+The optional WebSocket terminal uses a separate `WiseCommandHost` per connection.
+It accepts complete command or confirmation frames, never keystrokes or shell
+commands. Host authentication supplies actor, tenant and profile on every request;
+client frames cannot supply authority. Identity is bound at opening, permissions
+are refreshed, and only that connection's outstanding continuation may be resumed
+once. Disconnect/error releases the host and pending token; no child processes or
+polling timers are created. Session/frame limits bound transport-owned state.
+Long-running commands must use host-owned bounded/queued execution. The standalone
+listener requires a trusted host bootstrap and binds to loopback by default.
+Optional transport absence and missing authorization fail closed before listening;
+this transport does not certify deployment authentication.
+
 ### Agent Orchestration
 
 Automata should own orchestration primitives for application and add-on agents.

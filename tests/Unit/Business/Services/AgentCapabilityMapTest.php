@@ -13,6 +13,7 @@ use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentCommandContextProvider;
 use App\Business\Services\AgentScopedCommandProcessor;
 use App\Business\Services\WiseCommandHost;
+use App\Business\Services\TerminalSessions;
 use App\Business\Services\AddOnContractValidator;
 use App\Business\Services\DeclarativeArrayParser;
 use App\Business\Presentation\CommandResultPresenter;
@@ -911,6 +912,22 @@ PHP
         $this->assertSame(CommandResult::INVALID, $dynamicResult->status());
         $this->assertSame(0, $processor->executions);
         $this->assertSame('tool_not_granted', $dynamicResult->metadata()['agent_reason']);
+
+        $connection = new class {
+            public array $frames = [];
+            public function send(string $frame): void { $this->frames[] = json_decode($frame, true); }
+            public function close(): void { }
+        };
+        $terminal = new TerminalSessions(
+            fn () => new WiseCommandHost($scoped, new CommandResultPresenter()),
+            fn () => ['agent_id' => 'opus.central', 'actor' => ['id' => 'operator'],
+                'wise_profile' => ['type' => 'user', 'principal_id' => 'operator']]
+        );
+        $terminal->open($connection);
+        $terminal->message($connection, '{"type":"command","input":"delete file"}');
+        $this->assertSame(CommandResult::INVALID, $connection->frames[1]['result']['status']);
+        $this->assertSame('tool_not_granted', $connection->frames[1]['result']['metadata']['agent_reason']);
+        $this->assertSame(0, $processor->executions);
 
         $this->assertSame(CommandResult::INVALID, $result->metadata()['agent_result_status']);
     }
