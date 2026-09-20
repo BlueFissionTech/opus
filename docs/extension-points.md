@@ -60,3 +60,7 @@ lifecycle service to change activation. Use capability and profile policy for
 access restrictions; changing a context snapshot is not a lifecycle operation.
 Benign metadata enrichment and the existing actor, tenant, and profile validation
 remain supported. This patch adds no hook names and changes no payload types.
+
+A command-context lifecycle refresh that throws while normalizing records denies
+all add-on activation for that refresh, including records already read. Filters
+observe that empty authority snapshot and cannot restore prior or partial state.

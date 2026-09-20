@@ -43,7 +43,9 @@ final class AgentCommandContextProvider
                 }
             );
         } catch (Throwable) {
-            // Add-on authority fails closed when lifecycle state cannot be read.
+            // A partial lifecycle read cannot grant add-on authority.
+            $active = Arr::make([]);
+            $states = Arr::make([]);
         }
 
         $context = Arr::make([

@@ -128,6 +128,37 @@ final class AgentCommandContextLifecycleTest extends TestCase
         $this->assertSame([], $context['capabilities']);
     }
 
+    public function testMalformedLifecycleRecordDiscardsPreviouslyReadActivation(): void
+    {
+        $query = $this->query([
+            ['name' => 'reports'],
+            ['name' => new \stdClass()],
+        ]);
+        $this->forgeActivation();
+
+        $context = (new AgentCommandContextProvider($query))->forActor('operator-a', 'tenant-a');
+
+        $this->assertSame([], $context['active_addons']);
+        $this->assertSame([], $context['addon_states']);
+        $this->assertSame('operator-a', $context['actor']['id']);
+        $this->assertSame('tenant-a', $context['tenant_id']);
+        $this->assertSame('hook-observed', $context['correlation_id']);
+    }
+
+    public function testFailedContinuationRefreshDiscardsPriorAndPartialActivation(): void
+    {
+        $query = $this->query([['name' => 'reports']]);
+        $provider = new AgentCommandContextProvider($query);
+        $prior = $provider->forActor('operator-a', 'tenant-a');
+        $query->records = [['name' => 'reports'], ['name' => new \stdClass()]];
+
+        $refreshed = $provider->forContinuation($prior);
+
+        $this->assertSame([], $refreshed['active_addons']);
+        $this->assertSame([], $refreshed['addon_states']);
+        $this->assertSame(2, $query->calls);
+    }
+
     private function forgeActivation(): void
     {
         DevElation::filter(ExtensionPointCatalog::AGENT_COMMAND_CONTEXT, static function (array $context): array {
