@@ -6,7 +6,7 @@
         "opus",
         "eidolon"
     ],
-    "license": "Exclusive",
+    "license": "Apache-2.0",
     "authors": [
         {
             "name": "Devon Scott",
@@ -108,6 +108,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "scripts": {
+        "validate:composer": "@composer validate --strict --no-check-publish --no-plugins",
         "audit:composer-vcs": "@php bin/audit-composer-vcs.php",
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""

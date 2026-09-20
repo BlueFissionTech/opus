@@ -141,3 +141,10 @@ and the full PHPUnit suite for integration coverage.
 The lifecycle context suite also covers a valid record followed by a malformed
 record, including continuation refresh and a filter attempting to forge state.
 Both activation fields must be empty after the normalization failure.
+
+## Composer metadata quality gate
+
+Run `composer validate:composer` before publishing package metadata. This invokes
+strict manifest/lock validation with plugins disabled and does not install or
+update dependencies. Opus declares `Apache-2.0`; the complete license is shipped
+in `LICENSE`. Dependency and private-asset licenses remain separate.
