@@ -144,7 +144,8 @@ final class RuntimePathResolverTest extends TestCase
     {
         $host = $this->workspace . '/linked-host';
         mkdir($host, 0777, true);
-        $expected = realpath($host) . DIRECTORY_SEPARATOR . 'core';
+        // Entrypoint discovery preserves spelling, including Windows short-name aliases.
+        $expected = str_replace('/', DIRECTORY_SEPARATOR, $host) . DIRECTORY_SEPARATOR . 'core';
 
         $this->assertSame(
             $expected,
@@ -163,7 +164,7 @@ final class RuntimePathResolverTest extends TestCase
         );
 
         $relative = RuntimePathResolver::packageInstallRootFromEntrypoint('core/bin/opus-addon.php');
-        $this->assertSame(realpath(getcwd()) . DIRECTORY_SEPARATOR . 'core', $relative);
+        $this->assertSame(getcwd() . DIRECTORY_SEPARATOR . 'core', $relative);
     }
 
     public function testEntrypointPackageRootMustContainTheSharedRuntimeBootstrap(): void
@@ -177,7 +178,7 @@ final class RuntimePathResolverTest extends TestCase
             $host . '/public/index.php'
         );
 
-        $this->assertSame(realpath($host), $inferredFromFileLink);
+        $this->assertSame(str_replace('/', DIRECTORY_SEPARATOR, $host), $inferredFromFileLink);
         $this->assertFalse(RuntimePathResolver::isPackageInstallRoot($inferredFromFileLink));
         $this->assertTrue(RuntimePathResolver::isPackageInstallRoot($package));
     }
@@ -434,7 +435,7 @@ final class RuntimePathResolverTest extends TestCase
         file_put_contents($vendor . '/bin/opus-addon.php', '<?php');
 
         $this->assertSame(
-            realpath($vendor) . DIRECTORY_SEPARATOR . 'autoload.php',
+            str_replace('/', DIRECTORY_SEPARATOR, $vendor) . DIRECTORY_SEPARATOR . 'autoload.php',
             RuntimePathResolver::composerProxyAutoloaderFromEntrypoint(
                 $vendor . '/bin/opus-addon.php'
             )
@@ -472,16 +473,14 @@ final class RuntimePathResolverTest extends TestCase
     {
         $posix = RuntimePathResolver::discover(DIRECTORY_SEPARATOR, DIRECTORY_SEPARATOR);
         $drive = RuntimePathResolver::discover('C:\\', 'C:\\');
-        $unc = RuntimePathResolver::discover(
-            '\\\\server\\share\\vendor\\bluefission\\opus',
-            '\\\\server\\share'
-        );
+        // Test lexical UNC normalization without probing a network share through realpath().
+        $normalize = new ReflectionMethod(RuntimePathResolver::class, 'normalizeLexical');
 
         $this->assertSame(realpath(DIRECTORY_SEPARATOR) ?: DIRECTORY_SEPARATOR, $posix->hostRoot());
         $this->assertSame('C:' . DIRECTORY_SEPARATOR, $drive->hostRoot());
         $this->assertSame(
             DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR . 'server' . DIRECTORY_SEPARATOR . 'share',
-            $unc->hostRoot()
+            $normalize->invoke(null, '\\\\server\\share\\')
         );
     }
 
