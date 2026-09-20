@@ -45,3 +45,11 @@ report as permission to overwrite them.
 The focused metadata tests can run using an existing PHPUnit installation:
 `php vendor/phpunit/phpunit/phpunit tests/Unit/InstalledDependencyAuditTest.php`.
 They require no network, provider credentials, database or additional packages.
+
+## Recorded Development Baseline
+
+The [2026-09-19 locked runtime proof](locked-runtime-proof-2026-09-19.md) records
+an exact-lock source-root run, including machine-readable package references,
+passing contracts, skipped coverage and upstream warnings. It is evidence for
+that revision and runtime only; rerun the gates above before making a release
+or consumer-installation claim.

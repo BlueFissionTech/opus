@@ -142,6 +142,14 @@ The lifecycle context suite also covers a valid record followed by a malformed
 record, including continuation refresh and a filter attempting to forge state.
 Both activation fields must be empty after the normalization failure.
 
+## Exact-lock runtime baseline
+
+The [recorded development proof](docs/locked-runtime-proof-2026-09-19.md) includes
+reproducible commands, package references and all skipped test identifiers.
+Run against the installation's own Composer autoloader and PHPUnit. Preserve
+JUnit output and shutdown warnings alongside the exit status; dependency
+metadata consistency alone does not establish runtime or release readiness.
+
 ## Composer metadata quality gate
 
 Run `composer validate:composer` before publishing package metadata. This invokes
