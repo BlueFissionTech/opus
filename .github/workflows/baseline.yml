@@ -26,7 +26,7 @@ jobs:
           php-version: '8.2'
           coverage: none
           tools: composer:v2
-          extensions: mbstring, dom, xml, curl, pdo_sqlite
+          extensions: mbstring, dom, xml, curl, fileinfo, gd, simplexml, xmlreader, xmlwriter, zip, pdo_sqlite
       - name: Compile every tracked PHP file
         run: php bin/lint-php.php
       - name: Validate package metadata
