@@ -313,3 +313,12 @@ Lifecycle reads are atomic for authority: if fetching or normalizing any record
 throws, both the activated add-on list and lifecycle state map are empty.
 Previously parsed records, prior continuation state, and context filters cannot
 restore partial authority after that failure. Actor and tenant scope remain intact.
+
+## Optional consulting guidance (#101)
+
+An injected advisory provider accepts a versioned, inert request and returns a
+versioned inspectable outcome. The host verifies request/scope identity, candidate
+references, expiry, evidence freshness and required approval metadata. Guidance
+never grants execution authority. Unavailable/failed providers return structured
+results without exception payloads. Caller overrides create new advisory records;
+no task, budget, goal, agent, command, deployment or workflow is mutated.
