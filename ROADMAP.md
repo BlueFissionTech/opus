@@ -506,3 +506,11 @@ conformance tests are missing or failing.
 5. Keep public package contracts general and reusable.
 6. Record new discrete needs as issues and attach their evidence to the
    applicable roadmap track.
+
+## Issue-sized sprint staging
+
+Use the [open-issue sprint queue](docs/issue-sprint-queue.md) and its
+[machine-readable cards](docs/issue-sprint-queue.json) to select the next bounded
+deliverable. The dated inventory distinguishes prepared work from prerequisite
+and decision gates; refresh its issue coverage before execution. A staged card
+is not a release or deployment claim.
