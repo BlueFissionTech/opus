@@ -149,3 +149,10 @@ reproducible commands, package references and all skipped test identifiers.
 Run against the installation's own Composer autoloader and PHPUnit. Preserve
 JUnit output and shutdown warnings alongside the exit status; dependency
 metadata consistency alone does not establish runtime or release readiness.
+
+## Composer metadata quality gate
+
+Run `composer validate:composer` before publishing package metadata. This invokes
+strict manifest/lock validation with plugins disabled and does not install or
+update dependencies. Opus declares `Apache-2.0`; the complete license is shipped
+in `LICENSE`. Dependency and private-asset licenses remain separate.
