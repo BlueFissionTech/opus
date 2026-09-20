@@ -108,6 +108,8 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "scripts": {
+        "lint:php": "@php bin/lint-php.php",
+        "test": "@php vendor/phpunit/phpunit/phpunit --do-not-cache-result",
         "validate:composer": "@composer validate --strict --no-check-publish --no-plugins",
         "audit:composer-vcs": "@php bin/audit-composer-vcs.php",
         "post-root-package-install": [

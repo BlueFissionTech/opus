@@ -300,6 +300,17 @@ clean checkout.
 - Webpack and asset-pipeline cleanup remain separately tracked.
 - Specifications and tests stay synchronized as each slice lands.
 
+## Baseline quality gates
+
+Every tracked PHP file must compile under PHP 8.2, including files outside test
+autoload paths. CI runs this dependency-free check, the locked PHPUnit suite,
+and frontend asset-manifest/configuration checks without service credentials.
+Dynamic processing dispatches through the shared command backbone with host-owned
+context. All rule shapes and input bindings are validated before dispatch;
+pending, rejected, or failed commands stop the sequence. Runtime effects already
+completed are not rolled back. Rules cannot supply authority or execute arbitrary
+PHP functions or direct API calls.
+
 ## Command-context lifecycle authority
 
 The command-context filter may enrich metadata but cannot replace the activated

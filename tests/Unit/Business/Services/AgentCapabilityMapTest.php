@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Business\Services;
 
+use App\Business\Processors\DynamicProcessor;
+use App\Business\Processors\LogicHandler;
 use App\Business\Services\AgentCapabilityMapCatalog;
 use App\Business\Services\AgentCapabilityMapLoader;
 use App\Business\Services\AgentCapabilityMapResolver;
@@ -852,6 +854,13 @@ PHP
         $this->assertSame('command.list', $result->metadata()['agent_tool']);
         $this->assertSame('test', $result->metadata()['provider']);
         $this->assertSame('correlation-a', $result->metadata()['correlation_id']);
+        $dynamic = new DynamicProcessor(['rules' => [['command' => 'list commands']]], new LogicHandler($scoped, $context));
+        $dynamicResult = $dynamic->execute(null);
+        $this->assertSame(CommandResult::COMPLETED, $dynamicResult->status());
+        $this->assertSame(2, $processor->executions);
+        $this->assertSame('command.list', $dynamicResult->metadata()['agent_tool']);
+        $this->assertSame('correlation-a', $dynamicResult->metadata()['correlation_id']);
+
         $this->assertSame(CommandResult::COMPLETED, $result->metadata()['agent_result_status']);
     }
 
@@ -895,6 +904,14 @@ PHP
         $this->assertSame(CommandResult::INVALID, $result->status());
         $this->assertSame(0, $processor->executions);
         $this->assertSame('tool_not_granted', $result->metadata()['agent_reason']);
+        $dynamic = new DynamicProcessor(['rules' => [
+            ['command' => 'delete file'], ['command' => 'delete file'],
+        ]], new LogicHandler($scoped, ['agent_id' => 'opus.central']));
+        $dynamicResult = $dynamic->execute(null);
+        $this->assertSame(CommandResult::INVALID, $dynamicResult->status());
+        $this->assertSame(0, $processor->executions);
+        $this->assertSame('tool_not_granted', $dynamicResult->metadata()['agent_reason']);
+
         $this->assertSame(CommandResult::INVALID, $result->metadata()['agent_result_status']);
     }
 
