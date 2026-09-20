@@ -142,6 +142,12 @@ The lifecycle context suite also covers a valid record followed by a malformed
 record, including continuation refresh and a filter attempting to forge state.
 Both activation fields must be empty after the normalization failure.
 
+## Consulting guidance
+
+Run `php vendor/phpunit/phpunit/phpunit --filter "ConsultingGuidanceServiceTest|AppRegistrationTest" --do-not-cache-result`
+for the optional advisory service contracts. These tests use deterministic local
+providers and require no credentials or external service.
+
 ## Exact-lock runtime baseline
 
 The [recorded development proof](docs/locked-runtime-proof-2026-09-19.md) includes

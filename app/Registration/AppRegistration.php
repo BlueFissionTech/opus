@@ -7,6 +7,9 @@ use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use App\Business\MysqlConnector;
 use App\Business\Presentation\PackageTheme;
 use App\Business\Services\RuntimePathResolver;
+use App\Business\Services\ConsultingGuidanceService;
+use App\Business\Services\UnavailableConsultingGuidance;
+use App\Domain\Guidance\ConsultingGuidanceInterface;
 use App\Business\Services\VibeThemeRenderer;
 use App\Business\Services\ConversationalLearningCatalog;
 use App\Business\Services\LazyAgentCommandProcessor;
@@ -90,6 +93,7 @@ class AppRegistration implements IExtension {
 		$this->delegate('vibe.theme', $templateRenderer);
 		$this->delegate('wise.profile.policy', $profilePolicies);
 		$this->delegate('conversation.catalog', $conversationCatalog);
+		$this->delegate('guidance', ConsultingGuidanceService::class);
 
 		$this->delegate('mysql', MysqlConnector::class);
 	}
@@ -110,6 +114,7 @@ class AppRegistration implements IExtension {
 		$this->bind('BlueFission\Data\Storage\Storage', 'BlueFission\Data\Storage\MySQL');
 		$this->bind(IApplicationIntakeRepository::class, ApplicationIntakeRepositorySql::class);
 		$this->bind(ICommandProcessor::class, LazyAgentCommandProcessor::class);
+		$this->bind(ConsultingGuidanceInterface::class, UnavailableConsultingGuidance::class);
 	}
 
 	/**
