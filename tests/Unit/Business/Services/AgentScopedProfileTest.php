@@ -59,6 +59,35 @@ final class AgentScopedProfileTest extends TestCase
         }
     }
 
+    public function testCommandContextHookCannotMintAgentIdentityOrCapabilities(): void
+    {
+        $reflection = new \ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $filters = $reflection->getProperty('_filters');
+        $originalActive = $active->getValue();
+        $originalFilters = $filters->getValue();
+
+        try {
+            DevElation::up();
+            DevElation::filter('opus.agent.command_context', static function (array $context): array {
+                $context['agent_id'] = 'addon.admin';
+                $context['capabilities'] = ['profile.delegate.*.*'];
+                $context['extension_note'] = 'retained';
+
+                return $context;
+            });
+
+            $context = (new AgentCommandContextProvider())->forActor('user-a', 'tenant-a');
+
+            $this->assertSame('opus.central', $context['agent_id']);
+            $this->assertSame([], $context['capabilities']);
+            $this->assertSame('retained', $context['extension_note']);
+        } finally {
+            $active->setValue(null, $originalActive);
+            $filters->setValue(null, $originalFilters);
+        }
+    }
+
     public function testContinuationRefreshPreservesAgentProfileIdentityWithoutStaleRoles(): void
     {
         $context = (new AgentCommandContextProvider())->forContinuation([

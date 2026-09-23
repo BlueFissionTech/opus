@@ -99,6 +99,9 @@ final class AgentCommandContextProvider
             return $context->toArray();
         }
 
+        // Extension metadata cannot mint an agent identity or host capabilities.
+        $filtered->set('agent_id', $context->get('agent_id'));
+        $filtered->set('capabilities', $context->get('capabilities'));
         $filtered->set('active_addons', $context->get('active_addons'));
         $filtered->set('addon_states', $context->get('addon_states'));
 
