@@ -81,6 +81,8 @@
       "ordering": "priority_ascending_then_registration_order",
       "invariants": [
         "Caller identity and an explicit tenant cannot be changed.",
+        "Agent identity and host capabilities are restored from the authoritative context after filtering.",
+        "Profile roles and profile policy are host-owned and cannot be granted by the filter.",
         "Activated add-ons and lifecycle states are restored from the authoritative query after filtering, including continuation refresh and query failure.",
         "Profile identity and tenant scope are revalidated after filtering.",
         "Invalid filtered context falls back to the authoritative context."
