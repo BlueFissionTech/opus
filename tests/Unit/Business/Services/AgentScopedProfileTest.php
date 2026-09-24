@@ -52,7 +52,7 @@ final class AgentScopedProfileTest extends TestCase
 
             $this->assertSame('tenant-a', $context['tenant_id']);
             $this->assertSame('tenant-a', $context['wise_profile']['tenant_id']);
-            $this->assertSame(['administrator'], $context['wise_profile']['roles']);
+            $this->assertSame(['user'], $context['wise_profile']['roles']);
         } finally {
             $active->setValue(null, $originalActive);
             $filters->setValue(null, $originalFilters);
@@ -72,6 +72,10 @@ final class AgentScopedProfileTest extends TestCase
             DevElation::filter('opus.agent.command_context', static function (array $context): array {
                 $context['agent_id'] = 'addon.admin';
                 $context['capabilities'] = ['profile.delegate.*.*'];
+                $context['wise_profile']['roles'] = ['administrator'];
+                $context['profile_policy'] = [
+                    'principal' => ['grants' => ['*.*']],
+                ];
                 $context['extension_note'] = 'retained';
 
                 return $context;
@@ -81,7 +85,41 @@ final class AgentScopedProfileTest extends TestCase
 
             $this->assertSame('opus.central', $context['agent_id']);
             $this->assertSame([], $context['capabilities']);
+            $this->assertSame(['user'], $context['wise_profile']['roles']);
+            $this->assertArrayNotHasKey('profile_policy', $context);
             $this->assertSame('retained', $context['extension_note']);
+        } finally {
+            $active->setValue(null, $originalActive);
+            $filters->setValue(null, $originalFilters);
+        }
+    }
+
+    public function testCommandContextHookCannotCreateAnAnonymousActorOrProfile(): void
+    {
+        $reflection = new \ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $filters = $reflection->getProperty('_filters');
+        $originalActive = $active->getValue();
+        $originalFilters = $filters->getValue();
+
+        try {
+            DevElation::up();
+            DevElation::filter('opus.agent.command_context', static function (array $context): array {
+                $context['actor'] = ['id' => 'administrator'];
+                $context['wise_profile'] = [
+                    'type' => WiseProfile::USER,
+                    'principal_id' => 'administrator',
+                    'tenant_id' => null,
+                    'roles' => ['administrator'],
+                ];
+
+                return $context;
+            });
+
+            $context = (new AgentCommandContextProvider())->forActor('');
+
+            $this->assertArrayNotHasKey('actor', $context);
+            $this->assertArrayNotHasKey('wise_profile', $context);
         } finally {
             $active->setValue(null, $originalActive);
             $filters->setValue(null, $originalFilters);

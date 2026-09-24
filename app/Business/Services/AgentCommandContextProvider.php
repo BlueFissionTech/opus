@@ -76,7 +76,7 @@ final class AgentCommandContextProvider
         $filteredActorId = Str::is($filteredActor)
             ? Str::make((string) $filteredActor)->trim()->val()
             : Str::make((string) Arr::getPath((array) $filteredActor, 'id', ''))->trim()->val();
-        if (Str::isNotEmpty($actorId) && $filteredActorId !== $actorId) {
+        if ($filteredActorId !== $actorId) {
             return $context->toArray();
         }
         $requestedTenantId = Str::isNotEmpty((string) $tenantId) ? $tenantId : null;
@@ -104,6 +104,17 @@ final class AgentCommandContextProvider
         $filtered->set('capabilities', $context->get('capabilities'));
         $filtered->set('active_addons', $context->get('active_addons'));
         $filtered->set('addon_states', $context->get('addon_states'));
+        if ($context->hasKey('wise_profile')) {
+            $profile->set('roles', Arr::getPath((array) $context->get('wise_profile'), 'roles', []));
+            $filtered->set('wise_profile', $profile->toArray());
+        } else {
+            unset($filtered['wise_profile']);
+        }
+        if ($context->hasKey('profile_policy')) {
+            $filtered->set('profile_policy', $context->get('profile_policy'));
+        } else {
+            unset($filtered['profile_policy']);
+        }
 
         return $filtered->toArray();
     }
