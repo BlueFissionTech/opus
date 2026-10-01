@@ -12,7 +12,7 @@ use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentCommandContextProvider;
 use App\Business\Services\AgentScopedCommandProcessor;
-use App\Business\Services\WiseCommandHost;
+use App\Business\Services\CommandHost;
 use App\Business\Services\TerminalSessions;
 use App\Business\Services\AddOnContractValidator;
 use App\Business\Services\DeclarativeArrayParser;
@@ -919,7 +919,7 @@ PHP
             public function close(): void { }
         };
         $terminal = new TerminalSessions(
-            fn () => new WiseCommandHost($scoped, new CommandResultPresenter()),
+            fn () => new CommandHost($scoped, new CommandResultPresenter()),
             fn () => ['agent_id' => 'opus.central', 'actor' => ['id' => 'operator'],
                 'wise_profile' => ['type' => 'user', 'principal_id' => 'operator']]
         );
@@ -1094,7 +1094,7 @@ PHP
         };
         $middleware = new class(
             $this->createMock(CommandManager::class),
-            new WiseCommandHost($processor, new CommandResultPresenter()),
+            new CommandHost($processor, new CommandResultPresenter()),
             new AgentCommandContextProvider($query)
         )
             extends ProcessesCommandMiddleware {

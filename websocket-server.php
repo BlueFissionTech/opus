@@ -12,6 +12,8 @@ use Ratchet\WebSocket\WsServer;
 use App\Terminal;
 use App\Business\Services\TerminalSessions;
 use BlueFission\Async\Sock;
+use BlueFission\Str;
+use BlueFission\Utils\File;
 
 if (!Sock::isAvailable()) {
     fwrite(
@@ -24,7 +26,7 @@ if (!Sock::isAvailable()) {
 
 try {
     $bootstrap = getenv('OPUS_TERMINAL_BOOTSTRAP');
-    if (!is_string($bootstrap) || $bootstrap === '' || !is_file($bootstrap)) {
+    if (!Str::is($bootstrap) || Str::isEmpty($bootstrap) || !(new File())->exists($bootstrap)) {
         fwrite(STDERR, "Configure OPUS_TERMINAL_BOOTSTRAP with a trusted host authorization bootstrap.\n");
         exit(2);
     }

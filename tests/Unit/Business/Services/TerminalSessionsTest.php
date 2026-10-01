@@ -6,7 +6,7 @@ namespace Tests\Unit\Business\Services;
 
 use App\Business\Presentation\CommandResultPresenter;
 use App\Business\Services\TerminalSessions;
-use App\Business\Services\WiseCommandHost;
+use App\Business\Services\CommandHost;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
@@ -72,7 +72,8 @@ final class TerminalSessionsTest extends TestCase
         foreach (['not-json', 'null', '[]', '{}', '{"type":"command","input":[]}',
             '{"type":"command","input":" "}',
             '{"type":"command","input":"delete users","context":{"approved":true}}',
-            '{"type":"confirm","token":"x","approved":"true"}', str_repeat('x', 257)] as $frame) {
+            '{"type":"confirm","token":"x","approved":"true"}', str_repeat('x', 257),
+            json_encode(['type' => 'command', 'input' => str_repeat('é', 120)], JSON_UNESCAPED_UNICODE)] as $frame) {
             $sessions->message($connection, $frame);
         }
         self::assertSame([], $processor->requests);
@@ -117,7 +118,7 @@ final class TerminalSessionsTest extends TestCase
         $sessions->open($third);
         self::assertFalse($third->closed);
 
-        $host = new WiseCommandHost($processor, new CommandResultPresenter());
+        $host = new CommandHost($processor, new CommandResultPresenter());
         $sessions = new TerminalSessions(fn () => $host, fn () => $this->context());
         $sessions->open($this->connection());
         $connection = $this->connection();
@@ -184,7 +185,7 @@ final class TerminalSessionsTest extends TestCase
 
         $sessions = new TerminalSessions(function ($connection) use (&$sessions, $processor) {
             $sessions->close($connection);
-            return new WiseCommandHost($processor, new CommandResultPresenter());
+            return new CommandHost($processor, new CommandResultPresenter());
         }, fn () => $this->context());
         $connection = $this->connection();
         $sessions->open($connection);
@@ -230,7 +231,7 @@ final class TerminalSessionsTest extends TestCase
 
     private function sessions(ICommandProcessor $processor, callable $context, int $maxSessions = 128, int $maxFrameBytes = 16384): TerminalSessions
     {
-        return new TerminalSessions(fn () => new WiseCommandHost($processor, new CommandResultPresenter()), $context, $maxSessions, $maxFrameBytes);
+        return new TerminalSessions(fn () => new CommandHost($processor, new CommandResultPresenter()), $context, $maxSessions, $maxFrameBytes);
     }
 
     private function processor(): ICommandProcessor

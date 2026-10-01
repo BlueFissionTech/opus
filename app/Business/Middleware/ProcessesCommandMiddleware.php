@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Business\Middleware;
 
 use App\Business\Services\AgentCommandContextProvider;
-use App\Business\Services\WiseCommandHost;
+use App\Business\Services\CommandHost;
 use App\Domain\Console\CommandPresentation;
 use BlueFission\Arr;
 use BlueFission\BlueCore\Business\Managers\CommandManager;
@@ -21,7 +21,7 @@ class ProcessesCommandMiddleware implements Received, Sending
 {
     public function __construct(
         private CommandManager $commandManager,
-        private WiseCommandHost $commandHost,
+        private CommandHost $commandHost,
         private ?AgentCommandContextProvider $contextProvider = null
     ) {
         $this->contextProvider ??= new AgentCommandContextProvider();

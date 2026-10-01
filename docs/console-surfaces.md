@@ -1,6 +1,6 @@
 # Console surfaces and terminal transport
 
-Opus command clients share `WiseCommandHost`, `CommandRequest`, and
+Opus command clients share `CommandHost`, `CommandRequest`, and
 `CommandResultPresenter`. The WebSocket terminal is a command client; it does
 not provide an operating-system shell or launch a child CLI process. Parsing,
 tool grants, profile policy, execution, and approval remain in the Wise command
@@ -34,7 +34,7 @@ unavailable transport exits 1; missing or invalid bootstrap configuration exits
 
 The bootstrap supplies two callbacks:
 
-- `hostFactory($connection, $context): WiseCommandHost` constructs a new host
+- `hostFactory($connection, $context): CommandHost` constructs a new host
   for each connection. Compose the real Wise processor with
   `AgentScopedCommandProcessor`, the application's capability map and profile
   policy. Use connection-isolated processor/continuation storage; do not reuse

@@ -90,7 +90,7 @@ Acceptance criteria:
   output, and diagnostic data without writing directly to terminal streams.
   The invoking host owns presentation and process termination.
 
-The optional WebSocket terminal uses a separate `WiseCommandHost` per connection.
+The optional WebSocket terminal uses a separate `CommandHost` per connection.
 It accepts complete command or confirmation frames, never keystrokes or shell
 commands. Host authentication supplies actor, tenant and profile on every request;
 client frames cannot supply authority. Identity is bound at opening, permissions

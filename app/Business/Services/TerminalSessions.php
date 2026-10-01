@@ -6,6 +6,7 @@ namespace App\Business\Services;
 
 use App\Business\Presentation\CommandResultPresenter;
 use BlueFission\Arr;
+use BlueFission\Flag;
 use BlueFission\Net\HTTP;
 use BlueFission\Str;
 use BlueFission\Wise\Cmd\CommandResult;
@@ -60,7 +61,7 @@ final class TerminalSessions
             if (!$this->sessions->contains($connection)) {
                 return;
             }
-            if (!$host instanceof WiseCommandHost) {
+            if (!$host instanceof CommandHost) {
                 throw new InvalidArgumentException('terminal_host_invalid');
             }
             foreach ($this->sessions as $existing) {
@@ -173,7 +174,7 @@ final class TerminalSessions
     private function frame(mixed $message): ?array
     {
         // Bound bytes before allocating the decoded frame.
-        if (!Str::is($message) || strlen($message) > $this->maxFrameBytes) {
+        if (!Str::is($message) || Str::len($message) > $this->maxFrameBytes) {
             return null;
         }
         $frame = HTTP::jsonDecode($message, true);
@@ -194,7 +195,7 @@ final class TerminalSessions
             return Str::is($frame['input'] ?? null) && Str::isNotEmpty(Str::trim($frame['input'])) ? $frame : null;
         }
         return $type === 'confirm' && Str::is($frame['token'] ?? null)
-            && Str::isNotEmpty($frame['token']) && is_bool($frame['approved'] ?? null) ? $frame : null;
+            && Str::isNotEmpty($frame['token']) && Flag::isBool($frame['approved'] ?? null) ? $frame : null;
     }
 
     private function invalid(object $connection, string $code): void
