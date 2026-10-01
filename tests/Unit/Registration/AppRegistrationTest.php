@@ -13,6 +13,7 @@ use App\Domain\Guidance\GuidanceOutcome;
 use BlueFission\Services\Application;
 use App\Business\Services\ConversationalLearningCatalog;
 use App\Business\Services\LazyAgentCommandProcessor;
+use App\Business\Services\RuntimePathResolver;
 use App\Business\Services\WiseProfilePolicyResolver;
 use App\Domain\Onboarding\IApplicationIntakeRepository;
 use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
@@ -128,6 +129,60 @@ final class AppRegistrationTest extends TestCase
         $this->assertStringContainsString('Sign In | Opus', $administration);
     }
 
+    public function testHostFrontendSelectionPrefersAdaAndKeepsAdminPackageOwned(): void
+    {
+        $host = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opus-theme-' . bin2hex(random_bytes(6));
+        $markup = $host . DIRECTORY_SEPARATOR . 'resource' . DIRECTORY_SEPARATOR . 'markup';
+        foreach (['ada', 'alternate'] as $name) {
+            mkdir($markup . DIRECTORY_SEPARATOR . $name, 0777, true);
+            file_put_contents($markup . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . 'default.vibe', '<h1>Test</h1>');
+            file_put_contents($markup . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . 'login.vibe', '<h1>Login</h1>');
+        }
+        $previousPaths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? null;
+        $hadPaths = array_key_exists('OPUS_RUNTIME_PATHS', $GLOBALS);
+        $previousTheme = $GLOBALS['OPUS_FRONTEND_THEME'] ?? null;
+        $hadTheme = array_key_exists('OPUS_FRONTEND_THEME', $GLOBALS);
+        $GLOBALS['OPUS_RUNTIME_PATHS'] = RuntimePathResolver::discover(dirname(__DIR__, 3), $host);
+        unset($GLOBALS['OPUS_FRONTEND_THEME']);
+
+        try {
+            $themes = $this->registeredThemes();
+            $this->assertSame(realpath($markup . DIRECTORY_SEPARATOR . 'ada'), rtrim($themes['app/default']->location, '\\/'));
+            $this->assertStringContainsString('resource/markup/admin', Str::replace($themes['app/admin']->location, '\\', '/'));
+            $renderer = new VibeThemeRenderer(static fn (string $name): ?Theme => $themes['app/' . $name] ?? null);
+            $this->assertStringContainsString('<h1>Test</h1>', $renderer->render('default', 'default.vibe'));
+            $this->assertStringContainsString('<h1>Login</h1>', $renderer->render('default', 'login.vibe'));
+
+            $GLOBALS['OPUS_FRONTEND_THEME'] = 'alternate';
+            $this->assertSame(realpath($markup . DIRECTORY_SEPARATOR . 'alternate'), rtrim($this->registeredThemes()['app/default']->location, '\\/'));
+
+            unlink($markup . DIRECTORY_SEPARATOR . 'alternate' . DIRECTORY_SEPARATOR . 'login.vibe');
+            $this->assertSame(realpath($markup . DIRECTORY_SEPARATOR . 'ada'), rtrim($this->registeredThemes()['app/default']->location, '\\/'));
+
+            unlink($markup . DIRECTORY_SEPARATOR . 'ada' . DIRECTORY_SEPARATOR . 'login.vibe');
+            $this->assertStringContainsString('resource/markup/default', Str::replace($this->registeredThemes()['app/default']->location, '\\', '/'));
+
+            $GLOBALS['OPUS_FRONTEND_THEME'] = '../outside';
+            $this->expectException(\InvalidArgumentException::class);
+            $this->registeredThemes();
+        } finally {
+            if ($hadPaths) { $GLOBALS['OPUS_RUNTIME_PATHS'] = $previousPaths; }
+            else { unset($GLOBALS['OPUS_RUNTIME_PATHS']); }
+            if ($hadTheme) { $GLOBALS['OPUS_FRONTEND_THEME'] = $previousTheme; }
+            else { unset($GLOBALS['OPUS_FRONTEND_THEME']); }
+            foreach (['ada', 'alternate'] as $name) {
+                foreach (['default.vibe', 'login.vibe'] as $file) {
+                    $path = $markup . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . $file;
+                    if (is_file($path)) { unlink($path); }
+                }
+                rmdir($markup . DIRECTORY_SEPARATOR . $name);
+            }
+            rmdir($markup);
+            rmdir($host . DIRECTORY_SEPARATOR . 'resource');
+            rmdir($host);
+        }
+    }
+
     public function testGuidanceProviderResolvesThroughTheApplicationContainer(): void
     {
         $app = (new ReflectionClass(Application::class))->newInstanceWithoutConstructor();
@@ -148,6 +203,26 @@ final class AppRegistrationTest extends TestCase
         $custom = $app->getDynamicInstance(ConsultingGuidanceService::class)->advise($request, 1)->toArray();
         self::assertSame(['application_provider'], $custom['reasons']);
         self::assertSame(['host_policy'], $custom['required_approvals']);
+    }
+
+    /** @return array<string, Theme> */
+    private function registeredThemes(): array
+    {
+        $app = new class {
+            /** @var array<string, Theme> */
+            public array $themes = [];
+
+            public function addTheme(Theme $theme): void
+            {
+                $this->themes[$theme->name] = $theme;
+            }
+        };
+        $reflection = new ReflectionClass(AppRegistration::class);
+        $registration = $reflection->newInstanceWithoutConstructor();
+        $reflection->getProperty('_app')->setValue($registration, $app);
+        $registration->themes();
+
+        return $app->themes;
     }
 }
 

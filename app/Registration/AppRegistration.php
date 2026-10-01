@@ -19,6 +19,8 @@ use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\IExtension;
+use BlueFission\Str;
+use BlueFission\Utils\File;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 
 /**
@@ -142,8 +144,27 @@ class AppRegistration implements IExtension {
 	public function themes()
 	{
 		$paths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover();
-		$this->theme(new PackageTheme('app/default', $paths->themeRoot('default')));
+		$this->theme(new PackageTheme('app/default', $this->frontendThemeRoot($paths)));
 		$this->theme(new PackageTheme('app/admin', $paths->themeRoot('admin')));
+	}
+
+	private function frontendThemeRoot(RuntimePathResolver $paths): string
+	{
+		$selected = $GLOBALS['OPUS_FRONTEND_THEME'] ?? 'ada';
+		if (!Str::is($selected) || preg_match('/^[a-z][a-z0-9_-]*$/', $selected) !== 1) {
+			throw new \InvalidArgumentException('Host frontend theme name is invalid.');
+		}
+
+		$file = new File();
+		foreach (array_unique([$selected, 'ada']) as $name) {
+			$root = $paths->themeRoot('default', 'markup/' . $name);
+			if ($file->exists($paths->hostResourcePath('markup/' . $name . '/default.vibe'))
+				&& $file->exists($paths->hostResourcePath('markup/' . $name . '/login.vibe'))) {
+				return $root;
+			}
+		}
+
+		return $paths->themeRoot('default');
 	}
 
 	// Helpers

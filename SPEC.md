@@ -202,6 +202,13 @@ Acceptance criteria:
 - Ordinary theme rendering uses BlueCore's global `template(theme, file, data)`
   facade. Rendering that carries application-owned trust policy may call the
   canonical service directly rather than extending the helper signature.
+- Host frontend registration prefers a complete host-owned `resource/markup/ada`
+  Vibe theme. The host may set `OPUS_FRONTEND_THEME` before registration to
+  select another contained `resource/markup/<name>` theme. Selection requires
+  both `default.vibe` and `login.vibe`.
+  An unavailable replacement falls back to Ada, then the package default;
+  incomplete themes are not selected. Admin remains package-owned. Asset build
+  selection and release rights are separate gates.
 - Browser-side Reactor bindings remain distinct from server-side Vibe
   variables so initial rendering does not consume live client placeholders.
 - Rendered artifacts can be written only inside the application workspace.
