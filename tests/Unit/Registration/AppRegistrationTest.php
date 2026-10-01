@@ -135,8 +135,18 @@ final class AppRegistrationTest extends TestCase
         $markup = $host . DIRECTORY_SEPARATOR . 'resource' . DIRECTORY_SEPARATOR . 'markup';
         foreach (['ada', 'alternate'] as $name) {
             mkdir($markup . DIRECTORY_SEPARATOR . $name, 0777, true);
-            file_put_contents($markup . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . 'default.vibe', '<h1>Test</h1>');
-            file_put_contents($markup . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . 'login.vibe', '<h1>Login</h1>');
+            file_put_contents(
+                $markup . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . 'default.vibe',
+                '<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1">'
+                . '<link rel="stylesheet" href="/assets/themes/ada/theme.css"></head><body>'
+                . '<a href="#main">Skip to content</a><main id="main"><h1>Test</h1>'
+                . '<a href="/login">Sign in</a></main></body></html>'
+            );
+            file_put_contents(
+                $markup . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . 'login.vibe',
+                '<main><h1>Login</h1><form><label for="email">Email</label>'
+                . '<input id="email" type="email"><button type="submit">Sign in</button></form></main>'
+            );
         }
         $previousPaths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? null;
         $hadPaths = array_key_exists('OPUS_RUNTIME_PATHS', $GLOBALS);
@@ -150,8 +160,15 @@ final class AppRegistrationTest extends TestCase
             $this->assertSame(realpath($markup . DIRECTORY_SEPARATOR . 'ada'), rtrim($themes['app/default']->location, '\\/'));
             $this->assertStringContainsString('resource/markup/admin', Str::replace($themes['app/admin']->location, '\\', '/'));
             $renderer = new VibeThemeRenderer(static fn (string $name): ?Theme => $themes['app/' . $name] ?? null);
-            $this->assertStringContainsString('<h1>Test</h1>', $renderer->render('default', 'default.vibe'));
-            $this->assertStringContainsString('<h1>Login</h1>', $renderer->render('default', 'login.vibe'));
+            $default = $renderer->render('default', 'default.vibe');
+            $login = $renderer->render('default', 'login.vibe');
+            $this->assertStringContainsString('<h1>Test</h1>', $default);
+            $this->assertStringContainsString('href="#main">Skip to content</a>', $default);
+            $this->assertStringContainsString('href="/assets/themes/ada/theme.css"', $default);
+            $this->assertStringContainsString('name="viewport"', $default);
+            $this->assertStringContainsString('<h1>Login</h1>', $login);
+            $this->assertStringContainsString('<label for="email">Email</label>', $login);
+            $this->assertStringContainsString('<button type="submit">Sign in</button>', $login);
 
             $GLOBALS['OPUS_FRONTEND_THEME'] = 'alternate';
             $this->assertSame(realpath($markup . DIRECTORY_SEPARATOR . 'alternate'), rtrim($this->registeredThemes()['app/default']->location, '\\/'));

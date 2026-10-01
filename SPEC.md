@@ -208,7 +208,11 @@ Acceptance criteria:
   both `default.vibe` and `login.vibe`.
   An unavailable replacement falls back to Ada, then the package default;
   incomplete themes are not selected. Admin remains package-owned. Asset build
-  selection and release rights are separate gates.
+  selection and release rights are separate gates. Host CSS must be linked as
+  an external asset rather than embedded in Vibe markup, where CSS directives
+  can be parsed as template tags. Synthetic renderer checks preserve semantic
+  controls and asset links, but visual accessibility of the supplied Ada assets
+  still requires browser proof.
 - Browser-side Reactor bindings remain distinct from server-side Vibe
   variables so initial rendering does not consume live client placeholders.
 - Rendered artifacts can be written only inside the application workspace.
