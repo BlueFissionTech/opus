@@ -202,12 +202,14 @@ Acceptance criteria:
 - Ordinary theme rendering uses BlueCore's global `template(theme, file, data)`
   facade. Rendering that carries application-owned trust policy may call the
   canonical service directly rather than extending the helper signature.
-- Host frontend registration prefers a complete host-owned `resource/markup/ada`
-  Vibe theme. The host may set `OPUS_FRONTEND_THEME` before registration to
-  select another contained `resource/markup/<name>` theme. Selection requires
-  both `default.vibe` and `login.vibe`.
-  An unavailable replacement falls back to Ada, then the package default;
-  incomplete themes are not selected. Admin remains package-owned. Asset build
+- Host frontend registration uses `common/config/markup.php` to select a
+  complete host-owned Vibe theme. `OPUS_FRONTEND_THEME` selects a contained
+  `resource/markup/<name>` theme, and `OPUS_FRONTEND_FALLBACKS` configures an
+  ordered comma-separated fallback list (Ada by default). The configuration
+  names required templates (`default.vibe` and `login.vibe` by default).
+  An unavailable replacement falls through the configured list and then to the
+  package default; incomplete themes are not selected. Admin remains
+  package-owned. Asset build
   selection and release rights are separate gates. Host CSS must be linked as
   an external asset rather than embedded in Vibe markup, where CSS directives
   can be parsed as template tags. Synthetic renderer checks preserve semantic

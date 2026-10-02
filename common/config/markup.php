@@ -1,6 +1,11 @@
 <?php
 
 return [
+	'frontend' => [
+		'selected' => env('OPUS_FRONTEND_THEME', ''),
+		'fallbacks' => explode(',', (string) env('OPUS_FRONTEND_FALLBACKS', 'ada')),
+		'required_templates' => ['default.vibe', 'login.vibe'],
+	],
 	'html' => [
 		'file'=>'',
 		'cache'=>true,
