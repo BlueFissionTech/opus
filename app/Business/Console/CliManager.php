@@ -6,7 +6,7 @@ namespace App\Business\Console;
 
 use App\Business\Console\BotMan\CommandLineDriver;
 use App\Business\Services\AgentCommandContextProvider;
-use App\Business\Services\WiseCommandHost;
+use App\Business\Services\CommandHost;
 use App\Domain\Console\CommandPresentation;
 use BlueFission\Arr;
 use BlueFission\Services\Service;
@@ -18,7 +18,7 @@ class CliManager extends Service
     private AgentCommandContextProvider $contextProvider;
 
     public function __construct(
-        private WiseCommandHost $commandHost,
+        private CommandHost $commandHost,
         ?AgentCommandContextProvider $contextProvider = null
     ) {
         $this->contextProvider = $contextProvider ?? new AgentCommandContextProvider();

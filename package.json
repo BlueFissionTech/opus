@@ -7,7 +7,7 @@
   },
   "scripts": {
     "assets:validate": "node tools/asset-pipeline.cjs",
-    "test:assets": "node --test tests/Node/asset-pipeline.test.cjs",
+    "test:assets": "node --test tests/Node/asset-pipeline.test.cjs tests/Node/terminal-protocol.test.mjs",
     "build": "npm run assets:validate && cross-env NODE_ENV=production webpack --config webpack.config.js",
     "watch": "npm run assets:validate && webpack --config webpack.config.js --watch",
     "start": "npm run watch"

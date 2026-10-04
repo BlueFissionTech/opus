@@ -7,7 +7,7 @@ namespace Tests\Unit\Business\Services;
 use App\Business\Console\CliManager;
 use App\Business\Presentation\CommandResultPresenter;
 use App\Business\Services\AgentCommandContextProvider;
-use App\Business\Services\WiseCommandHost;
+use App\Business\Services\CommandHost;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
@@ -15,7 +15,7 @@ use BlueFission\Wise\Cmd\CommandResult;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 use PHPUnit\Framework\TestCase;
 
-final class WiseCommandHostTest extends TestCase
+final class CommandHostTest extends TestCase
 {
     public function testItPresentsAProcessorResultWithoutExecutingItAgain(): void
     {
@@ -37,7 +37,7 @@ final class WiseCommandHostTest extends TestCase
                 );
             }
         };
-        $host = new WiseCommandHost($processor, new CommandResultPresenter());
+        $host = new CommandHost($processor, new CommandResultPresenter());
 
         $presentation = $host->execute('list resources', ['actor' => ['id' => 'operator-a']]);
 
@@ -76,7 +76,7 @@ final class WiseCommandHostTest extends TestCase
                 return CommandResult::pending(null, null, 'continuation-a', ['policy' => 'confirm']);
             }
         };
-        $host = new WiseCommandHost($processor, new CommandResultPresenter());
+        $host = new CommandHost($processor, new CommandResultPresenter());
 
         $pending = $host->execute('delete record', ['tenant_id' => 'tenant-a']);
         $completed = $host->resume('continuation-a', false, ['tenant_id' => 'tenant-a']);
@@ -113,7 +113,7 @@ final class WiseCommandHostTest extends TestCase
                 return [['name' => 'reports', 'is_active' => 1]];
             }
         };
-        $host = new WiseCommandHost($processor, new CommandResultPresenter());
+        $host = new CommandHost($processor, new CommandResultPresenter());
         $cli = new CliManager($host, new AgentCommandContextProvider($query));
 
         $programmatic = $host->execute('list commands', ['actor' => ['id' => 'api']]);

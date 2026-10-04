@@ -10,7 +10,7 @@ use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 
-final class WiseCommandHost
+final class CommandHost
 {
     public function __construct(
         private ICommandProcessor $processor,

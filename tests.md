@@ -166,6 +166,14 @@ in `LICENSE`. Dependency and private-asset licenses remain separate.
 
 ## Required baseline gates
 
+The optional browser terminal requires `OPUS_TERMINAL_BOOTSTRAP`, a trusted host
+PHP file returning `TerminalSessions` with authenticated context resolution and
+connection-isolated scoped Wise hosts. It is disabled without this configuration
+and a compatible Ratchet installation. See [console surfaces](docs/console-surfaces.md)
+for deployment, protocol migration, and remaining legacy manager boundaries.
+Do not commit credentials or put them in terminal URLs. Terminal protocol tests
+run under `npm run test:assets` without installing browser dependencies.
+
 Run `composer lint:php`, `composer test`, `node --check webpack.config.js`,
 `node --check tools/asset-pipeline.cjs`, and `npm run test:assets` before release.
 The `Baseline quality` workflow runs on pushes and pull requests, using PHP 8.2
