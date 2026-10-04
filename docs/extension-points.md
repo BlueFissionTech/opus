@@ -23,6 +23,7 @@ privacy, review, and execution invariants after filters where required.
 | `opus.agent.command_runtime.unavailable` | action | After runtime construction failure | Ignore observer failure |
 | `opus.conversation.settings` | filter | After settings-layer composition | Propagate before use |
 | `opus.conversation.configuration` | filter | After scoped configuration composition | Propagate before use |
+| `opus.frontend.markup_directory` | filter | Before frontend theme registration | Propagate before use |
 
 Lower numeric DevElation priorities run first; handlers at the same priority
 run in registration order. Extensions must not depend on undocumented internal
@@ -45,6 +46,12 @@ The boundary inventory in the JSON catalog also records areas that are
 intentionally closed or owned by stronger service, lifecycle, behavior, or
 package abstractions. A method is not extensible merely because an adjacent
 area publishes a hook.
+
+The frontend markup directory filter receives a relative directory beneath the
+host `resource/` root and must return a nonempty contained relative directory.
+It can redirect host theme lookup at registration time, but cannot change the
+package-owned admin theme or bypass required Vibe-template checks. The default
+comes from `OPUS_HOST_MARKUP_DIRECTORY` in global settings.
 
 ## Lifecycle authority in command context (catalog 1.0.1)
 

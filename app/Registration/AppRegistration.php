@@ -7,6 +7,7 @@ use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use App\Business\MysqlConnector;
 use App\Business\Presentation\PackageTheme;
 use App\Business\Services\RuntimePathResolver;
+use App\Business\Services\HostFrontendThemeResolver;
 use App\Business\Services\ConsultingGuidanceService;
 use App\Business\Services\UnavailableConsultingGuidance;
 use App\Domain\Guidance\ConsultingGuidanceInterface;
@@ -19,6 +20,7 @@ use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\IExtension;
+use BlueFission\Str;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 
 /**
@@ -142,7 +144,8 @@ class AppRegistration implements IExtension {
 	public function themes()
 	{
 		$paths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover();
-		$this->theme(new PackageTheme('app/default', $paths->themeRoot('default')));
+		$frontend = $this->configuration('markup')['frontend'] ?? [];
+		$this->theme(new PackageTheme('app/default', (new HostFrontendThemeResolver())->resolve($paths, $frontend)));
 		$this->theme(new PackageTheme('app/admin', $paths->themeRoot('admin')));
 	}
 

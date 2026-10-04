@@ -20,6 +20,7 @@ final class ExtensionPointCatalog extends Service
     public const AGENT_COMMAND_RUNTIME_UNAVAILABLE = 'opus.agent.command_runtime.unavailable';
     public const CONVERSATION_SETTINGS = 'opus.conversation.settings';
     public const CONVERSATION_CONFIGURATION = 'opus.conversation.configuration';
+    public const FRONTEND_MARKUP_DIRECTORY = 'opus.frontend.markup_directory';
 
     public const NAMES = [
         self::INTAKE_DEFAULTS,
@@ -29,6 +30,7 @@ final class ExtensionPointCatalog extends Service
         self::AGENT_COMMAND_RUNTIME_UNAVAILABLE,
         self::CONVERSATION_SETTINGS,
         self::CONVERSATION_CONFIGURATION,
+        self::FRONTEND_MARKUP_DIRECTORY,
     ];
 
     private const RUNTIME_CONTRACTS = [
@@ -138,6 +140,20 @@ final class ExtensionPointCatalog extends Service
             'return_type' => 'object',
             'return_required' => ['configuration'],
             'return_properties' => ['configuration' => 'object'],
+        ],
+        self::FRONTEND_MARKUP_DIRECTORY => [
+            'kind' => 'filter',
+            'area' => 'rendering_generation',
+            'phase' => 'before_frontend_theme_registration',
+            'owner' => 'HostFrontendThemeResolver',
+            'mutability' => 'replace_value',
+            'exception_policy' => 'propagate_before_use',
+            'payload_type' => 'string',
+            'payload_required' => [],
+            'payload_properties' => [],
+            'return_type' => 'string',
+            'return_required' => [],
+            'return_properties' => [],
         ],
     ];
 
