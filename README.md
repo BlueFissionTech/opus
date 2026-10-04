@@ -33,6 +33,9 @@ permissions, evidence, and lifecycle.
 - **Inspectable Outcomes**: Preserve structured status, diagnostics,
   correlation, approval, and lifecycle context.
 
+These are platform capability areas, not a claim that every integration is
+production-ready. [PRODUCT.md](PRODUCT.md) records current maturity and gaps.
+
 ## Installation
 
 Use the [installed dependency diagnostic](docs/installation-proof.md) to detect lock/version drift before runtime troubleshooting.
@@ -83,6 +86,10 @@ metadata in the lock.
 
 Opus maintainers can verify that the template still covers the complete locked
 Blue Fission dependency graph with `composer audit:composer-vcs`.
+These instructions describe the current VCS-backed integration profile, not a
+credential-free clean-consumer proof. The public base profile and repeatable
+distribution install remain tracked in [issue #56](https://github.com/BlueFissionTech/opus/issues/56)
+and [issue #104](https://github.com/BlueFissionTech/opus/issues/104).
 
 ### Runtime Roots
 
@@ -138,6 +145,7 @@ human operators and agents share the same backend contract.
 ## Project Docs
 
 - [Specification](SPEC.md)
+- [Architecture](ARCHITECTURE.md)
 - [Product specification](PRODUCT.md)
 - [Product requirements](PRD.md)
 - [Roadmap](ROADMAP.md)
@@ -172,7 +180,7 @@ execution authority by themselves.
 
 ## Contributing
 
-We welcome contributions to improve Opus. If you would like to contribute, please follow the guidelines in our [contributing guide](https://github.com/bluefission/opus/CONTRIBUTING.md).
+We welcome contributions to improve Opus. Please follow the [contributing guide](CONTRIBUTING.md).
 
 ## License
 
@@ -181,4 +189,4 @@ Separately licensed dependencies and assets retain their own license terms.
 
 ## Support
 
-If you have any questions or need support, please open an issue on our [GitHub repository](https://github.com/bluefission/opus/issues).
+If you have any questions or need support, please open an issue on our [GitHub repository](https://github.com/BlueFissionTech/opus/issues).
