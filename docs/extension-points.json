@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "catalog_version": "1.0.1",
+  "catalog_version": "1.1.0",
   "namespace": "opus",
   "extension_points": [
     {
@@ -194,6 +194,26 @@
         "Profile scope, dataset identity, routes, and classifier identity remain authoritative.",
         "Automatic observation stays disabled and generated fallbacks require reviewed promotion."
       ]
+    },
+    {
+      "name": "opus.frontend.markup_directory",
+      "kind": "filter",
+      "area": "rendering_generation",
+      "phase": "before_frontend_theme_registration",
+      "owner": "HostFrontendThemeResolver",
+      "payload": {
+        "type": "string"
+      },
+      "returns": {
+        "type": "string"
+      },
+      "mutability": "replace_value",
+      "exception_policy": "propagate_before_use",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "The directory must remain a nonempty relative path beneath the host resource root.",
+        "Theme selection still requires every configured Vibe template and preserves the package default and admin isolation."
+      ]
     }
   ],
   "boundary_inventory": [
@@ -244,10 +264,10 @@
     },
     {
       "area": "rendering_generation",
-      "status": "stronger_abstraction",
-      "owner": "Vibe, Vibrato, VibeThemeRenderer, and VibeGenerationService",
-      "extension_points": [],
-      "rationale": "Theme resolution, navigation, rendering, generated artifacts, and validation remain package and service contracts with explicit trust boundaries."
+      "status": "hooked",
+      "owner": "HostFrontendThemeResolver, Vibe, Vibrato, VibeThemeRenderer, and VibeGenerationService",
+      "extension_points": ["opus.frontend.markup_directory"],
+      "rationale": "The host frontend markup directory may be replaced before registration; contained path resolution, template completeness, rendering, and generation remain service contracts with explicit trust boundaries."
     },
     {
       "area": "configuration_settings",

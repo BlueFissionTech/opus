@@ -9,6 +9,8 @@ namespace App\Business\Services;
  */
 final class RuntimePathResolver
 {
+    public const DEFAULT_HOST_MARKUP_DIRECTORY = 'markup';
+
     private string $packageRoot;
     private string $packageInstallRoot;
     private ?string $hostRoot;

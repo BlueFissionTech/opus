@@ -14,12 +14,14 @@ use BlueFission\Services\Application;
 use App\Business\Services\ConversationalLearningCatalog;
 use App\Business\Services\LazyAgentCommandProcessor;
 use App\Business\Services\RuntimePathResolver;
+use App\Business\Services\ExtensionPointCatalog;
 use App\Business\Services\WiseProfilePolicyResolver;
 use App\Domain\Onboarding\IApplicationIntakeRepository;
 use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use App\Registration\AppRegistration;
 use BlueFission\BlueCore\Theme;
 use BlueFission\Str;
+use BlueFission\DevElation;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -31,6 +33,7 @@ final class AppRegistrationTest extends TestCase
         $configuration = require dirname(__DIR__, 3) . '/common/config/markup.php';
 
         $this->assertIsArray($configuration['frontend']['fallbacks']);
+        $this->assertSame('markup', RuntimePathResolver::DEFAULT_HOST_MARKUP_DIRECTORY);
         $this->assertSame(
             ['default.vibe', 'login.vibe'],
             $configuration['frontend']['required_templates']
@@ -220,6 +223,56 @@ final class AppRegistrationTest extends TestCase
             }
             rmdir($markup);
             rmdir($host . DIRECTORY_SEPARATOR . 'resource');
+            rmdir($host);
+        }
+    }
+
+    public function testHostMarkupDirectoryFilterUsesContainedThemeResolution(): void
+    {
+        $host = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'opus-markup-' . bin2hex(random_bytes(6));
+        $root = $host . DIRECTORY_SEPARATOR . 'resource' . DIRECTORY_SEPARATOR . 'themes'
+            . DIRECTORY_SEPARATOR . 'custom' . DIRECTORY_SEPARATOR . 'ada';
+        mkdir($root, 0777, true);
+        file_put_contents($root . DIRECTORY_SEPARATOR . 'default.vibe', '<h1>Custom host theme</h1>');
+        file_put_contents($root . DIRECTORY_SEPARATOR . 'login.vibe', '<h1>Custom login</h1>');
+
+        $hadPaths = array_key_exists('OPUS_RUNTIME_PATHS', $GLOBALS);
+        $previousPaths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? null;
+        $GLOBALS['OPUS_RUNTIME_PATHS'] = RuntimePathResolver::discover(dirname(__DIR__, 3), $host);
+        $reflection = new ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $filters = $reflection->getProperty('_filters');
+        $previousActive = $active->getValue();
+        $previousFilters = $filters->getValue();
+        $directory = 'themes/custom';
+
+        try {
+            DevElation::up();
+            DevElation::filter(ExtensionPointCatalog::FRONTEND_MARKUP_DIRECTORY,
+                static function (string $default) use (&$directory): string { return $directory; });
+            $frontend = [
+                'selected' => 'ada',
+                'fallbacks' => [],
+                'required_templates' => ['default.vibe', 'login.vibe'],
+            ];
+            $themes = $this->registeredThemes($frontend);
+            $this->assertSame(realpath($root), rtrim($themes['app/default']->location, '\\/'));
+            $this->assertStringContainsString('resource/markup/admin', Str::replace($themes['app/admin']->location, '\\', '/'));
+
+            $directory = '../outside';
+            $this->expectException(\InvalidArgumentException::class);
+            $this->registeredThemes($frontend);
+        } finally {
+            $active->setValue(null, $previousActive);
+            $filters->setValue(null, $previousFilters);
+            if ($hadPaths) { $GLOBALS['OPUS_RUNTIME_PATHS'] = $previousPaths; }
+            else { unset($GLOBALS['OPUS_RUNTIME_PATHS']); }
+            unlink($root . DIRECTORY_SEPARATOR . 'default.vibe');
+            unlink($root . DIRECTORY_SEPARATOR . 'login.vibe');
+            rmdir($root);
+            rmdir(dirname($root));
+            rmdir(dirname($root, 2));
+            rmdir(dirname($root, 3));
             rmdir($host);
         }
     }

@@ -7,6 +7,7 @@ use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use App\Business\MysqlConnector;
 use App\Business\Presentation\PackageTheme;
 use App\Business\Services\RuntimePathResolver;
+use App\Business\Services\HostFrontendThemeResolver;
 use App\Business\Services\ConsultingGuidanceService;
 use App\Business\Services\UnavailableConsultingGuidance;
 use App\Domain\Guidance\ConsultingGuidanceInterface;
@@ -19,9 +20,7 @@ use App\Domain\Onboarding\Repositories\ApplicationIntakeRepositorySql;
 use BlueFission\Data\Storage\Session;
 use BlueFission\BlueCore\Core;
 use BlueFission\BlueCore\IExtension;
-use BlueFission\Arr;
 use BlueFission\Str;
-use BlueFission\Utils\File;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 
 /**
@@ -146,45 +145,8 @@ class AppRegistration implements IExtension {
 	{
 		$paths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover();
 		$frontend = $this->configuration('markup')['frontend'] ?? [];
-		$this->theme(new PackageTheme('app/default', $this->frontendThemeRoot($paths, $frontend)));
+		$this->theme(new PackageTheme('app/default', (new HostFrontendThemeResolver())->resolve($paths, $frontend)));
 		$this->theme(new PackageTheme('app/admin', $paths->themeRoot('admin')));
-	}
-
-	private function frontendThemeRoot(RuntimePathResolver $paths, array $config): string
-	{
-		$selected = $config['selected'] ?? '';
-		$fallbacks = $config['fallbacks'] ?? [];
-		$templates = $config['required_templates'] ?? [];
-		if (!Arr::is($fallbacks) || !Arr::is($templates) || $templates === []) {
-			throw new \InvalidArgumentException('Host frontend theme configuration is invalid.');
-		}
-
-		$file = new File();
-		foreach (Arr::make([$selected, ...$fallbacks])->unique()->toArray() as $name) {
-			if ($name === '') {
-				continue;
-			}
-			if (!Str::is($name) || preg_match('/^[a-z][a-z0-9_-]*$/', $name) !== 1) {
-				throw new \InvalidArgumentException('Host frontend theme name is invalid.');
-			}
-
-			$root = $paths->themeRoot('default', 'markup/' . $name);
-			$complete = true;
-			foreach ($templates as $template) {
-				if (!Str::is($template) || preg_match('/^[a-z][a-z0-9_-]*\.vibe$/', $template) !== 1) {
-					throw new \InvalidArgumentException('Host frontend template name is invalid.');
-				}
-				if (!$file->exists($paths->hostResourcePath('markup/' . $name . '/' . $template))) {
-					$complete = false;
-					break;
-				}
-			}
-			if ($complete) {
-				return $root;
-			}
-		}
-
-		return $paths->themeRoot('default');
 	}
 
 	// Helpers

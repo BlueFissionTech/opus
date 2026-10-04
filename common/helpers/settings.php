@@ -22,6 +22,9 @@ if (!defined("OPUS_ROOT") ){
 if (!defined("OPUS_RESOURCE_ROOT") ){
 	define('OPUS_RESOURCE_ROOT', $withTrailingSeparator($runtimePaths->packageResourceRoot()));
 }
+if (!defined('OPUS_HOST_MARKUP_DIRECTORY')) {
+	define('OPUS_HOST_MARKUP_DIRECTORY', RuntimePathResolver::DEFAULT_HOST_MARKUP_DIRECTORY);
+}
 if (!defined("PROJECT_ROOT") ){
 	define('PROJECT_ROOT', OPUS_ROOT);
 }
