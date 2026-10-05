@@ -21,9 +21,11 @@ link any upstream dependency instead of duplicating its implementation here.
 
 ## Validate and protect users
 
-- Follow [repository coding standards](AGENTS.standards.md): PHP changes must
-  remain PHP 8.2-compatible, and existing Blue Fission contracts take priority
-  over new dependencies or parallel implementations.
+- Keep PHP changes compatible with PHP 8.2 and preserve public APIs unless an
+  explicit migration is reviewed. Prefer existing Blue Fission contracts over
+  new dependencies or duplicate helpers; use native PHP within a primitive's
+  implementation when that is the appropriate boundary. Add hooks or filters
+  only for a stable, documented extension purpose.
 - Add focused tests for behavioral changes. Run the relevant commands in
   [tests.md](tests.md); optional service tests remain opt-in.
 - Keep credentials and private assets out of commits, fixtures, logs, and PRs.
