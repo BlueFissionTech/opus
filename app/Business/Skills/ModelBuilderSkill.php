@@ -15,7 +15,7 @@ class ModelBuilderSkill extends BaseSkill
         parent::__construct('Model Builder');
     }
 
-    public function execute(Context $context = null)
+    public function execute(?Context $context = null)
     {
         $botman = instance('botman');
         $conversation = new ModelBuilderConversation();
