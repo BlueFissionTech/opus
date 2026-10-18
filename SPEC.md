@@ -66,6 +66,15 @@ resource, and feedback behavior being exercised.
 
 ## Target Architecture
 
+### HTTP Authentication Boundary
+
+Authentication gateways must stop route preparation and execution when identity
+validation or session establishment fails. A redirect or a false return alone
+does not cancel dispatch. Both ordinary and administration HTTP authentication
+use this host boundary and return a stable 401 without exposing provider errors.
+Authentication does not establish administrator roles or tenant permissions;
+the remaining native authorization and administration work belongs to #123.
+
 ### Runtime Availability
 
 Runtime availability is separate from the persisted governor lifecycle. The
