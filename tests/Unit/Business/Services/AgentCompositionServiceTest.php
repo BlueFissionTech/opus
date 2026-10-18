@@ -26,6 +26,176 @@ use PHPUnit\Framework\TestCase;
 
 final class AgentCompositionServiceTest extends TestCase
 {
+    public static function executionStorageFailures(): array
+    {
+        return [['completion'], ['cleanup'], ['completion-read'], ['completion-committed']];
+    }
+
+    /** @dataProvider executionStorageFailures */
+    public function testExecutionStorageFailuresPreserveIdentityWithoutReplay(string $phase): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext(correlationId: 'storage-failure');
+        $service->start('opus.central', $context);
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $releaseAttempts = 0;
+        $factory->throwOnExecute = $phase === 'cleanup';
+        $factory->onExecute = function () use ($states, $phase, &$releaseAttempts): void {
+            $states->onCompareAndPut = function ($store, $key, $expected, $next) use ($phase, &$releaseAttempts): void {
+                if (array_key_exists('active_execution_id', $next) && $next['active_execution_id'] === null) {
+                    ++$releaseAttempts;
+                    if ($phase === 'completion-read') {
+                        $store->onGet = static function (): void { throw new \Error('synthetic-private-storage'); };
+                        return;
+                    }
+                    if ($phase === 'completion-committed') {
+                        $store->states[$key] = array_merge($store->states[$key], $next);
+                    }
+                    throw new \Error('synthetic-private-storage');
+                }
+            };
+        };
+        $result = $service->execute('opus.central', ['private' => 'synthetic-private-task'], $context);
+        $this->assertSame(AgentRuntimeResult::FAILED, $result->status());
+        $this->assertSame('unknown', $result->state());
+        $this->assertNull($result->output());
+        $this->assertSame(1, $factory->runtimes[0]->calls['execute']);
+        $this->assertSame(1, $releaseAttempts);
+        $metadata = $result->toArray()['metadata'];
+        $this->assertSame('storage-failure', $metadata['correlation_id']);
+        $this->assertNotEmpty($metadata['execution_id']);
+        $this->assertSame('unknown', $metadata['effects']);
+        $this->assertTrue($metadata['execution_started']);
+        $this->assertTrue($metadata['recovery_required']);
+        $this->assertSame($phase === 'cleanup' ? 'unknown' : 'not_attempted', $metadata['claim_release']);
+        $this->assertSame([$phase === 'cleanup' ? 'agent_runtime_operation_failed' : 'agent_runtime_completion_unrecorded'], $result->diagnostics());
+        $this->assertStringNotContainsString('synthetic-private', serialize($result->toArray()));
+        $states->onGet = $states->onCompareAndPut = null;
+        $record = $states->get('opus.central', null);
+        $this->assertSame($record['execution_id'], $metadata['execution_id']);
+        if (!in_array($phase, ['completion-read', 'completion-committed'], true)) {
+            $this->assertSame($metadata['execution_id'], $record['active_execution_id']);
+            $blocked = $service->execute('opus.central', ['intent' => 'retry'], $context);
+            $this->assertSame(['agent_execution_in_progress'], $blocked->diagnostics());
+            $this->assertSame(1, $factory->runtimes[0]->calls['execute']);
+        }
+    }
+
+    public function testExecutionStateReadFailureDoesNotConstructOrInvokeRuntime(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $states->onGet = static function (): void { throw new \RuntimeException('synthetic-private-storage'); };
+        $result = $service->execute('opus.central', [], new AgentRuntimeContext(correlationId: 'read-failure'));
+        $this->assertFalse($result->ok());
+        $this->assertSame('unknown', $result->state());
+        $this->assertSame(0, $factory->created);
+        $this->assertSame(0, $factory->availableCalls);
+        $this->assertFalse($result->toArray()['metadata']['execution_started']);
+        $this->assertSame('unknown', $result->toArray()['metadata']['effects']);
+        $this->assertArrayNotHasKey('execution_id', $result->toArray()['metadata']);
+        $this->assertStringNotContainsString('synthetic-private', serialize($result->toArray()));
+    }
+
+    public function testInvalidReturnedResultDoesNotTriggerExecutionCleanup(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+        $service->start('opus.central', $context);
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $factory->executeResult = (new \ReflectionClass(AgentRuntimeResult::class))->newInstanceWithoutConstructor();
+        $result = $service->execute('opus.central', [], $context);
+        $this->assertSame(['agent_runtime_completion_unrecorded'], $result->diagnostics());
+        $this->assertSame('recording', $result->toArray()['metadata']['failure_stage']);
+        $this->assertSame('not_attempted', $result->toArray()['metadata']['claim_release']);
+        $this->assertSame(1, $factory->runtimes[0]->calls['execute']);
+        $this->assertSame($result->toArray()['metadata']['execution_id'], $states->get('opus.central', null)['active_execution_id']);
+    }
+
+    public static function claimWriteFailures(): array
+    {
+        return [[false], [true]];
+    }
+
+    public function testCompletionFailureRemainsScopedToItsTenant(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $first = new AgentRuntimeContext(tenantId: 'tenant-a', correlationId: 'request-a');
+        $second = new AgentRuntimeContext(tenantId: 'tenant-b', correlationId: 'request-b');
+        $service->start('opus.central', $first);
+        $service->start('opus.central', $second);
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $states->onCompareAndPut = static function ($store, $key, $expected, $next): void {
+            if ($key === 'tenant:tenant-a::opus.central'
+                && array_key_exists('active_execution_id', $next) && $next['active_execution_id'] === null
+            ) {
+                throw new \RuntimeException('synthetic-private-storage');
+            }
+        };
+        $failed = $service->execute('opus.central', ['intent' => 'first'], $first);
+        $completed = $service->execute('opus.central', ['intent' => 'second'], $second);
+        $this->assertFalse($failed->ok());
+        $this->assertTrue($completed->ok());
+        $this->assertSame('tenant-a', $failed->toArray()['tenant_id']);
+        $this->assertSame('request-a', $failed->toArray()['metadata']['correlation_id']);
+        $this->assertSame('tenant-b', $completed->toArray()['tenant_id']);
+        $this->assertSame('request-b', $completed->toArray()['metadata']['correlation_id']);
+        $this->assertNotSame($failed->toArray()['metadata']['execution_id'], $completed->toArray()['metadata']['execution_id']);
+        $this->assertSame(1, $factory->runtimes[0]->calls['execute']);
+        $this->assertSame(1, $factory->runtimes[1]->calls['execute']);
+        $this->assertNull($states->get('opus.central', 'tenant-b')['active_execution_id']);
+        $this->assertNotNull($states->get('opus.central', 'tenant-a')['active_execution_id']);
+    }
+
+    /** @dataProvider claimWriteFailures */
+    public function testUncertainClaimWriteNeverStartsExecutionOrRetriesTheWrite(bool $applied): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+        $service->start('opus.central', $context);
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $writes = 0;
+        $states->onCompareAndPut = function ($store, $key, $expected, $next) use ($applied, &$writes): void {
+            ++$writes;
+            if ($applied) {
+                $store->states[$key] = array_merge($store->states[$key], $next);
+            }
+            throw new \RuntimeException('synthetic-private-storage');
+        };
+        $result = $service->execute('opus.central', [], $context);
+        $metadata = $result->toArray()['metadata'];
+        $this->assertSame(AgentRuntimeResult::FAILED, $result->status());
+        $this->assertSame(1, $writes);
+        $this->assertSame(0, $factory->runtimes[0]->calls['execute']);
+        $this->assertFalse($metadata['execution_started']);
+        $this->assertNotEmpty($metadata['execution_id']);
+        $this->assertTrue($metadata['recovery_required']);
+        $this->assertSame('not_attempted', $metadata['claim_release']);
+        $this->assertStringNotContainsString('synthetic-private', serialize($result->toArray()));
+        $states->onCompareAndPut = null;
+        if ($applied) {
+            $record = $states->get('opus.central', null);
+            $this->assertSame($metadata['execution_id'], $record['active_execution_id']);
+            $this->assertSame(['agent_execution_in_progress'], $service->execute('opus.central', [], $context)->diagnostics());
+            $this->assertSame(0, $factory->runtimes[0]->calls['execute']);
+        }
+    }
+
     public function testInspectionIsLazyReadOnlyAndSeparateFromLifecycleState(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -1467,6 +1637,7 @@ final class AgentCompositionServiceTest extends TestCase
             public bool $throwOnExecute = false;
             public bool $throwOnCreate = false;
             public bool $throwOnAvailable = false;
+            public ?AgentRuntimeResult $executeResult = null;
             public string $exceptionMessage = 'runtime_failure';
             public mixed $onAvailable = null;
             public int $availableCalls = 0;
@@ -1576,7 +1747,7 @@ final class AgentCompositionServiceTest extends TestCase
                         if ($this->factory->throwOnExecute) {
                             throw new \RuntimeException($this->factory->exceptionMessage);
                         }
-                        return AgentRuntimeResult::completed('execute', '', null, 'running', $task);
+                        return $this->factory->executeResult ?? AgentRuntimeResult::completed('execute', '', null, 'running', $task);
                     }
                 };
                 $this->created++;
