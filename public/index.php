@@ -29,7 +29,9 @@ $loader->addPath($runtimePaths->hostRoot() . DIRECTORY_SEPARATOR . "app");
 // Initialize the BlueFission Framework Engine and run it
 $runApplication = static function (): void {
     try {
-        session_start();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
         if (empty(store('_token'))) {
             store('_token', csrf_token());
         }

@@ -57,6 +57,8 @@ existing credential controller; sign-out removes the session. Unsafe HTTP method
 the current CSRF token. Invalid tokens return JSON 403 before controller
 construction. Authentication does not grant an administrator role or tenant
 access; the starter contains no privileged controls.
+The entrypoint reuses a session already started by the PHP runtime. Both automatic
+and application-owned session startup use the same authentication and CSRF state.
 
 Only registered HTTP routes dispatch. Unknown paths return JSON 404; transport
 method overrides from query, form or cookie return JSON 400. This prevents

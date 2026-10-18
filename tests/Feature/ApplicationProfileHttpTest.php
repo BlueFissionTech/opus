@@ -48,6 +48,12 @@ final class ApplicationProfileHttpTest extends TestCase
         $this->assertSame(400, $override['status']);
     }
 
+    public function testApiReusesAnAutomaticallyStartedSession(): void
+    {
+        $this->start('api', [], true);
+        $this->assertJsonResponse('/health', 200, ['ok' => true, 'status' => 'live']);
+    }
+
     public function testDashboardUsesRealSessionAuthenticationAndPackageTemplate(): void
     {
         $this->start('dashboard');
@@ -145,7 +151,7 @@ final class ApplicationProfileHttpTest extends TestCase
         $this->assertSame($body, json_decode($response['body'], true), $response['body']);
     }
 
-    private function start(string $profile, array $overrides = []): void
+    private function start(string $profile, array $overrides = [], bool $autoStart = false): void
     {
         $socket = stream_socket_server('tcp://127.0.0.1:0', $code, $message);
         $this->assertIsResource($socket, $message);
@@ -162,6 +168,7 @@ final class ApplicationProfileHttpTest extends TestCase
             'MYSQL_DB_NAME' => 'unavailable', 'MYSQL_DB_USERNAME' => 'fixture', 'MYSQL_DB_PASSWORD' => '',
         ], $overrides);
         $this->server = proc_open([PHP_BINARY, '-d', 'session.save_path=' . $this->host . '/sessions',
+            '-d', 'session.auto_start=' . ($autoStart ? '1' : '0'),
             '-d', 'display_errors=0', '-S', $address, '-t', $root . '/public', $root . '/public/index.php'],
             [0 => ['pipe', 'r'], 1 => ['file', $this->host . '/stdout.log', 'a'],
                 2 => ['file', $this->host . '/stderr.log', 'a']], $pipes, $root, $environment);
