@@ -71,3 +71,13 @@ remain supported. This patch adds no hook names and changes no payload types.
 A command-context lifecycle refresh that throws while normalizing records denies
 all add-on activation for that refresh, including records already read. Filters
 observe that empty authority snapshot and cannot restore prior or partial state.
+
+
+### Conversation policy denials
+
+Neither conversation filter may re-enable unknown-intent capture denied by package,
+application, tenant, principal, or an earlier filter. Scoped fallback candidate
+hints follow the final decision. Trusted-artifact requirements, disabled serialized
+learning state, and scope isolation are restored after configuration filters. See
+[Conversational learning policy](conversational-learning-policy.md) for the exact
+composition rules and remaining runtime integration requirements.

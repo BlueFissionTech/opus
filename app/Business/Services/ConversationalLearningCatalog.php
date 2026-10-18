@@ -13,6 +13,12 @@ use InvalidArgumentException;
 
 final class ConversationalLearningCatalog
 {
+    private const LEARNING_GUARDS = [
+        'automatic_observation' => false,
+        'trusted_artifacts_only' => true,
+        'serialized_state_enabled' => false,
+        'scope_isolation_required' => true,
+    ];
     private Arr $catalog;
     private Arr $settings;
     private Arr $intents;
@@ -33,6 +39,7 @@ final class ConversationalLearningCatalog
         $this->review = Arr::make((array) $configuration->get('review'));
 
         $this->validate();
+        $this->learning->merge(self::LEARNING_GUARDS);
     }
 
     public function id(): string
@@ -57,6 +64,7 @@ final class ConversationalLearningCatalog
 
     public function settingsFor(array $application = [], array $tenant = [], array $principal = []): array
     {
+        $captureAllowed = $this->captureAllowed($application, $tenant, $principal);
         $settings = Arr::make($this->settings->toArray())
             ->mergeRecursive($application)
             ->mergeRecursive($tenant)
@@ -82,6 +90,7 @@ final class ConversationalLearningCatalog
         if ((bool) $this->settings->get('promotion_requires_review')) {
             $settings->set('promotion_requires_review', true);
         }
+        $settings->set('capture_unknown_intents', $captureAllowed && $settings->get('capture_unknown_intents') === true);
         $settings->set('capture_private_conversations', false);
         $settings->set('capture_provider_payloads', false);
 
@@ -157,16 +166,22 @@ final class ConversationalLearningCatalog
         $configuration['scope'] = $profile->key();
         $configuration['dataset'] = $this->catalog->toArray();
         $configuration['settings'] = Arr::merge($configurationSettings, [
+            'capture_unknown_intents' => $settings['capture_unknown_intents'] === true
+                && ($configurationSettings['capture_unknown_intents'] ?? null) === true,
             'promotion_requires_review' => $settings['promotion_requires_review'],
             'capture_private_conversations' => $settings['capture_private_conversations'],
             'capture_provider_payloads' => $settings['capture_provider_payloads'],
         ]);
+        $captureAllowed = $configuration['settings']['capture_unknown_intents'];
+        $routes['fallbacks'] = Arr::make($this->fallbacks())->map(static fn ($fallback): array => Arr::merge((array) $fallback, [
+            'capture_candidate' => $captureAllowed && ($fallback['capture_candidate'] ?? null) === true,
+        ]))->toArray();
         $configuration['routes'] = $routes;
         $configuration['classifier'] = Arr::merge($classifier, [
             'cache_key' => $cacheKey,
             'artifact_key' => 'conversation/models/' . $cacheKey . '/intent_naive_bayes.phpml',
         ]);
-        $configuration['learning'] = Arr::merge($learning, ['automatic_observation' => false]);
+        $configuration['learning'] = Arr::merge($learning, self::LEARNING_GUARDS);
         $configuration['review'] = Arr::merge($review, [
             'candidate_status' => 'pending',
             'generated_fallbacks_are_training_data' => false,
@@ -188,6 +203,19 @@ final class ConversationalLearningCatalog
             'learning' => $this->learning->toArray(),
             'review' => $this->review->toArray(),
         ];
+    }
+
+    private function captureAllowed(array ...$layers): bool
+    {
+        if ($this->settings->get('capture_unknown_intents') !== true) {
+            return false;
+        }
+        foreach ($layers as $layer) {
+            if (Arr::hasKey($layer, 'capture_unknown_intents') && $layer['capture_unknown_intents'] !== true) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private function validate(): void

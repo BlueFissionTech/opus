@@ -450,3 +450,17 @@ unknown lifecycle state and effects, and require reconciliation. It must not ret
 execution or erase an unresolved execution claim as an exception-cleanup shortcut.
 Runtime exceptions retain their bounded diagnostic even if claim cleanup also
 fails. Failure records never copy exception text or task/provider payloads.
+
+
+### Conversational learning policy guards (#99)
+
+Unknown-intent capture requires a strict boolean allow through the package,
+application, tenant, and principal layers. An explicit denial or malformed
+explicit value cannot be reversed by a narrower layer or either conversation
+configuration filter. A filter may disable capture but cannot grant denied capture.
+Scoped fallback candidate hints must reflect the effective capture decision without
+mutating package seeds. Trusted-artifact requirements, disabled serialized learning
+state, scope isolation, review and persistence requirements remain mandatory after
+configuration extensions. These are host configuration guarantees; persistent
+learning, application-scoped profile adapters, live authorization and promotion
+workflows remain required before #99 is complete.

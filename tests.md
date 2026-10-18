@@ -297,3 +297,12 @@ secrets and cannot prove private dependency installation. They still run syntax
 and frontend checks. Do not use pull_request_target to execute untrusted PR code
 with this credential. Review external changes before running an authorized branch
 in the trusted repository. Public acquisition remains a separate release gate.
+
+
+### Conversational learning policy guards
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "ConversationalLearningCatalogTest|DevElationHelperUsageTest"`.
+Coverage includes explicit and malformed capture denials at every layer, denial
+preservation through both filters, immutable seed hints, and mandatory artifact
+trust/serialization/isolation guards. This is configuration proof, not a live
+learning or provider integration claim.
