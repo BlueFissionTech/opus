@@ -66,6 +66,20 @@ resource, and feedback behavior being exercised.
 
 ## Target Architecture
 
+### Runtime Availability
+
+Runtime availability is separate from the persisted governor lifecycle. The
+composition service must support an authorized, read-only inspection that uses
+local factory configuration without constructing or invoking a runtime. Cached
+runtimes must remain subject to current availability checks for new work, while
+authorized suspend, stop and cancel operations retain access to an existing
+runtime during an outage. Cleanup without a cached runtime still requires an
+available factory before construction. A failed probe must
+report a stable unavailable reason, preserve lifecycle state, and permit a later
+explicit retry without leaking exception text. See
+[runtime availability](docs/runtime-availability.md) for the scoped contract and
+the remaining recovery and operator-surface work under #125.
+
 ### Command Kernel
 
 Wise should be treated as the central command kernel. Opus should register the

@@ -91,75 +91,104 @@ final class AgentCompositionService extends Service
         });
     }
 
+    public function inspect(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
+    {
+        $authorized = $this->authorize('inspect', $agentId, $context);
+        if ($authorized !== null) {
+            return $this->correlate($authorized, $context);
+        }
+
+        $reason = $this->runtimeUnavailableReason($agentId, $context);
+        $available = $reason === null;
+
+        return $this->correlate(new AgentRuntimeResult(
+            $available,
+            $available ? AgentRuntimeResult::COMPLETED : AgentRuntimeResult::UNAVAILABLE,
+            'inspect',
+            $agentId,
+            $context->tenantId(),
+            $this->state($agentId, $context),
+            ['available' => $available],
+            $reason === null ? [] : [$reason]
+        ), $context);
+    }
+
     public function start(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
     {
         $authorized = $this->authorize('start', $agentId, $context);
         if ($authorized !== null) {
-            return $authorized;
+            return $this->correlate($authorized, $context);
         }
 
         $current = $this->state($agentId, $context);
         if ($current === self::RUNNING) {
-            return $this->stableIdempotent('start', $agentId, $context, self::RUNNING);
+            return $this->correlate($this->stableIdempotent('start', $agentId, $context, self::RUNNING), $context);
         }
         if ($current === self::SUSPENDED) {
-            return AgentRuntimeResult::denied('start', $agentId, $context->tenantId(), $current, 'agent_resume_required');
+            return $this->correlate(
+                AgentRuntimeResult::denied('start', $agentId, $context->tenantId(), $current, 'agent_resume_required'),
+                $context
+            );
         }
 
-        return $this->invokeLifecycle('start', $agentId, $context, $current, self::RUNNING);
+        return $this->correlate($this->invokeLifecycle('start', $agentId, $context, $current, self::RUNNING), $context);
     }
 
     public function suspend(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
     {
-        return $this->transition('suspend', $agentId, $context, [self::RUNNING], self::SUSPENDED);
+        return $this->correlate(
+            $this->transition('suspend', $agentId, $context, [self::RUNNING], self::SUSPENDED), $context
+        );
     }
 
     public function resume(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
     {
-        return $this->transition('resume', $agentId, $context, [self::SUSPENDED], self::RUNNING);
+        return $this->correlate(
+            $this->transition('resume', $agentId, $context, [self::SUSPENDED], self::RUNNING), $context
+        );
     }
 
     public function stop(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
     {
-        return $this->transition(
+        return $this->correlate($this->transition(
             'stop',
             $agentId,
             $context,
             [self::RUNNING, self::SUSPENDED, self::FAILED],
             self::STOPPED
-        );
+        ), $context);
     }
 
     public function cancel(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
     {
         $authorized = $this->authorize('cancel', $agentId, $context);
         if ($authorized !== null) {
-            return $authorized;
+            return $this->correlate($authorized, $context);
         }
 
         try {
-            return $this->states->synchronized(
+            return $this->correlate($this->states->synchronized(
                 $this->claimScope('cancellation', $agentId, $context->tenantId()),
                 fn (): AgentRuntimeResult => $this->cancelSynchronized($agentId, $context)
-            );
+            ), $context);
         } catch (Throwable $exception) {
             if ($this->claimGuardUnavailable($exception)) {
-                return AgentRuntimeResult::denied(
+                return $this->correlate(AgentRuntimeResult::denied(
                     'cancel',
                     $agentId,
                     $context->tenantId(),
                     $this->state($agentId, $context),
                     'agent_cancellation_in_progress'
-                );
+                ), $context);
             }
 
-            return AgentRuntimeResult::failed(
+            return $this->correlate(AgentRuntimeResult::failed(
                 'cancel',
                 $agentId,
                 $context->tenantId(),
                 $this->state($agentId, $context),
-                $exception->getMessage()
-            );
+                'agent_runtime_operation_failed'
+            ), $context);
         }
     }
 
@@ -300,7 +329,7 @@ final class AgentCompositionService extends Service
                 $agentId,
                 $context->tenantId(),
                 $current,
-                $exception->getMessage()
+                'agent_runtime_operation_failed'
             );
         }
     }
@@ -327,14 +356,15 @@ final class AgentCompositionService extends Service
         }
 
         try {
-            if (!$this->runtimeAvailable($agentId, $context)) {
+            $unavailable = $this->runtimeUnavailableReason($agentId, $context);
+            if ($unavailable !== null) {
                 return $this->correlate(
                     AgentRuntimeResult::unavailable(
                         'execute',
                         $agentId,
                         $context->tenantId(),
                         $current,
-                        'agent_runtime_unavailable'
+                        $unavailable
                     ),
                     $context
                 );
@@ -452,7 +482,7 @@ final class AgentCompositionService extends Service
                     $agentId,
                     $context->tenantId(),
                     $this->state($agentId, $context),
-                    $exception->getMessage()
+                    'agent_runtime_operation_failed'
                 ),
                 $context
             );
@@ -516,7 +546,7 @@ final class AgentCompositionService extends Service
                 $agentId,
                 $context->tenantId(),
                 $this->state($agentId, $context),
-                $exception->getMessage()
+                'agent_runtime_operation_failed'
             );
         }
     }
@@ -626,13 +656,14 @@ final class AgentCompositionService extends Service
         ?string $executionId,
         AgentRuntimeContext $context
     ): AgentRuntimeResult {
-        if (!$this->runtimeAvailable($agentId, $context)) {
+        $unavailable = $this->runtimeUnavailableReason($agentId, $context, true);
+        if ($unavailable !== null) {
             return AgentRuntimeResult::unavailable(
                 'cancel',
                 $agentId,
                 $context->tenantId(),
                 $this->state($agentId, $context),
-                'agent_runtime_unavailable'
+                $unavailable
             );
         }
 
@@ -642,13 +673,18 @@ final class AgentCompositionService extends Service
     private function invoke(string $action, string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
     {
         try {
-            if (!$this->runtimeAvailable($agentId, $context)) {
+            $unavailable = $this->runtimeUnavailableReason(
+                $agentId,
+                $context,
+                Arr::make(['suspend', 'stop'])->contains($action)
+            );
+            if ($unavailable !== null) {
                 return AgentRuntimeResult::unavailable(
                     $action,
                     $agentId,
                     $context->tenantId(),
                     $this->state($agentId, $context),
-                    'agent_runtime_unavailable'
+                    $unavailable
                 );
             }
             $runtime = $this->runtime($agentId, $context);
@@ -660,7 +696,7 @@ final class AgentCompositionService extends Service
                 $agentId,
                 $context->tenantId(),
                 self::FAILED,
-                $exception->getMessage()
+                'agent_runtime_operation_failed'
             );
         }
     }
@@ -674,7 +710,7 @@ final class AgentCompositionService extends Service
         }
 
         $descriptor = $this->descriptorFor($agentId);
-        if (!$descriptor instanceof AgentDescriptor || !$this->factory->available($descriptor, $context)) {
+        if (!$descriptor instanceof AgentDescriptor) {
             throw new \RuntimeException('agent_runtime_unavailable');
         }
 
@@ -684,15 +720,27 @@ final class AgentCompositionService extends Service
         return $runtime;
     }
 
-    private function runtimeAvailable(string $agentId, AgentRuntimeContext $context): bool
-    {
-        if ($this->runtimes->get($this->key($agentId, $context->tenantId())) instanceof IAgentRuntime) {
-            return true;
+    private function runtimeUnavailableReason(
+        string $agentId,
+        AgentRuntimeContext $context,
+        bool $cleanup = false
+    ): ?string {
+        if ($cleanup && $this->runtimes->get($this->key($agentId, $context->tenantId())) instanceof IAgentRuntime) {
+            return null;
         }
 
         $descriptor = $this->descriptorFor($agentId);
+        if (!$descriptor instanceof AgentDescriptor) {
+            return 'agent_runtime_unavailable';
+        }
 
-        return $descriptor instanceof AgentDescriptor && $this->factory->available($descriptor, $context);
+        try {
+            return $this->factory->available($descriptor, $context)
+                ? null
+                : 'agent_runtime_unavailable';
+        } catch (Throwable) {
+            return 'agent_runtime_probe_failed';
+        }
     }
 
     private function authorize(
@@ -815,7 +863,7 @@ final class AgentCompositionService extends Service
                 $agentId,
                 $context->tenantId(),
                 $this->state($agentId, $context),
-                $exception->getMessage()
+                'agent_runtime_operation_failed'
             );
         }
     }
