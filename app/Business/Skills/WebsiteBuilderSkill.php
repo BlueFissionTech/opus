@@ -15,7 +15,7 @@ class WebsiteBuilderSkill extends BaseSkill
         parent::__construct('Website Builder');
     }
 
-    public function execute(Context $context = null)
+    public function execute(?Context $context = null)
     {
         $botman = instance('botman');
         $conversation = new WebsiteBuilderConversation();
