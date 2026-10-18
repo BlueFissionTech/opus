@@ -78,11 +78,17 @@ final class AgentDelegationService extends Service
                 $orchestration,
                 $context
             );
-        } catch (Throwable $exception) {
-            return AgentDelegationResult::failed(
+        } catch (Throwable) {
+            return new AgentDelegationResult(
+                false,
+                AgentDelegationResult::FAILED,
                 $coordinatorId,
                 $participants->toArray(),
-                $exception->getMessage()
+                diagnostics: ['agent_delegation_operation_failed'],
+                metadata: [
+                    'tenant_id' => $context->tenantId(),
+                    'correlation_id' => $context->correlationId(),
+                ]
             );
         }
     }

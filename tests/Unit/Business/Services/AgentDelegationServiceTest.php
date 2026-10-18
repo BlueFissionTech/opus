@@ -17,10 +17,70 @@ use App\Domain\Agents\IAgentRuntime;
 use App\Domain\Agents\IAgentRuntimeFactory;
 use App\Domain\Agents\IAgentRuntimeStateStore;
 use BlueFission\Arr;
+use BlueFission\DevElation;
 use PHPUnit\Framework\TestCase;
 
 final class AgentDelegationServiceTest extends TestCase
 {
+    /** @dataProvider orchestrationFailures */
+    public function testOrchestrationExceptionsAreRedactedWithoutReplayingEffects(\Throwable $failure): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $factory->outputs['addon.search'] = ['matches' => 1];
+        $this->expectOutputString('');
+
+        $reflection = new \ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $actions = $reflection->getProperty('_actions');
+        $originalActive = $active->getValue();
+        $originalActions = $actions->getValue();
+        try {
+            DevElation::up();
+            DevElation::action(
+                'automata.llm.agent.orchestration.completed',
+                static function (...$arguments) use ($failure): void {
+                    throw $failure;
+                }
+            );
+            $result = $service->delegate('opus.central', ['addon.search'], ['query' => 'bounded'], $context);
+        } finally {
+            $active->setValue(null, $originalActive);
+            $actions->setValue(null, $originalActions);
+        }
+
+        $data = $result->toArray();
+        $this->assertFalse($result->ok());
+        $this->assertSame(AgentDelegationResult::FAILED, $result->status());
+        $this->assertSame(['agent_delegation_operation_failed'], $result->diagnostics());
+        $this->assertNull($result->output());
+        $this->assertSame([], $data['worker_results']);
+        $this->assertSame([], $data['conflicts']);
+        $this->assertSame('opus.central', $data['coordinator_id']);
+        $this->assertSame(['addon.search'], $data['participants']);
+        $this->assertSame('tenant-a', $data['metadata']['tenant_id']);
+        $this->assertSame('correlation-a', $data['metadata']['correlation_id']);
+        $this->assertStringNotContainsString('private-provider-secret', json_encode($data, JSON_THROW_ON_ERROR));
+        $this->assertCount(1, $factory->executions['opus.central']);
+        $this->assertCount(1, $factory->executions['addon.search']);
+
+        // Completed effects are not rolled back or automatically replayed after an observer fails.
+        $recovered = $service->delegate('opus.central', ['addon.search'], ['query' => 'explicit retry'], $context);
+        $this->assertTrue($recovered->ok());
+        $this->assertCount(2, $factory->executions['opus.central']);
+        $this->assertCount(2, $factory->executions['addon.search']);
+    }
+
+    public static function orchestrationFailures(): array
+    {
+        return [
+            'exception' => [new \RuntimeException('private-provider-secret: token and endpoint')],
+            'error' => [new \Error('private-provider-secret: internal path')],
+        ];
+    }
+
     public function testHierarchicalDelegationExecutesOnlyCoordinatorSelectedSpecialists(): void
     {
         [$service, $composition, $factory] = $this->service();

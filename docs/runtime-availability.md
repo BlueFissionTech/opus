@@ -52,6 +52,17 @@ and persisted diagnostics. This does not sanitize arbitrary provider-owned
 outputs or declared runtime diagnostics; those contracts require their own
 privacy review. Internal claim-contention reason matching remains unchanged.
 
+Unexpected exceptions escaping delegation orchestration return
+`agent_delegation_operation_failed` with the host tenant and correlation
+identifiers. The failure result excludes exception messages, partial worker
+results and conflict traces. Declared runtime outputs and diagnostics retain
+their existing contract; this is not a general payload sanitizer.
+
+A completion observer can fail after workers have performed effects. A failed
+delegation result therefore does not establish that nothing ran or that effects
+were rolled back. Delegation never automatically repeats that work; callers
+must inspect the correlated activity before choosing an explicit retry.
+
 ## Evidence and remaining scope
 
 The composition tests must cover read-only lazy inspection, denied probes,
@@ -60,6 +71,10 @@ denied cleanup, unavailable uncached cleanup, probe exceptions, explicit
 recovery, preserved lifecycle state, correlation and exception redaction.
 Run `php vendor/phpunit/phpunit/phpunit --filter AgentCompositionServiceTest`
 and the full suite before promotion.
+Delegation exception regressions run through the locked Automata orchestrator
+and its completion hook. Run
+`php vendor/phpunit/phpunit/phpunit --filter AgentDelegationServiceTest` to
+verify redaction, correlation, no automatic replay and explicit recovery.
 
 The injected runtime factory remains host-owned; this increment does not bind a
 production provider or add web/Wise administration routes. #125 still requires

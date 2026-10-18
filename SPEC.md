@@ -342,6 +342,15 @@ clean checkout.
 
 ## Release Acceptance
 
+### Delegation failure privacy (#29)
+
+Unexpected orchestration exceptions return a failed delegation result with the
+stable `agent_delegation_operation_failed` diagnostic and the host tenant and
+correlation identifiers. Exception messages and partial orchestration traces are
+not returned. A failure after completed work does not imply rollback and must
+not automatically replay agent effects. An explicit later request can recover.
+This boundary does not sanitize declared runtime outputs or diagnostics.
+
 - Roadmap items have issue-sized slices with clear acceptance criteria.
 - Runtime contract proof tests pass in the default unit suite.
 - Backend CLI work remains organized around Wise kernel compatibility.
