@@ -1,5 +1,19 @@
 # Opus Framework Specification
 
+## Command activity receipts
+
+An explicitly configured `CommandActivityService` records requests, confirmation
+requests, approval/rejection submissions and processor outcomes through the shared
+`CommandHost`. The versioned envelope is limited to host identity, generated
+correlation/causation, safe status and reference fields. Context is a trusted host
+input; command text, provider data and continuation tokens never enter history.
+Reads enforce application, tenant and actor equality with bounded cursor paging.
+The SQLite adapter uses DevElation connections and atomic prepared inserts. A
+failed initial append prevents dispatch; failed outcome persistence reports unknown
+effects without replay. See [command activity](docs/command-activity.md) for setup,
+privacy boundaries, observable receipts, durability limits and remaining timeline
+acceptance. This is not a general audit, workflow or retry authorization system.
+
 ## Minimal application profiles
 
 Explicit `OPUS_PROFILE=api` and `OPUS_PROFILE=dashboard` select a small HTTP

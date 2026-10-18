@@ -1,5 +1,19 @@
 # Testing Opus Framework
 
+The opt-in [command activity store](docs/command-activity.md) is tested with real
+temporary SQLite databases, reopen and lock failures, tenant/actor/application
+isolation, private-payload exclusion, approval linking and uncertain completion.
+It requires the PHP SQLite3 extension and skips that focused class when absent;
+it does not require network services, credentials or a dependency installation.
+
+```bash
+php vendor/bin/phpunit --filter 'CommandActivityTest|CommandHostTest|TerminalSessionsTest' --do-not-cache-result
+```
+
+Full-suite proof is still required for changes to the shared command host. These
+fixtures do not prove production filesystem crash durability, cluster behavior,
+retention policy or a distributed transaction with external command effects.
+
 The [minimal application profiles](docs/application-profiles.md) have real HTTP
 tests in `tests/Feature/ApplicationProfileHttpTest.php`. They start temporary
 loopback PHP servers with isolated sessions and an ephemeral `APP_KEY`, without

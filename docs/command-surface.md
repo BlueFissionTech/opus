@@ -34,6 +34,12 @@ optional continuation token. These concerns remain separate: the processor owns
 validation and execution; the presenter renders a result without executing the
 command again; the CLI and transport decide how to deliver it.
 
+Hosts may opt into [durable command activity](command-activity.md). The shared
+presentation then carries a host-owned `activity_receipt`, separate from provider
+metadata; it is `null` when recording is not configured. Initial record failure
+prevents dispatch (`command_host_activity_start_failed`); result record failure
+reports unknown effects (`command_host_activity_recording_failed`) without retry.
+
 | Outcome | Shared behavior |
 | --- | --- |
 | Completed, parsed or provider-declared failed result | Preserve the provider's status, output, exit code and diagnostics |
