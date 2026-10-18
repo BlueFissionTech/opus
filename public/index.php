@@ -8,6 +8,8 @@
 use BlueFission\Utils\Loader;
 use BlueFission\Utils\Util;
 use BlueFission\BlueCore\Engine as App;
+use App\Domain\User\AuthenticationRequired;
+use App\Business\Presentation\AuthenticationFailureResponse;
 
 // Resolve the active host autoloader before loading application settings.
 $runtimePaths = require dirname(__DIR__) . '/common/bootstrap/runtime.php';
@@ -31,9 +33,13 @@ if (empty(store('_token'))) {
 }
 
 // Initialize the BlueFission Framework Engine and run it
-App::instance()
-	->bootstrap()
-	->args()
-	->process()
-	->validateCsrf()
-	->run();
+try {
+    App::instance()
+        ->bootstrap()
+        ->args()
+        ->process()
+        ->validateCsrf()
+        ->run();
+} catch (AuthenticationRequired) {
+    (new AuthenticationFailureResponse())->send();
+}
