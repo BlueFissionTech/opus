@@ -20,7 +20,9 @@ profile content and executable continuation tokens are excluded from records.
 
 SQLite storage uses the installed DevElation connection and prepared statements.
 The operator provides an already opened connection to a private database outside
-the web root and explicitly initializes the schema. Construct the activity service
+the web root. Schema installation belongs to the opt-in BlueCore delta in
+`datasources/activity/20261018_create_command_activity.php`; the store never
+creates or alters tables. Construct the activity service
 and pass it as the third argument to `CommandHost`. Existing hosts without this
 argument retain their behavior and do not silently start collecting history.
 
@@ -35,7 +37,7 @@ use BlueFission\Connections\Database\SQLiteLink;
 $link = new SQLiteLink(['database' => $privateDatabasePath]);
 $link->open();
 $store = new SQLiteActivityStore($link);
-$store->initialize(); // Run during explicit setup, not each command.
+// Run the activity delta during installation before enabling this store.
 $activity = new CommandActivityService($store, $applicationId);
 $host = new CommandHost($existingProcessor, new CommandResultPresenter(), $activity);
 $result = $host->execute($input, $authenticatedContext);
@@ -43,6 +45,43 @@ $receipt = $result->activityReceipt();
 $history = $host->history($authenticatedContext, after: 0, limit: 100,
     correlation: $receipt['correlation_id'] ?? null);
 ```
+
+The delta extends BlueCore `Delta` and declares columns with DevElation
+`SQLiteStructure`. It executes that scaffold and its compound indexes against the
+explicitly bound SQLite connection in one transaction. The installed static
+`SQLiteScaffold` selects a default connection and does not propagate failure;
+using its structure builder with the injected connection preserves isolation and
+observable failure. Schema creation is removed from `SQLiteActivityStore`.
+
+Run this optional directory through the existing BlueCore `DatasourceManager`
+installation flow. Bind the same opened `$link` to the delta before discovery:
+
+```php
+$app->bindArgs(['link' => $link], CreateCommandActivity::class);
+// $migrations is the host's configured BlueCore DatasourceManager.
+$migrations->setDeltaDirectory(resolve_path('datasources/activity/'));
+$migrations->runMigrations('command_activity');
+```
+
+The installed manager records migration names, iterations and status in its
+existing MySQL `migrations` table, even though this delta's target is SQLite.
+Inspect the recorded status (2 = success, 3 = failure) before enabling recording;
+the installed manager catches delta exceptions. Use a dedicated manager instance
+for this optional directory so core migration discovery is not redirected.
+There is no new parallel migration runner or automatic SQLite-only ledger.
+The delta is outside the default core directory, so ordinary installation does
+not create an unconfigured private database. A previously applied delta must not
+be rerun manually. For rollback, isolate the activity batch and quiesce writers
+and readers; the existing `revertMigrations()` flow invokes `revert()`, which
+**deletes the receipt table and its data**. Back it up before an intentional
+rollback. A failed change rolls back table and index creation together.
+
+`CommandHost` and `CommandActivityService` initialize DevElation `Service`.
+`ActivityEvent` initializes `Obj` for behavioral integration and exposes the
+closed receipt through `field()`, property reads, `data()` and `toArray()`.
+Receipt fields remain immutable across generic assignment, clearing and field
+writes; use validated `fromArray()` to reconstruct a record. Behavioral metadata
+never becomes a persisted receipt field.
 
 Inject this host into the existing CLI or a connection-scoped terminal factory.
 In a BlueCore host that constructs `CommandHost` through its container, the

@@ -464,3 +464,8 @@ unknown lifecycle state and effects, and require reconciliation. It must not ret
 execution or erase an unresolved execution claim as an exception-cleanup shortcut.
 Runtime exceptions retain their bounded diagnostic even if claim cleanup also
 fails. Failure records never copy exception text or task/provider payloads.
+
+Command activity schema installation uses an opt-in BlueCore Delta with
+DevElation SQLiteStructure through the existing migration manager. The runtime
+store does not migrate. CommandHost and CommandActivityService extend Service;
+ActivityEvent extends Obj with an immutable, closed receipt projection.

@@ -7,11 +7,13 @@ namespace App\Domain\Activity;
 use BlueFission\Arr;
 use BlueFission\Date;
 use BlueFission\Flag;
+use BlueFission\IObj;
+use BlueFission\Obj;
 use BlueFission\Str;
 use InvalidArgumentException;
 
 /** Closed receipt schema: no provider payloads or arbitrary extension metadata. */
-final class ActivityEvent
+final class ActivityEvent extends Obj
 {
     private const PHASES = ['requested', 'approval_requested', 'approval_submitted', 'rejection_submitted', 'outcome'];
     private const STATUSES = ['requested', 'confirmation_required', 'completed', 'parsed', 'invalid', 'failed', 'unknown'];
@@ -38,6 +40,64 @@ final class ActivityEvent
         ) {
             throw new InvalidArgumentException('activity_event_invalid');
         }
+        parent::__construct();
+    }
+
+    /** Receipt fields are immutable; Obj supplies behavioral integration. */
+    public function field(string $field, $value = null): mixed
+    {
+        if (func_num_args() > 1) {
+            throw new \LogicException('activity_event_immutable');
+        }
+        return $this->toArray()[$field] ?? null;
+    }
+
+    public function data(): mixed
+    {
+        return $this->toArray();
+    }
+
+    public function assign($data): IObj
+    {
+        throw new \LogicException('activity_event_immutable');
+    }
+
+    public function clear(): IObj
+    {
+        throw new \LogicException('activity_event_immutable');
+    }
+
+    public function __isset($field): bool
+    {
+        $data = $this->toArray();
+        return isset($data[$field]);
+    }
+
+    public function __unset($field): void
+    {
+        throw new \LogicException('activity_event_immutable');
+    }
+
+    public function serialize(): string
+    {
+        return $this->toJson();
+    }
+
+    public function unserialize($data): void
+    {
+        throw new \LogicException('activity_event_immutable');
+    }
+
+    public function __serialize(): array
+    {
+        return $this->toArray();
+    }
+
+    public function __unserialize(array $data): void
+    {
+        $event = self::fromArray($data);
+        $this->__construct($event->scope, $event->id, $event->correlationId, $event->causationId,
+            $event->phase, $event->operation, $event->status, $event->timestamp, $event->hostFailure);
     }
 
     public static function create(

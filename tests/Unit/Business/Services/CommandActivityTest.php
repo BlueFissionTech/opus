@@ -33,8 +33,9 @@ final class CommandActivityTest extends TestCase
         $this->path = tempnam(sys_get_temp_dir(), 'opus-activity-');
         $this->link = new SQLiteLink(['database' => $this->path]);
         $this->link->open();
+        require_once dirname(__DIR__, 4) . '/datasources/activity/20261018_create_command_activity.php';
+        (new \CreateCommandActivity($this->link))->change();
         $this->store = new SQLiteActivityStore($this->link);
-        $this->store->initialize();
     }
 
     protected function tearDown(): void
@@ -309,6 +310,100 @@ final class CommandActivityTest extends TestCase
         $activity = new CommandActivityService($this->store, 'app');
         $this->expectException(\InvalidArgumentException::class);
         $activity->history($this->context(), $after, $limit);
+    }
+
+    public function testServicesAndReceiptSupportDevelationBehaviors(): void
+    {
+        $activity = new CommandActivityService($this->store, 'app');
+        $host = new CommandHost($this->processor(), new CommandResultPresenter(), $activity);
+        $event = ActivityEvent::create(new ActivityScope('app', null, 'actor'), 'requested', 'command.execute');
+        $this->assertInstanceOf(\BlueFission\Services\Service::class, $activity);
+        $this->assertInstanceOf(\BlueFission\Services\Service::class, $host);
+        $this->assertInstanceOf(\BlueFission\Obj::class, $event);
+        foreach ([$activity, $host, $event] as $object) {
+            $observed = false;
+            $object->when('activity_test', static function () use (&$observed): void { $observed = true; });
+            $object->dispatch('activity_test');
+            $this->assertTrue($observed);
+        }
+        $this->assertSame($event->toArray(), $event->data());
+        $this->assertSame($event->id, $event->field('event_id'));
+        $this->assertSame($event->id, $event->event_id);
+        $this->assertSame($event->toArray(), unserialize(serialize($event))->toArray());
+    }
+
+    public function testReceiptCannotBeMutatedThroughObjectSurfaces(): void
+    {
+        $event = ActivityEvent::create(new ActivityScope('app', null, 'actor'), 'requested', 'command.execute');
+        $expected = $event->toArray();
+        foreach ([
+            static fn () => $event->field('status', 'completed'),
+            static fn () => $event->field('tenant_id', null),
+            static fn () => $event->assign(['actor_id' => 'other']),
+            static fn () => $event->clear(),
+            static fn () => $event->unserialize('untrusted'),
+            static function () use ($event): void { $event->status = 'completed'; },
+            static function () use ($event): void { $event->event_id = 'forged'; },
+            static function () use ($event): void { unset($event->event_id); },
+        ] as $mutate) {
+            try {
+                $mutate();
+                $this->fail('A receipt must not accept mutation.');
+            } catch (\LogicException|\Error $exception) {
+                $this->assertSame($expected, $event->toArray());
+                $this->assertSame($expected, $event->data());
+            }
+        }
+    }
+
+    public function testDeltaUsesExistingDiscoveryAndExplicitRollback(): void
+    {
+        $manager = new \ReflectionClass(\BlueFission\BlueCore\Business\Managers\DatasourceManager::class);
+        $method = $manager->getMethod('findClassName');
+        $method->setAccessible(true);
+        $class = $method->invoke($manager->newInstanceWithoutConstructor(),
+            dirname(__DIR__, 4) . '/datasources/activity/20261018_create_command_activity.php');
+        $this->assertSame('CreateCommandActivity', $class);
+        $delta = new $class($this->link);
+        $this->assertInstanceOf(\BlueFission\BlueCore\Datasource\Delta::class, $delta);
+        $scope = new ActivityScope('app', null, 'actor');
+        $this->store->append(ActivityEvent::create($scope, 'requested', 'command.execute'));
+        // Re-running a recorded delta fails; it never silently overwrites existing data.
+        try {
+            $delta->change();
+            $this->fail('The migration ledger must control repeat execution.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('activity_migration_failed', $exception->getMessage());
+        }
+        $this->assertCount(1, $this->store->read($scope));
+        $delta->revert();
+        $this->assertSame(0, $this->link->connection()->querySingle("SELECT COUNT(*) FROM sqlite_master WHERE name = 'opus_activity'"));
+        $processor = $this->processor();
+        $host = new CommandHost($processor, new CommandResultPresenter(), new CommandActivityService($this->store, 'app'));
+        $this->assertSame(['command_host_activity_start_failed'], $host->execute('read', $this->context())->diagnostics());
+        $this->assertSame(0, $processor->calls);
+        $delta->change();
+        $this->assertSame([], $this->store->read($scope));
+    }
+
+    public function testFailedDeltaRollsBackPartialSchema(): void
+    {
+        $delta = new \CreateCommandActivity($this->link);
+        $delta->revert();
+        $database = $this->link->connection();
+        $database->exec('CREATE TABLE existing_data (value TEXT)');
+        $database->exec('CREATE INDEX opus_activity_order ON existing_data (value)');
+        try {
+            $delta->change();
+            $this->fail('Index conflict must fail the delta.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('activity_migration_failed', $exception->getMessage());
+        }
+        $this->assertSame(0, $database->querySingle("SELECT COUNT(*) FROM sqlite_master WHERE name IN ('opus_activity', 'opus_activity_scope')"));
+        $this->assertSame(1, $database->querySingle("SELECT COUNT(*) FROM sqlite_master WHERE name = 'existing_data'"));
+        $database->exec('DROP INDEX opus_activity_order');
+        $delta->change();
+        $this->assertSame([], $this->store->read(new ActivityScope('app', null, 'actor')));
     }
 
     private function processor(): object

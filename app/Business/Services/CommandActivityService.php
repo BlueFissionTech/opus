@@ -9,12 +9,16 @@ use App\Domain\Activity\ActivityScope;
 use App\Domain\Activity\IActivityStore;
 use App\Domain\Console\CommandPresentation;
 use BlueFission\Arr;
+use BlueFission\Services\Service;
 use BlueFission\Wise\Cmd\CommandRequest;
 use InvalidArgumentException;
 
-final class CommandActivityService
+final class CommandActivityService extends Service
 {
-    public function __construct(private IActivityStore $store, private string $applicationId) {}
+    public function __construct(private IActivityStore $store, private string $applicationId)
+    {
+        parent::__construct();
+    }
 
     public function begin(CommandRequest $request): ActivityEvent
     {

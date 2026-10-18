@@ -7,12 +7,13 @@ namespace App\Business\Services;
 use App\Business\Presentation\CommandResultPresenter;
 use App\Domain\Activity\ActivityEvent;
 use App\Domain\Console\CommandPresentation;
+use BlueFission\Services\Service;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\ICommandProcessor;
 use Throwable;
 
-final class CommandHost
+final class CommandHost extends Service
 {
     private ?CommandActivityService $activity;
 
@@ -21,6 +22,7 @@ final class CommandHost
         private CommandResultPresenter $presenter,
         ?object $activity = null
     ) {
+        parent::__construct();
         // The container eagerly resolves optional class types; this is opt-in.
         if ($activity !== null && !$activity instanceof CommandActivityService) {
             throw new \InvalidArgumentException('command_activity_invalid');

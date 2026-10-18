@@ -311,3 +311,8 @@ secrets and cannot prove private dependency installation. They still run syntax
 and frontend checks. Do not use pull_request_target to execute untrusted PR code
 with this credential. Review external changes before running an authorized branch
 in the trusted repository. Public acquisition remains a separate release gate.
+
+The command-activity tests execute the optional BlueCore delta on real temporary
+SQLite databases and check installed delta-class discovery, rollback, failed
+index creation atomicity, Service/Obj behavior dispatch and immutable receipt
+projections. They do not claim a live MySQL migration-ledger integration test.

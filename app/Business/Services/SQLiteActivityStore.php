@@ -21,28 +21,6 @@ final class SQLiteActivityStore implements IActivityStore
 {
     public function __construct(private SQLiteLink $link) {}
 
-    /** Explicit operator installation step; construction never migrates a database. */
-    public function initialize(): void
-    {
-        $this->query('CREATE TABLE IF NOT EXISTS opus_activity (
-            sequence INTEGER PRIMARY KEY AUTOINCREMENT,
-            scope_sequence INTEGER NOT NULL,
-            event_id TEXT NOT NULL UNIQUE,
-            application_id TEXT NOT NULL,
-            tenant_id TEXT,
-            actor_id TEXT NOT NULL,
-            correlation_id TEXT NOT NULL,
-            approval_reference TEXT,
-            receipt TEXT NOT NULL
-        )')->finalize();
-        $this->query('CREATE INDEX IF NOT EXISTS opus_activity_scope ON opus_activity
-            (application_id, tenant_id, actor_id, scope_sequence)')->finalize();
-        $this->query("CREATE UNIQUE INDEX IF NOT EXISTS opus_activity_order ON opus_activity
-            (application_id, actor_id, COALESCE(tenant_id, ''), (tenant_id IS NULL), scope_sequence)")->finalize();
-        $this->query('CREATE INDEX IF NOT EXISTS opus_activity_approval ON opus_activity
-            (application_id, tenant_id, actor_id, approval_reference)')->finalize();
-    }
-
     public function append(ActivityEvent $event, ?string $approvalReference = null): void
     {
         $receipt = HTTP::jsonEncode($event->toArray());
