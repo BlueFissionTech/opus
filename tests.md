@@ -166,6 +166,12 @@ in `LICENSE`. Dependency and private-asset licenses remain separate.
 
 ## Required baseline gates
 
+The application helper gate uses a characterized lexical scanner. It identifies
+named native helper calls, including explicit global names, while preserving
+method/function declarations and package methods. See the
+[DevElation audit](docs/develation-usage-audit.md) for scope and name-resolution
+limits; the gate does not execute the inspected source.
+
 The optional browser terminal requires `OPUS_TERMINAL_BOOTSTRAP`, a trusted host
 PHP file returning `TerminalSessions` with authenticated context resolution and
 connection-isolated scoped Wise hosts. It is disabled without this configuration
