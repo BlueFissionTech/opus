@@ -25,6 +25,7 @@ final class AgentCompositionService extends Service
     public const SUSPENDED = 'suspended';
     public const STOPPED = 'stopped';
     public const FAILED = 'failed';
+    public const UNKNOWN = 'unknown';
 
     private Arr $descriptors;
     private Arr $runtimes;
@@ -336,26 +337,28 @@ final class AgentCompositionService extends Service
 
     public function execute(string $agentId, array $task, AgentRuntimeContext $context): AgentRuntimeResult
     {
-        $authorized = $this->authorize('execute', $agentId, $context);
-        if ($authorized !== null) {
-            return $this->correlate($authorized, $context);
-        }
-
-        $current = $this->state($agentId, $context);
-        if ($current !== self::RUNNING) {
-            return $this->correlate(
-                AgentRuntimeResult::denied(
-                    'execute',
-                    $agentId,
-                    $context->tenantId(),
-                    $current,
-                    'agent_not_running'
-                ),
-                $context
-            );
-        }
-
+        $executionId = null;
+        $phase = 'preparing';
         try {
+            $authorized = $this->authorize('execute', $agentId, $context);
+            if ($authorized !== null) {
+                return $this->correlate($authorized, $context);
+            }
+
+            $current = $this->state($agentId, $context);
+            if ($current !== self::RUNNING) {
+                return $this->correlate(
+                    AgentRuntimeResult::denied(
+                        'execute',
+                        $agentId,
+                        $context->tenantId(),
+                        $current,
+                        'agent_not_running'
+                    ),
+                    $context
+                );
+            }
+
             $unavailable = $this->runtimeUnavailableReason($agentId, $context);
             if ($unavailable !== null) {
                 return $this->correlate(
@@ -446,12 +449,13 @@ final class AgentCompositionService extends Service
                     $context
                 );
             }
-            $result = $runtime
-                ->execute($executionId, $task, $context)
-                ->withMetadata([
-                    'correlation_id' => $context->correlationId(),
-                    'execution_id' => $executionId,
-                ]);
+            $phase = 'executing';
+            $result = $runtime->execute($executionId, $task, $context);
+            $phase = 'recording';
+            $result = $result->withMetadata([
+                'correlation_id' => $context->correlationId(),
+                'execution_id' => $executionId,
+            ]);
             $completion = [
                 'active_execution_id' => null,
             ];
@@ -468,22 +472,42 @@ final class AgentCompositionService extends Service
             $latestState = $this->state($agentId, $context);
 
             return $result->forScope('execute', $agentId, $context->tenantId(), $latestState);
-        } catch (Throwable $exception) {
-            if (isset($executionId)) {
-                $this->states->compareAndPut($agentId, $context->tenantId(), [
-                    'active_execution_id' => $executionId,
-                ], [
-                    'active_execution_id' => null,
-                ]);
+        } catch (Throwable) {
+            $claimRelease = 'not_attempted';
+            // A reporting failure must not trigger another completion write.
+            if ($phase === 'executing' && $executionId !== null) {
+                try {
+                    $released = $this->states->compareAndPut($agentId, $context->tenantId(), [
+                        'active_execution_id' => $executionId,
+                    ], [
+                        'active_execution_id' => null,
+                    ]);
+                    $claimRelease = $released ? 'released' : 'not_owned';
+                } catch (Throwable) {
+                    $claimRelease = 'unknown';
+                }
             }
+            $metadata = [
+                'failure_stage' => $phase,
+                'execution_started' => $phase !== 'preparing',
+                'effects' => 'unknown',
+                'claim_release' => $claimRelease,
+                'recovery_required' => $executionId !== null,
+            ];
+            if ($executionId !== null) {
+                $metadata['execution_id'] = $executionId;
+            }
+
             return $this->correlate(
                 AgentRuntimeResult::failed(
                     'execute',
                     $agentId,
                     $context->tenantId(),
-                    $this->state($agentId, $context),
-                    'agent_runtime_operation_failed'
-                ),
+                    self::UNKNOWN,
+                    $phase === 'recording'
+                        ? 'agent_runtime_completion_unrecorded'
+                        : 'agent_runtime_operation_failed'
+                )->withMetadata($metadata),
                 $context
             );
         }

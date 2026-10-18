@@ -440,3 +440,13 @@ provider metadata. CLI and programmatic calls share the same result. Terminal
 sessions retain their existing close-and-revoke behavior on host failures, including
 failed approval continuations. Defined provider outcomes retain their existing
 status, output, permissions and approval semantics.
+
+## Agent execution persistence failure (#125)
+
+An execution request whose host state cannot be read must fail closed before
+runtime construction or execution. If execution has started, failure to record its
+completion must retain the host execution and correlation identifiers, report an
+unknown lifecycle state and effects, and require reconciliation. It must not retry
+execution or erase an unresolved execution claim as an exception-cleanup shortcut.
+Runtime exceptions retain their bounded diagnostic even if claim cleanup also
+fails. Failure records never copy exception text or task/provider payloads.

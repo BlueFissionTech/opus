@@ -254,6 +254,12 @@ surface, not automatic sequence resumption.
 
 ### Shared command failures
 
+`php vendor/bin/phpunit --filter 'AgentCompositionServiceTest|AgentDelegationServiceTest' --do-not-cache-result`
+also covers agent execution persistence failures before/after simulated commits,
+claim cleanup failure, correlation, and no automatic replay. See
+[runtime recovery boundaries](docs/runtime-availability.md). These synthetic
+storage faults are separate from real database crash/recovery qualification.
+
 `php vendor/bin/phpunit --filter 'CommandHostTest|TerminalSessionsTest|LazyAgentCommandProcessorTest'`
 checks structured exceptional outcomes, CLI/programmatic parity, serialization
 failure, existing unavailable-runtime results, and terminal closure after a failed
