@@ -450,3 +450,25 @@ unknown lifecycle state and effects, and require reconciliation. It must not ret
 execution or erase an unresolved execution claim as an exception-cleanup shortcut.
 Runtime exceptions retain their bounded diagnostic even if claim cleanup also
 fails. Failure records never copy exception text or task/provider payloads.
+
+
+### Add-on organization persistence (#120)
+
+The organization service owns application/tenant-scoped feature groups, ordered
+many-to-many memberships, and per-add-on tags. Groups and tags are descriptive;
+they never supply package dependencies, capabilities, roles, or lifecycle grants.
+An injected host policy must explicitly authorize every read and mutation, including
+bulk members. Missing actor or any denied target rejects the whole mutation.
+Group visibility is evaluated by that policy, not inferred from caller roles.
+
+A revision-checked store commits organization state and its audit receipt in one
+transaction. Stale writers cannot replace newer organization metadata; failed
+audit persistence rolls back the mutation. Empty installations remain ungrouped.
+The first storage adapter uses an explicitly configured private SQLiteLink and
+an opt-in BlueCore delta; constructors never create tables.
+
+Proof includes real database reopen, isolated application/tenant scopes, denied
+bulk writes, hidden-group non-disclosure, stale writers, audit failure rollback,
+deterministic ordering, 100-add-on filtering, and tags that do not change dependency
+metadata. HTTP/Wise/UI binding and authoritative lifecycle impact enforcement are
+subsequent integration work and are not claimed by this persistence increment.
