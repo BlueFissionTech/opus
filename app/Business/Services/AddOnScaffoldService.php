@@ -163,6 +163,7 @@ namespace {{NAMESPACE}}\Registration;
 
 final class AddOnRegistration
 {
+    // Opus calls this once on Engine OnAppLoaded for an active, validated package.
     public function contributions(): array
     {
         return [
@@ -216,7 +217,15 @@ PHP
             'definition.json' => $this->json($definition),
             'main.php' => $main . "\n",
             'logic/Lifecycle.php' => $lifecycle . "\n",
-            'README.md' => "# {$className}\n\n{$className} is an Opus add-on.\n",
+            'README.md' => "# {$className}\n\n{$className} is an Opus add-on.\n\n"
+                . "Opus queues the factory in `main.php` for the engine's `OnAppLoaded` behavior.\n"
+                . "Keep the factory passive: installation may load it while the add-on is inactive.\n"
+                . "Put boot contributions in `AddOnRegistration::contributions()`, not another lifecycle listener.\n"
+                . "Use `BlueFission\\Services\\Mapping::add()` in API/app/default mappings for routes;\n"
+                . "leave agent, menu, and console catalogs under their owning consumers' permissions.\n"
+                . "Opus registers declared themes as `{$name}/<theme>` after contributions succeed.\n"
+                . "Repeated dispatch does not replay registration, even after failure. Restart the application\n"
+                . "after repairing a failed boot; partial PHP effects cannot be rolled back.\n",
             'logic/Registration/AddOnRegistration.php' => $registration . "\n",
             'mapping/api.php' => $this->mapping(),
             'mapping/app.php' => $this->mapping(),

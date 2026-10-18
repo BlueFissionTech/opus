@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Business\Services;
 
 use BlueFission\Arr;
-use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use BlueFission\BlueCore\Domain\AddOn\AddOn;
 use BlueFission\Utils\File;
 use RuntimeException;
 
-final class SelectedAddOnManager extends AddOnManager
+final class SelectedAddOnManager extends BootAddOnManager
 {
     public function loadSelected(array $names): void
     {
