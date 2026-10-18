@@ -6,6 +6,8 @@ hashes, observed priority, ownership, proof and gates. The inventory was checked
 against the canonical repository issues API after the gateway flagged its
 fallback result as partial: both returned the same 56 issues. Refresh before
 execution; newly opened issues are not silently included in this snapshot.
+The #16 license row is historical: #16 was later closed with Apache-2.0 in
+`LICENSE`, Composer metadata, and README; it is not a current decision gate.
 
 ## Delivery discipline
 
@@ -104,7 +106,7 @@ The following operator corrections supersede older issue framing for execution:
 
 - **[#104 — Publish a reproducible self-hosted Opus distribution](https://github.com/BlueFissionTech/opus/issues/104)** · `pr_open`
   Owner boundary: Opus; release owner. Next: Review PR136 runtime snapshot, then prove one production-profile installation and recovery path.
-  Proof: Source/dist identity, no-dev metadata, startup twice, synthetic upgrade failure and recovery; hashes retained. Gate: PR136 is development-only;#56,#16 and upstream warnings block public release certification.
+  Proof: Source/dist identity, no-dev metadata, startup twice, synthetic upgrade failure and recovery; hashes retained. Gate at snapshot: PR136 was development-only; #56, #16, and upstream warnings blocked public release certification.
 
 - **[#107 — Publish the Materia integration conformance proof](https://github.com/BlueFissionTech/opus/issues/107)** · `pr_open`
   Owner boundary: Opus; direct dependency owners. Next: Extend PR136 evidence into one capability-level conformance row and cross-package workflow at a time.
@@ -112,7 +114,7 @@ The following operator corrections supersede older issue framing for execution:
 
 - **[#16 — Normalize package license metadata](https://github.com/BlueFissionTech/opus/issues/16)** · `decision_gated`
   Owner boundary: Legal/product owner; Opus metadata. Next: Prepare a consistent Composer/README/license patch after the license owner selects legal terms.
-  Proof: Strict Composer metadata validation and matching license text. Gate: Current Exclusive value is not SPDX; exact replacement license is a human legal/product decision.
+  Proof: Strict Composer metadata validation and matching license text. Gate at snapshot: the former Exclusive value was not SPDX; #16 was subsequently resolved under Apache-2.0.
 
 - **[#12 — Add addon lifecycle readiness acceptance tests](https://github.com/BlueFissionTech/opus/issues/12)** · `planned`
   Owner boundary: Opus; BlueCore. Next: Exercise install/activate/deactivate/remove readiness against a real synthetic application lifecycle.

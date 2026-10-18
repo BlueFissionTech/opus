@@ -295,9 +295,6 @@ clean checkout.
 - Installed add-on packages currently emit optimized-autoload warnings, and one
   transitive authentication dependency has a reported advisory. Compatibility
   fixes are tracked in the packages that own those constraints.
-- Composer validation still reports the existing `Exclusive` license metadata
-  as a non-SPDX value. The package license should be confirmed before changing
-  public metadata.
 - The frontend still imports legacy dashboard modules directly; the Reactor
   dependency is present but not yet wired through the application entrypoints.
 - The terminal surface can use the optional Ratchet integration when the host
