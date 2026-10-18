@@ -82,7 +82,9 @@ it does not claim that a write succeeded.
 
 ## Inventory and filters
 
-The host inventory callable returns records with a stable string `id`. Optional
+The host inventory callable returns records with a stable string `id`. Numeric
+string IDs retain their string type in policy requests, memberships, and catalog
+output even when PHP converts internal map keys to integers. Optional
 fields are `name`, boolean `active`, `vendor`, `health`, `update`, `configuration`,
 `tenant_availability`, and a list of declared `capabilities`. Unknown activation
 remains `null`; other missing status fields remain `unknown`. Only these fields

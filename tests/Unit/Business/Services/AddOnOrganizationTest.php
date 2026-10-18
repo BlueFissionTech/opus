@@ -341,4 +341,24 @@ final class AddOnOrganizationTest extends TestCase
         $this->assertSame([], $service->history('operator'));
     }
 
+    public function testNumericStringAddonIdsRetainTheirTypeAtPolicyAndMembershipBoundaries(): void
+    {
+        $this->inventory = [
+            ['id' => '0', 'name' => 'Zero', 'active' => true],
+            ['id' => '42', 'name' => 'Forty two', 'active' => true],
+        ];
+        $service = new AddOnOrganizationService($this->store, 'app', 'team', static function (array $request): bool {
+            if (in_array($request['action'], ['view_addon', 'manage_addon'], true)) {
+                return in_array($request['target']['id'], ['0', '42'], true);
+            }
+            return true;
+        }, fn () => $this->inventory);
+        $service->saveGroup('operator', $this->group('operations', ['42', '0']), 0);
+        $service->tag('operator', ['42'], ['selected'], 1);
+        $catalog = $service->catalog('operator', ['group' => 'operations']);
+        $this->assertSame(['42', '0'], array_column($catalog['items'], 'id'));
+        $this->assertSame(['42', '0'], $catalog['groups'][0]['members']);
+        $this->assertSame(['42'], array_column($service->catalog('operator', ['tag' => 'selected'])['items'], 'id'));
+    }
+
 }

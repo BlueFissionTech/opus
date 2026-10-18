@@ -50,7 +50,8 @@ final class AddOnOrganizationService extends Service
         $state = $this->store->load($this->scope);
         $inventory = $this->installed();
         $visible = [];
-        foreach ($inventory as $id => $addon) {
+        foreach ($inventory as $addon) {
+            $id = $addon['id'];
             if ($this->allowed($actorId, 'view_addon', ['id' => $id])) {
                 $visible[$id] = $addon;
             }
@@ -69,7 +70,8 @@ final class AddOnOrganizationService extends Service
         }
         uasort($groups, static fn ($a, $b): int => [$a['order'], $a['slug']] <=> [$b['order'], $b['slug']]);
         $items = [];
-        foreach ($visible as $id => $addon) {
+        foreach ($visible as $addon) {
+            $id = $addon['id'];
             $membership = [];
             foreach ($groups as $group) {
                 if (Arr::has($group['members'], $id, true)) {
