@@ -299,6 +299,17 @@ with this credential. Review external changes before running an authorized branc
 in the trusted repository. Public acquisition remains a separate release gate.
 
 
+### Add-on organization persistence
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AddOnOrganizationTest.php`.
+The SQLite3 extension enables real temporary-database tests; otherwise this optional
+store's tests skip. Coverage includes persistence/reopen, tenant and application
+isolation, host policy checks, bulk atomicity, hidden metadata, stale writers,
+audit rollback, database locking, migration failure/revert, corrupted storage, and
+125-add-on filtering. It does not prove the pending admin UI or Wise bindings.
+
+
+
 ### Conversational learning policy guards
 
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "ConversationalLearningCatalogTest|DevElationHelperUsageTest"`.

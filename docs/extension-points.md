@@ -73,6 +73,17 @@ all add-on activation for that refresh, including records already read. Filters
 observe that empty authority snapshot and cannot restore prior or partial state.
 
 
+### Add-on organization changes
+
+`opus.addon.organization.changed` observes a committed scoped organization write.
+The payload is `application_id` (string), `tenant_id` (string or null), `revision`
+(integer), and `action` (string). It omits actor, group, and tag contents. State and
+audit are already durable; observer failure is ignored and cannot grant authority
+or roll back the write. See [Add-on organization](addon-organization.md) for the
+policy, persistence, and remaining transport integration contracts.
+
+
+
 ### Conversation policy denials
 
 Neither conversation filter may re-enable unknown-intent capture denied by package,

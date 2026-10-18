@@ -358,3 +358,12 @@ An add-on is ready for review when it demonstrates the lifecycle and package bou
 ## Review questions
 
 Before accepting an add-on change, confirm that the capability belongs in a reusable package, the package has no direct platform-core edits, package-owned lifecycle resource actions are idempotent, configuration and persistence boundaries are explicit, and compatibility is documented. When an integration need is shared, extend the relevant upstream package through its public contract instead of embedding a one-off adapter in the add-on.
+
+
+## Organizing installed add-ons
+
+The [organization service](docs/addon-organization.md) provides scoped feature
+groups, ordered memberships, tags, and atomic audit storage. Host authorization
+is mandatory. Organization metadata never changes manifest dependencies or
+lifecycle authority. Admin UI, Wise bindings, and lifecycle-impact enforcement
+remain separate delivery gates.
