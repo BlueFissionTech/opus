@@ -14,7 +14,8 @@ final class ApplicationProfileHttpTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->host = sys_get_temp_dir() . '/opus-profile-' . bin2hex(random_bytes(8));
+        // Exercise INI operators in paths, including Windows short-path aliases.
+        $this->host = sys_get_temp_dir() . '/opus~profile-' . bin2hex(random_bytes(8));
         mkdir($this->host . '/sessions', 0700, true);
         mkdir($this->host . '/storage', 0700, true);
     }
@@ -167,7 +168,8 @@ final class ApplicationProfileHttpTest extends TestCase
             'MYSQL_DB_HOST' => '127.0.0.1', 'MYSQL_DB_PORT' => '1',
             'MYSQL_DB_NAME' => 'unavailable', 'MYSQL_DB_USERNAME' => 'fixture', 'MYSQL_DB_PASSWORD' => '',
         ], $overrides);
-        $this->server = proc_open([PHP_BINARY, '-d', 'session.save_path=' . $this->host . '/sessions',
+        $sessionPath = '"' . str_replace('"', '\\"', $this->host . '/sessions') . '"';
+        $this->server = proc_open([PHP_BINARY, '-d', 'session.save_path=' . $sessionPath,
             '-d', 'session.auto_start=' . ($autoStart ? '1' : '0'),
             '-d', 'display_errors=0', '-S', $address, '-t', $root . '/public', $root . '/public/index.php'],
             [0 => ['pipe', 'r'], 1 => ['file', $this->host . '/stdout.log', 'a'],
