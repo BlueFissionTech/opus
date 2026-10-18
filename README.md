@@ -7,6 +7,10 @@ orchestration, conversation, presentation, and interoperability contracts.
 
 ## Overview
 
+For a small HTTP surface, see the opt-in [API and authenticated dashboard
+profiles](docs/application-profiles.md), including their environment contract,
+health/readiness behavior and remaining deployment validation gates.
+
 ### Purpose
 
 Opus provides a common runtime and administration boundary for applications

@@ -9,7 +9,8 @@ return [
 
 	// Extensions to the application functionality
 	'extensions'		=> [
-		'App\Registration\AppRegistration',
+		\App\Business\Services\ApplicationProfile::current()->minimal()
+            ? \App\Registration\ProfileRegistration::class : \App\Registration\AppRegistration::class,
 	],
 
 	// Gateways for processing requests

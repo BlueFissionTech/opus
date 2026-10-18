@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{$appName} dashboard</title></head>
+<body>
+<header><h1>{$appName}</h1><nav aria-label="Application"><a href="/dashboard" aria-current="page">Dashboard</a> | <a href="/ready">Readiness</a></nav></header>
+<main><h2>Dashboard</h2><p>Your authenticated application is available.</p><p>No operational data or optional services have been configured for this starter.</p></main>
+<form action="/logout" method="post"><input type="hidden" name="_token" value="{$csrfToken}"><button type="submit">Sign out</button></form>
+</body>
+</html>

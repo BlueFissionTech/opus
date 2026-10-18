@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in to {$appName}</title></head>
+<body><main>
+<h1>Sign in to {$appName}</h1>
+<form action="/login" method="post" id="signin">
+<input type="hidden" name="_token" value="{$csrfToken}"><input type="hidden" name="login" value="1">
+<p><label>Username <input name="username" autocomplete="username" required></label></p>
+<p><label>Password <input type="password" name="password" autocomplete="current-password" required></label></p>
+<button type="submit">Sign in</button><p id="status" role="status"></p>
+</form>
+<script>
+document.getElementById('signin').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const button = this.querySelector('button');
+    const status = document.getElementById('status');
+    button.disabled = true;
+    status.textContent = 'Signing in…';
+    try {
+        const response = await fetch(this.action, {method: 'POST', body: new FormData(this), credentials: 'same-origin'});
+        const result = await response.json();
+        if (response.ok && result.data === true) { window.location.assign('/dashboard'); return; }
+        status.textContent = 'Sign-in was not completed. Check your credentials or contact your operator.';
+    } catch (error) { status.textContent = 'Sign-in is temporarily unavailable. Please try again.'; }
+    button.disabled = false;
+});
+</script>
+</main></body></html>

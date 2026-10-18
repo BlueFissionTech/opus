@@ -1,5 +1,23 @@
 # Opus Framework Specification
 
+## Minimal application profiles
+
+Explicit `OPUS_PROFILE=api` and `OPUS_PROFILE=dashboard` select a small HTTP
+surface through the existing BlueCore engine. The default `platform` profile
+retains the full application. Minimal profiles must not register agent tools,
+provider integrations, administration mutations or activated add-ons implicitly.
+`OPUS_ADDONS` is an explicit selection of installed, active add-ons; missing
+selections fail startup before any selected entrypoint runs.
+
+API health, readiness and information routes must boot without a database or
+optional provider. The dashboard uses the shared authentication gateway and
+package template boundary, with database readiness distinct from liveness.
+Configuration PHP scripts must parse before any configuration script executes.
+Failed bootstrap must return a stable JSON 503 without exception text or HTML.
+These profiles require HTTP, denial, successful-session, malformed configuration
+and unavailable add-on tests; production database initialization and clean-volume
+Compose verification remain separate release evidence.
+
 ## Purpose
 
 Opus is the application platform layer for Blue Fission products. The next

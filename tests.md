@@ -1,5 +1,13 @@
 # Testing Opus Framework
 
+The [minimal application profiles](docs/application-profiles.md) have real HTTP
+tests in `tests/Feature/ApplicationProfileHttpTest.php`. They start temporary
+loopback PHP servers with isolated sessions and an ephemeral `APP_KEY`, without
+installing dependencies or requiring database/provider credentials. Production
+profile settings are `OPUS_PROFILE`, optional `OPUS_ADDONS` and `APP_NAME`,
+`APP_KEY`, and `MYSQL_DB_*` for dashboard authentication. Never commit secret
+values. Database initialization and Compose proof remain opt-in service checks.
+
 ## Baseline PHP Tests
 
 Run the default unit and feature suites:

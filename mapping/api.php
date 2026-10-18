@@ -1,4 +1,5 @@
 <?php
+if (\App\Business\Services\ApplicationProfile::current()->minimal()) { return; }
 use BlueFission\Services\Mapping;
 
 // Users
