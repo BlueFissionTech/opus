@@ -145,6 +145,8 @@ current maturity and known gaps.
 Opus includes command-line tools for development and runtime coordination. The
 command surface should converge around Wise as the central invocation kernel so
 human operators and agents share the same backend contract.
+See the [command surface inventory and failure contract](docs/command-surface.md)
+for shared outcomes, terminal behavior, and remaining legacy migration work.
 
 ## Project Docs
 

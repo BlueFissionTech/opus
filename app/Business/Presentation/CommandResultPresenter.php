@@ -11,6 +11,7 @@ use BlueFission\Str;
 use BlueFission\Wise\Cmd\CommandResult;
 use JsonSerializable;
 use Stringable;
+use UnexpectedValueException;
 
 final class CommandResultPresenter
 {
@@ -84,6 +85,9 @@ final class CommandResultPresenter
     {
         $encoded = HTTP::jsonEncode($value);
 
-        return Str::is($encoded) ? $encoded : '';
+        if (!Str::is($encoded)) {
+            throw new UnexpectedValueException('command_result_not_serializable');
+        }
+        return $encoded;
     }
 }

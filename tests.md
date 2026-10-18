@@ -252,6 +252,16 @@ sequence may repeat them; approval continuation belongs to the shared command
 surface, not automatic sequence resumption.
 
 
+### Shared command failures
+
+`php vendor/bin/phpunit --filter 'CommandHostTest|TerminalSessionsTest|LazyAgentCommandProcessorTest'`
+checks structured exceptional outcomes, CLI/programmatic parity, serialization
+failure, existing unavailable-runtime results, and terminal closure after a failed
+continuation. Synthetic effects prove that failure does not imply rollback and
+that the host/session does not automatically replay them. No provider key,
+database, transport listener, or environment mutation is required. See the
+[command surface contract](docs/command-surface.md) for remaining legacy CLI gates.
+
 ### Add-on boot lifecycle
 
 `php vendor/bin/phpunit tests/Unit/Business/Services/AddOnBootLifecycleTest.php`

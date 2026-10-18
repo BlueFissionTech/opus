@@ -168,6 +168,66 @@ final class TerminalSessionsTest extends TestCase
         self::assertSame(0, $sessions->sessionCount());
     }
 
+    public static function failureStages(): array
+    {
+        return [['processing'], ['presentation']];
+    }
+
+    /** @dataProvider failureStages */
+    public function testExceptionalContinuationClosesAndCannotReplayEffects(string $stage): void
+    {
+        $processor = $this->processor();
+        $processor->outcome = CommandResult::pending('Confirm?', null, 'approval-token');
+        $sessions = $this->sessions($processor, fn () => $this->context());
+        $connection = $this->connection();
+        $sessions->open($connection);
+        $sessions->message($connection, '{"type":"command","input":"operate"}');
+        $effects = 0;
+        $processor->callback = function () use (&$effects, $stage): void {
+            ++$effects;
+            if ($stage === 'processing') {
+                throw new \Error('synthetic-private-marker');
+            }
+        };
+        $processor->outcome = CommandResult::completed(new class implements \Stringable {
+            public function __toString(): string
+            {
+                throw new \RuntimeException('synthetic-private-marker');
+            }
+        });
+        $frame = '{"type":"confirm","token":"approval-token","approved":true}';
+        $sessions->message($connection, $frame);
+        self::assertSame(1, $effects);
+        self::assertCount(2, $processor->requests);
+        self::assertTrue($processor->requests[1]->isContinuation());
+        self::assertTrue($processor->requests[1]->approved());
+        self::assertTrue($connection->closed);
+        self::assertSame(0, $sessions->sessionCount());
+        self::assertSame(['type' => 'error', 'code' => 'terminal_execution_failed'], $connection->frames[2]);
+        self::assertStringNotContainsString('synthetic-private-marker', json_encode($connection->frames));
+        $sessions->message($connection, $frame);
+        self::assertSame(1, $effects);
+        self::assertCount(2, $processor->requests);
+    }
+
+    public function testOrdinaryProviderFailureCannotSetTheHostOriginMarker(): void
+    {
+        $processor = $this->processor();
+        $processor->outcome = CommandResult::failure('Provider declined.', ['provider_declined'], [
+            'failure_stage' => 'processing', 'effects' => 'unknown', 'host_failure' => true,
+        ]);
+        $sessions = $this->sessions($processor, fn () => $this->context());
+        $connection = $this->connection();
+        $sessions->open($connection);
+        $sessions->message($connection, '{"type":"command","input":"operate"}');
+        self::assertFalse($connection->closed);
+        self::assertSame(1, $sessions->sessionCount());
+        self::assertTrue($connection->frames[1]['accepted']);
+        self::assertSame('failed', $connection->frames[1]['result']['status']);
+        self::assertSame('Provider declined.', $connection->frames[1]['result']['output']);
+        self::assertSame(['provider_declined'], $connection->frames[1]['result']['diagnostics']);
+    }
+
     public function testHostCallbacksCannotResurrectOrReenterSessions(): void
     {
         $processor = $this->processor();
