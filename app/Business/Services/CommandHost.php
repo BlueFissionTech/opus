@@ -9,6 +9,7 @@ use App\Domain\Console\CommandPresentation;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\ICommandProcessor;
+use Throwable;
 
 final class CommandHost
 {
@@ -20,9 +21,17 @@ final class CommandHost
 
     public function process(CommandRequest|Command|array|string $request): CommandPresentation
     {
-        $request = $request instanceof CommandRequest ? $request : new CommandRequest($request);
-
-        return $this->presenter->present($this->processor->process($request));
+        try {
+            $request = $request instanceof CommandRequest ? $request : new CommandRequest($request);
+            $result = $this->processor->process($request);
+        } catch (Throwable) {
+            return CommandPresentation::hostFailure('processing');
+        }
+        try {
+            return $this->presenter->present($result);
+        } catch (Throwable) {
+            return CommandPresentation::hostFailure('presentation');
+        }
     }
 
     public function execute(Command|array|string $input, array $context = []): CommandPresentation

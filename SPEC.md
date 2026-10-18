@@ -428,3 +428,15 @@ for that engine and cannot replay partial effects. Failure messages exclude
 package exception payloads. Restart is required to retry or apply activation
 changes after boot. Historical imperative entrypoints retain the legacy loader
 contract and must migrate before receiving these guarantees.
+
+## Exceptional command outcomes (#13)
+
+CommandHost converts unexpected processor and presentation exceptions into bounded
+failed presentations with exit code 1, a stable stage code, unknown effects, and no
+partial output, provider metadata or continuation token. It invokes the processor
+once and never retries after a failure. A private host-origin marker distinguishes
+these failures from ordinary provider-declared FAILED results and cannot be set by
+provider metadata. CLI and programmatic calls share the same result. Terminal
+sessions retain their existing close-and-revoke behavior on host failures, including
+failed approval continuations. Defined provider outcomes retain their existing
+status, output, permissions and approval semantics.

@@ -21,6 +21,7 @@ final class CommandPresentation
     private Str $diagnosticText;
     private Arr $metadata;
     private ?Str $continuationToken;
+    private Flag $hostFailure;
 
     public function __construct(
         string $status,
@@ -34,6 +35,7 @@ final class CommandPresentation
         array $metadata,
         ?string $continuationToken
     ) {
+        $this->hostFailure = Flag::make(false);
         $this->status = Str::make($status)->trim()->lower();
         $this->output = $output;
         $this->outputText = Str::make($outputText);
@@ -46,6 +48,34 @@ final class CommandPresentation
         $this->continuationToken = Str::isNotEmpty((string) $continuationToken)
             ? Str::make((string) $continuationToken)->trim()
             : null;
+    }
+
+    public static function hostFailure(string $stage): self
+    {
+        if (!Arr::has(['processing', 'presentation'], $stage, true)) {
+            throw new \InvalidArgumentException('command_host_failure_stage_invalid');
+        }
+        $code = 'command_host_' . $stage . '_failed';
+        $result = new self(
+            'failed',
+            null,
+            'The command result is unavailable. Inspect the operation before retrying.',
+            '',
+            false,
+            1,
+            [$code],
+            $code,
+            ['failure_stage' => $stage, 'effects' => 'unknown'],
+            null
+        );
+        $result->hostFailure = Flag::make(true);
+        return $result;
+    }
+
+    /** Host-owned origin; provider metadata cannot set this marker. */
+    public function failedAtHost(): bool
+    {
+        return $this->hostFailure->isTruthy();
     }
 
     public function status(): string

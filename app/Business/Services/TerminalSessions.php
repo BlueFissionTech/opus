@@ -121,6 +121,10 @@ final class TerminalSessions
             if (!$this->sessions->contains($connection)) {
                 return;
             }
+            if ($result->failedAtHost()) {
+                $this->reject($connection, 'terminal_execution_failed');
+                return;
+            }
             $session['busy'] = false;
             $session['pending'] = $result->confirmationRequired() ? $result->continuationToken() : null;
             if ($result->confirmationRequired() && !Str::isNotEmpty($session['pending'])) {

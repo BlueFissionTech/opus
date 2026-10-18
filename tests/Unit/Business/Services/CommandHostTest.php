@@ -17,6 +17,101 @@ use PHPUnit\Framework\TestCase;
 
 final class CommandHostTest extends TestCase
 {
+    public static function exceptionalResults(): array
+    {
+        return [
+            ['processing', \RuntimeException::class], ['processing', \Error::class],
+            ['output', \RuntimeException::class], ['output', \Error::class],
+            ['diagnostics', \RuntimeException::class], ['diagnostics', \Error::class],
+        ];
+    }
+
+    /** @dataProvider exceptionalResults */
+    public function testUnexpectedFailuresBecomePrivateSafeResultsWithoutReplay(string $phase, string $errorClass): void
+    {
+        $processor = new class($phase, $errorClass) implements ICommandProcessor {
+            public int $calls = 0;
+            public function __construct(private string $phase, private string $errorClass) {}
+            public function process(CommandRequest|Command|array|string $request): CommandResult
+            {
+                ++$this->calls;
+                if ($this->phase === 'processing') {
+                    throw new ($this->errorClass)('synthetic-private-marker');
+                }
+                $unrenderable = new class($this->errorClass) implements \Stringable {
+                    public function __construct(private string $errorClass) {}
+                    public function __toString(): string
+                    {
+                        throw new ($this->errorClass)('synthetic-private-marker');
+                    }
+                };
+                return new CommandResult(
+                    CommandResult::CONFIRMATION_REQUIRED,
+                    $this->phase === 'output' ? $unrenderable : 'synthetic-private-output',
+                    confirmationRequired: true,
+                    diagnostics: $this->phase === 'diagnostics' ? [$unrenderable] : [],
+                    metadata: ['private' => 'synthetic-private-metadata'],
+                    continuationToken: 'synthetic-private-token'
+                );
+            }
+        };
+        $host = new CommandHost($processor, new CommandResultPresenter());
+        $result = $host->execute('operate');
+        $this->assertSame(1, $processor->calls);
+        $this->assertSame(CommandResult::FAILED, $result->status());
+        $this->assertSame(1, $result->exitCode());
+        $this->assertTrue($result->failedAtHost());
+        $this->assertNull($result->output());
+        $this->assertFalse($result->confirmationRequired());
+        $this->assertNull($result->continuationToken());
+        $stage = $phase === 'processing' ? 'processing' : 'presentation';
+        $this->assertSame(['failure_stage' => $stage, 'effects' => 'unknown'], $result->metadata());
+        $this->assertSame(['command_host_' . $stage . '_failed'], $result->diagnostics());
+        $this->assertStringNotContainsString('synthetic-private', json_encode($result->toArray()));
+    }
+
+    public function testCliAndContinuationFailuresUseTheSameHostResult(): void
+    {
+        $processor = new class implements ICommandProcessor {
+            public array $requests = [];
+            public function process(CommandRequest|Command|array|string $request): CommandResult
+            {
+                $this->requests[] = $request;
+                throw new \RuntimeException('synthetic-private-marker');
+            }
+        };
+        $host = new CommandHost($processor, new CommandResultPresenter());
+        $cli = new CliManager($host);
+        $context = ['actor' => ['id' => 'operator']];
+        $direct = $host->execute('operate', $context);
+        $interactive = $cli->execute('operate', $context);
+        $resumed = $host->resume('synthetic-private-token', false, $context);
+        $this->assertCount(3, $processor->requests);
+        $this->assertSame($direct->toArray(), $interactive->toArray());
+        $this->assertSame($direct->toArray(), $resumed->toArray());
+        $this->assertTrue($processor->requests[2]->isContinuation());
+        $this->assertFalse($processor->requests[2]->approved());
+        $this->assertSame($context, $processor->requests[2]->context());
+    }
+
+    public function testUnencodableOutputIsNotReportedAsSuccessfulEmptyText(): void
+    {
+        $processor = new class implements ICommandProcessor {
+            public int $calls = 0;
+            public function process(CommandRequest|Command|array|string $request): CommandResult
+            {
+                ++$this->calls;
+                return CommandResult::completed(['measurement' => INF]);
+            }
+        };
+        $result = (new CommandHost($processor, new CommandResultPresenter()))->execute('measure');
+        $this->assertSame(1, $processor->calls);
+        $this->assertSame(CommandResult::FAILED, $result->status());
+        $this->assertTrue($result->failedAtHost());
+        $this->assertSame(['command_host_presentation_failed'], $result->diagnostics());
+        $this->assertNull($result->output());
+    }
+
     public function testItPresentsAProcessorResultWithoutExecutingItAgain(): void
     {
         $processor = new class implements ICommandProcessor {
@@ -45,6 +140,7 @@ final class CommandHostTest extends TestCase
         $this->assertSame('list resources', $processor->request?->input());
         $this->assertSame('operator-a', $processor->request?->context()['actor']['id']);
         $this->assertSame(CommandResult::FAILED, $presentation->status());
+        $this->assertFalse($presentation->failedAtHost());
         $this->assertSame(['reason' => 'unavailable'], $presentation->output());
         $this->assertSame('{"reason":"unavailable"}', $presentation->outputText());
         $this->assertSame(7, $presentation->exitCode());
