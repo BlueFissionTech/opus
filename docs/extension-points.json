@@ -1,8 +1,41 @@
 {
   "schema_version": 1,
-  "catalog_version": "1.1.0",
+  "catalog_version": "1.2.0",
   "namespace": "opus",
   "extension_points": [
+    {
+      "name": "opus.addon.organization.changed",
+      "kind": "action",
+      "area": "addon_organization",
+      "phase": "after_persistence",
+      "owner": "AddOnOrganizationService",
+      "payload": {
+        "type": "object",
+        "required": [
+          "application_id",
+          "tenant_id",
+          "revision",
+          "action"
+        ],
+        "properties": {
+          "application_id": "string",
+          "tenant_id": "mixed",
+          "revision": "integer",
+          "action": "string"
+        }
+      },
+      "returns": {
+        "type": "void"
+      },
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "State and its audit receipt are committed atomically before observers run.",
+        "Tenant ID is a string or null; actor, group, and tag content is not exposed.",
+        "Observer failures cannot roll back state or grant lifecycle or dependency authority."
+      ]
+    },
     {
       "name": "opus.intake.defaults",
       "kind": "filter",
@@ -219,6 +252,15 @@
     }
   ],
   "boundary_inventory": [
+    {
+      "area": "addon_organization",
+      "status": "hooked",
+      "owner": "AddOnOrganizationService",
+      "extension_points": [
+        "opus.addon.organization.changed"
+      ],
+      "rationale": "Observe committed organization changes while host policy, scope, revision checks, and durable audit remain authoritative."
+    },
     {
       "area": "application_intake",
       "status": "hooked",
