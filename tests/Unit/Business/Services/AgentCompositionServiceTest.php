@@ -26,6 +26,239 @@ use PHPUnit\Framework\TestCase;
 
 final class AgentCompositionServiceTest extends TestCase
 {
+    public function testInspectionIsLazyReadOnlyAndSeparateFromLifecycleState(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext(correlationId: 'inspection-a');
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+
+        $available = $service->inspect('opus.central', $context);
+        $this->assertTrue($available->ok());
+        $this->assertSame(['available' => true], $available->output());
+        $this->assertSame(AgentCompositionService::REGISTERED, $available->state());
+        $this->assertSame('inspection-a', $available->toArray()['metadata']['correlation_id']);
+        $this->assertNull($states->get('opus.central', null));
+        $this->assertSame(0, $factory->created);
+
+        $service->start('opus.central', $context);
+        $before = $states->get('opus.central', null);
+        $factory->available = false;
+        $unavailable = $service->inspect('opus.central', $context);
+        $this->assertSame(AgentRuntimeResult::UNAVAILABLE, $unavailable->status());
+        $this->assertSame(['available' => false], $unavailable->output());
+        $this->assertSame(AgentCompositionService::RUNNING, $unavailable->state());
+        $this->assertSame(['agent_runtime_unavailable'], $unavailable->diagnostics());
+        $this->assertSame($before, $states->get('opus.central', null));
+        $this->assertSame(1, $factory->created);
+        $this->assertSame(0, $factory->runtimes[0]->calls['execute']);
+    }
+
+    public function testInspectionDenialNeverProbesOrConstructsARuntime(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($this->map('sample', 'addon.sample', 'specialist', ['sample.manage']));
+
+        $results = [
+            $service->inspect('missing', new AgentRuntimeContext()),
+            $service->inspect('addon.sample', new AgentRuntimeContext()),
+            $service->inspect('addon.sample', $this->specialistContext('tenant-a')),
+            $service->inspect('addon.sample', new AgentRuntimeContext(
+                tenantId: 'tenant-a', capabilities: ['sample.manage'],
+                activeAddOns: [], lifecycleStates: ['sample' => 'inactive']
+            )),
+        ];
+        foreach ($results as $result) {
+            $this->assertSame(AgentRuntimeResult::DENIED, $result->status());
+            $this->assertNull($result->output());
+        }
+        $this->assertSame(0, $factory->availableCalls);
+        $this->assertSame(0, $factory->created);
+    }
+
+    public function testInspectionContainsProbeExceptionsAndCanObserveRecovery(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $factory->throwOnAvailable = true;
+        $factory->exceptionMessage = 'provider-secret-do-not-publish';
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+
+        $unavailable = $service->inspect('opus.central', $context);
+        $this->assertSame(AgentRuntimeResult::UNAVAILABLE, $unavailable->status());
+        $this->assertSame(['agent_runtime_probe_failed'], $unavailable->diagnostics());
+        $this->assertSame(AgentCompositionService::REGISTERED, $unavailable->state());
+        $this->assertStringNotContainsString($factory->exceptionMessage, serialize($unavailable->toArray()));
+        $factory->throwOnAvailable = false;
+        $this->assertTrue($service->inspect('opus.central', $context)->ok());
+        $this->assertSame(0, $factory->created);
+    }
+
+    public static function cachedRuntimeOperations(): array
+    {
+        return [['execute'], ['resume']];
+    }
+
+    public static function cleanupOperations(): array
+    {
+        return [['suspend', 'suspended'], ['stop', 'stopped'], ['cancel', 'running']];
+    }
+
+    /** @dataProvider cleanupOperations */
+    public function testUnavailableProviderDoesNotPreventAuthorizedCachedCleanup(string $action, string $state): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext(correlationId: 'cleanup-a');
+        $service->start('opus.central', $context);
+        $probes = $factory->availableCalls;
+        $factory->available = false;
+        $factory->throwOnAvailable = true;
+
+        $result = $service->{$action}('opus.central', $context);
+        $this->assertTrue($result->ok());
+        $this->assertSame($state, $result->state());
+        $this->assertSame('cleanup-a', $result->toArray()['metadata']['correlation_id']);
+        $this->assertSame($probes, $factory->availableCalls);
+        $this->assertSame(1, $factory->created);
+        $this->assertSame(1, $factory->runtimes[0]->calls[$action]);
+    }
+
+    /** @dataProvider cleanupOperations */
+    public function testCachedCleanupStillRequiresCurrentAuthority(string $action, string $_state): void
+    {
+        $root = $this->map('application', 'opus.central', 'central', ['agent.manage']);
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $service->start('opus.central', new AgentRuntimeContext(capabilities: ['agent.manage']));
+        $probes = $factory->availableCalls;
+        $factory->available = false;
+
+        $result = $service->{$action}('opus.central', new AgentRuntimeContext(correlationId: 'denied-a'));
+        $this->assertSame(AgentRuntimeResult::DENIED, $result->status());
+        $this->assertSame(['agent_permission_denied'], $result->diagnostics());
+        $this->assertSame('denied-a', $result->toArray()['metadata']['correlation_id']);
+        $this->assertSame($probes, $factory->availableCalls);
+        $this->assertSame(0, $factory->runtimes[0]->calls[$action]);
+    }
+
+    /** @dataProvider cleanupOperations */
+    public function testCleanupCannotCreateAnUnavailableRuntimeInAnotherHost(string $action, string $_state): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+        $service->start('opus.central', $context);
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $otherHost = new AgentCompositionService(new AgentCapabilityMapResolver($root), $factory, $states);
+        $otherHost->registerMap($root);
+        $factory->available = false;
+
+        $result = $otherHost->{$action}('opus.central', $context);
+        $this->assertSame(AgentRuntimeResult::UNAVAILABLE, $result->status());
+        $this->assertSame(AgentCompositionService::RUNNING, $result->state());
+        $this->assertSame(1, $factory->created);
+        $this->assertSame(0, $factory->runtimes[0]->calls[$action]);
+    }
+
+    /** @dataProvider cachedRuntimeOperations */
+    public function testCachedRuntimeCannotBypassCurrentAvailability(string $action): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext(correlationId: 'recovery-a');
+        $service->start('opus.central', $context);
+        if ($action === 'resume') {
+            $service->suspend('opus.central', $context);
+        }
+        $state = $action === 'resume' ? AgentCompositionService::SUSPENDED : AgentCompositionService::RUNNING;
+        $factory->available = false;
+        $operation = fn () => $action === 'execute'
+            ? $service->execute('opus.central', ['intent' => 'status'], $context)
+            : $service->{$action}('opus.central', $context);
+
+        $unavailable = $operation();
+        $this->assertSame(AgentRuntimeResult::UNAVAILABLE, $unavailable->status());
+        $this->assertSame($state, $unavailable->state());
+        $this->assertSame(['agent_runtime_unavailable'], $unavailable->diagnostics());
+        $this->assertSame(0, $factory->runtimes[0]->calls[$action]);
+        $this->assertSame('recovery-a', $unavailable->toArray()['metadata']['correlation_id'] ?? null);
+
+        $factory->available = true;
+        $recovered = $operation();
+        $this->assertTrue($recovered->ok());
+        $this->assertSame('recovery-a', $recovered->toArray()['metadata']['correlation_id'] ?? null);
+        $this->assertSame(1, $factory->runtimes[0]->calls[$action]);
+        $this->assertSame(1, $factory->created);
+    }
+
+    public function testAvailabilityIsScopedAndOneUnavailableTenantDoesNotDisableAnother(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $factory->onAvailable = static fn (AgentDescriptor $_descriptor, AgentRuntimeContext $context): bool =>
+            $context->tenantId() !== 'tenant-a';
+        $service = $this->service($root, $factory);
+        $service->registerMap($this->map('sample', 'addon.sample', 'specialist'));
+
+        $unavailable = $service->inspect('addon.sample', $this->specialistContext('tenant-a'));
+        $available = $service->inspect('addon.sample', $this->specialistContext('tenant-b'));
+        $this->assertSame(AgentRuntimeResult::UNAVAILABLE, $unavailable->status());
+        $this->assertSame('tenant-a', $unavailable->toArray()['tenant_id']);
+        $this->assertTrue($available->ok());
+        $this->assertSame(0, $factory->created);
+        $this->assertTrue($service->start('addon.sample', $this->specialistContext('tenant-b'))->ok());
+        $this->assertSame(AgentRuntimeResult::UNAVAILABLE,
+            $service->start('addon.sample', $this->specialistContext('tenant-a'))->status());
+        $this->assertSame(1, $factory->created);
+    }
+
+    public static function unexpectedFailurePhases(): array
+    {
+        return [['create'], ['execute']];
+    }
+
+    /** @dataProvider unexpectedFailurePhases */
+    public function testUnexpectedExceptionsUseStableRedactedDiagnostics(string $phase): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+        $factory->exceptionMessage = 'provider-secret-do-not-publish';
+        if ($phase === 'create') {
+            $factory->throwOnCreate = true;
+            $failed = $service->start('opus.central', $context);
+        } else {
+            $service->start('opus.central', $context);
+            $factory->throwOnExecute = true;
+            $failed = $service->execute('opus.central', ['intent' => 'status'], $context);
+        }
+        $this->assertSame(AgentRuntimeResult::FAILED, $failed->status());
+        $this->assertSame(['agent_runtime_operation_failed'], $failed->diagnostics());
+        $this->assertStringNotContainsString($factory->exceptionMessage, serialize($failed->toArray()));
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $this->assertStringNotContainsString($factory->exceptionMessage, serialize($states->get('opus.central', null)));
+        $factory->throwOnCreate = false;
+        $factory->throwOnExecute = false;
+        $this->assertTrue($service->start('opus.central', $context)->ok());
+        $this->assertTrue($service->execute('opus.central', ['intent' => 'status'], $context)->ok());
+    }
+
     public function testRegistrationDoesNotConstructAgentsAndMissingAgentsFailClosed(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
@@ -867,7 +1100,7 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(0, $otherFactory->created);
     }
 
-    public function testAvailabilityProbeFailuresReturnStructuredLifecycleFailures(): void
+    public function testAvailabilityProbeFailuresPreserveLifecycleState(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
         $factory = $this->factory();
@@ -880,9 +1113,10 @@ final class AgentCompositionServiceTest extends TestCase
             new AgentRuntimeContext(correlationId: 'start-a')
         );
 
-        $this->assertSame(AgentRuntimeResult::FAILED, $result->status());
-        $this->assertSame(['runtime_availability_failed'], $result->diagnostics());
-        $this->assertSame(AgentCompositionService::FAILED, $result->state());
+        $this->assertSame(AgentRuntimeResult::UNAVAILABLE, $result->status());
+        $this->assertSame(['agent_runtime_probe_failed'], $result->diagnostics());
+        $this->assertSame(AgentCompositionService::REGISTERED, $result->state());
+        $this->assertSame('start-a', $result->toArray()['metadata']['correlation_id'] ?? null);
     }
 
     public function testAbandonedLifecycleClaimsCanBeRecovered(): void
@@ -1233,6 +1467,9 @@ final class AgentCompositionServiceTest extends TestCase
             public bool $throwOnExecute = false;
             public bool $throwOnCreate = false;
             public bool $throwOnAvailable = false;
+            public string $exceptionMessage = 'runtime_failure';
+            public mixed $onAvailable = null;
+            public int $availableCalls = 0;
             public mixed $onCreate = null;
             public mixed $onStart = null;
             public mixed $onExecute = null;
@@ -1244,8 +1481,12 @@ final class AgentCompositionServiceTest extends TestCase
 
             public function available(AgentDescriptor $descriptor, AgentRuntimeContext $context): bool
             {
+                $this->availableCalls++;
                 if ($this->throwOnAvailable) {
-                    throw new \RuntimeException('runtime_availability_failed');
+                    throw new \RuntimeException($this->exceptionMessage);
+                }
+                if (is_callable($this->onAvailable)) {
+                    return ($this->onAvailable)($descriptor, $context);
                 }
                 return $this->available;
             }
@@ -1253,7 +1494,7 @@ final class AgentCompositionServiceTest extends TestCase
             public function create(AgentDescriptor $descriptor, AgentRuntimeContext $context): IAgentRuntime
             {
                 if ($this->throwOnCreate) {
-                    throw new \RuntimeException('runtime_create_failed');
+                    throw new \RuntimeException($this->exceptionMessage);
                 }
                 $runtime = new class($this) implements IAgentRuntime {
                     public array $calls = [
@@ -1333,7 +1574,7 @@ final class AgentCompositionServiceTest extends TestCase
                             ($this->factory->onExecute)();
                         }
                         if ($this->factory->throwOnExecute) {
-                            throw new \RuntimeException('execution_failed');
+                            throw new \RuntimeException($this->factory->exceptionMessage);
                         }
                         return AgentRuntimeResult::completed('execute', '', null, 'running', $task);
                     }
