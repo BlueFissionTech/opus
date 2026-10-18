@@ -252,6 +252,17 @@ sequence may repeat them; approval continuation belongs to the shared command
 surface, not automatic sequence resumption.
 
 
+### Add-on boot lifecycle
+
+`php vendor/bin/phpunit tests/Unit/Business/Services/AddOnBootLifecycleTest.php`
+generates real canonical add-ons and dispatches the locked BlueCore engine's
+`OnAppLoaded` behavior. It proves route callables and gateway retention, theme
+registration, selected loading after lifecycle-hook inclusion, inactive and
+deactivated exclusion, changed identity, repeated/reentrant dispatch, separate
+engine boots, and terminal failure after partial effects. Only the active-row
+database query is stubbed; no database, provider key, or optional service is used.
+This is engine registration proof, not fresh-database installation proof.
+
 ### Authenticated VCS installation in CI
 
 The baseline uses `OPUS_COMPOSER_TOKEN`, an Actions repository secret (or an

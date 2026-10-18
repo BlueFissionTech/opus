@@ -3,7 +3,7 @@ namespace App\Registration;
 // use BlueFission\BlueCore\Business\Managers\CommandManager;
 use BlueFission\BlueCore\Business\Managers\NavMenuManager;
 use BlueFission\BlueCore\Business\Managers\DatasourceManager;
-use BlueFission\BlueCore\Business\Managers\AddOnManager;
+use App\Business\Services\BootAddOnManager;
 use App\Business\MysqlConnector;
 use App\Business\Presentation\PackageTheme;
 use App\Business\Services\RuntimePathResolver;
@@ -89,7 +89,7 @@ class AppRegistration implements IExtension {
 		$this->delegate('session', Session::class);
 		// $this->delegate('cmd', CommandManager::class);
 		$this->delegate('nav', NavMenuManager::class);
-		$this->delegate('addons', AddOnManager::class);
+		$this->delegate('addons', BootAddOnManager::class);
 		$this->delegate('datasource', DatasourceManager::class);
 		$this->delegate('template', $templateRenderer);
 		$this->delegate('vibe.theme', $templateRenderer);

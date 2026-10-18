@@ -410,3 +410,21 @@ references, expiry, evidence freshness and required approval metadata. Guidance
 never grants execution authority. Unavailable/failed providers return structured
 results without exception payloads. Caller overrides create new advisory records;
 no task, budget, goal, agent, command, deployment or workflow is mutated.
+
+## Canonical add-on boot registration (#40)
+
+The platform and selected application profiles consume canonical registration
+factories through the engine's `OnAppLoaded` behavior. Loading installation hooks
+does not execute the factory. Registration rechecks the active stored identity,
+validates the package before executing it, loads the declared registration class,
+and invokes its contributions once per engine. Declared themes register under the
+package name only after the provider succeeds. Returned data catalogs do not grant
+agent, command, or menu authority.
+
+Repeated load and dispatch, including reentrant dispatch, do not repeat effects.
+Deactivation before dispatch skips the package. Unavailable or invalid canonical
+packages fail boot before execution; provider failure leaves a terminal failure
+for that engine and cannot replay partial effects. Failure messages exclude
+package exception payloads. Restart is required to retry or apply activation
+changes after boot. Historical imperative entrypoints retain the legacy loader
+contract and must migrate before receiving these guarantees.

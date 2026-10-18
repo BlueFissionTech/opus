@@ -222,6 +222,56 @@ The current manager scans each immediate directory under `addons/`. A discoverab
 
 The primary file is required for runtime loading, registration, and lifecycle hooks. Active add-ons are loaded from the stored add-on path plus `primary_file`. Keep `main.php` repeatable: it must load `logic/Lifecycle.php` with `require_once` and return the registration factory without declaring functions or performing other work. Declare optional `<name>_install()` and `<name>_uninstall()` hooks in `logic/Lifecycle.php` beneath the namespace from `definition.json`. The lifecycle manager resolves namespaced hooks first and retains global hook lookup only for legacy packages. This split allows the runtime to load hooks and later evaluate the primary file for its factory without redeclaring symbols.
 
+### Canonical boot registration
+
+Opus uses `BootAddOnManager` for the platform profile and the same contract through
+`SelectedAddOnManager` for explicitly selected profile add-ons. For packages with
+`definition.json.registration`, the manager subscribes with
+`Engine::behavior('OnAppLoaded', ...)`, matching the engine's boot dispatch.
+It queues the package without evaluating its factory. On dispatch it rereads the
+active records, verifies the selected identity, and runs the passive package
+validator before loading the declared registration class and invoking the factory.
+The returned provider must expose a public `contributions(): array` method.
+
+The generated provider loads its mappings once. For executable API, app, and
+default mappings, use the supported `Mapping` API, for example:
+
+```php
+<?php
+declare(strict_types=1);
+
+use BlueFission\Services\Mapping;
+
+Mapping::add('/sample/status', static fn (): array => ['ready' => true],
+    'sample.status', 'get')->gateway('auth');
+```
+
+Do not combine imperative registrations with a returned array in the same
+mapping file. Returned arrays are data catalogs; they are not automatically
+interpreted as route declarations. After the provider succeeds, declared theme
+directories register as `<addon-name>/<theme-name>`. The manager exposes the
+returned catalogs through `bootContributions($name)` and the registration state
+through `bootState($name)`. Catalog retrieval does not execute menu callbacks,
+dispatch console resources, or enroll agents. Those consumers retain their
+validation, activation, permissions, and approval contracts.
+
+Do not add a second boot listener inside the factory or provider. Repeated loads,
+multiple manager instances, and repeated or reentrant dispatch do not replay a
+package's registration in the same engine. Inactive packages are not queued;
+deactivation or identity changes before dispatch skip a queued package. Missing
+files, invalid contracts, and provider exceptions stop boot with
+`addon_boot_registration_failed`, without exposing the package exception payload.
+The failure stays terminal for that engine: partial PHP effects are not rolled
+back or retried. Run the add-on validator, repair the package, and restart the
+application before retrying. Activation changes after registration also require
+a new application boot; this is not hot unloading of routes or PHP classes.
+
+The host loads the declared registration class from its validated `logic/` path.
+Other package classes still require their Composer PSR-4 registration. Packages
+without a `registration` declaration retain the historical imperative loader;
+migrate them to the canonical factory before relying on these boot guarantees.
+The platform validator checks structure, not a sandbox for untrusted PHP code.
+
 Lifecycle commands and administrative endpoints return structured readiness
 outcomes. Single outcomes include `ok`, `action`, `changed`, `stage`,
 `nextAction`, per-step results, and stable readiness reason codes. Batch
