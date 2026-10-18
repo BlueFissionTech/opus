@@ -37,6 +37,9 @@ Runtime failures and unexpected bootstrap output are also caught. Bootstrap fail
 `{"ok":false,"error":"application_unavailable"}` with HTTP 503 and `no-store`,
 without exception text, paths or provider output. Install/autoload failures before
 the application boundary runs still require server diagnostics.
+The boundary records the exception type, source basename and line in PHP's
+server error log. It does not record exception messages, arguments or full host
+paths. Configure a writable, access-controlled log destination for the host.
 
 ## Health, identity and routing
 

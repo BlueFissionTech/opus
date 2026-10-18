@@ -67,10 +67,13 @@ final class ProfileBootstrap
             $this->validateConfiguration(resolve_path('common/config/*.php'));
             $application();
             ob_end_flush();
-        } catch (Throwable) {
+        } catch (Throwable $failure) {
             while (ob_get_level() > $level) {
                 ob_end_clean();
             }
+            // Keep diagnostics useful without recording messages, arguments, or host paths.
+            @error_log('Opus profile unavailable: ' . get_debug_type($failure) . ' at '
+                . basename($failure->getFile()) . ':' . $failure->getLine());
             $this->failure('application_unavailable', 503);
         } finally {
             restore_error_handler();

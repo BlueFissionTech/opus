@@ -16,6 +16,7 @@ final class ApplicationProfileHttpTest extends TestCase
     {
         $this->host = sys_get_temp_dir() . '/opus-profile-' . bin2hex(random_bytes(8));
         mkdir($this->host . '/sessions', 0700, true);
+        mkdir($this->host . '/storage', 0700, true);
     }
 
     protected function tearDown(): void
@@ -123,10 +124,22 @@ final class ApplicationProfileHttpTest extends TestCase
         $this->assertJsonResponse('/health', 503, ['ok' => false, 'error' => 'application_unavailable']);
     }
 
+    public function testBootstrapDiagnosticsExcludeExceptionMessagesAndHostPaths(): void
+    {
+        mkdir($this->host . '/mapping', 0700, true);
+        file_put_contents($this->host . '/mapping/failure.php', '<?php throw new \\RuntimeException("private-fixture-secret");');
+        $this->start('api');
+        $this->assertJsonResponse('/health', 503, ['ok' => false, 'error' => 'application_unavailable']);
+        $diagnostics = $this->diagnostics();
+        $this->assertStringContainsString('RuntimeException at failure.php:1', $diagnostics);
+        $this->assertStringNotContainsString('private-fixture-secret', $diagnostics);
+        $this->assertStringNotContainsString($this->host, $diagnostics);
+    }
+
     private function assertJsonResponse(string $path, int $status, array $body): void
     {
         $response = $this->request($path);
-        $this->assertSame($status, $response['status'], $response['body']);
+        $this->assertSame($status, $response['status'], $response['body'] . $this->diagnostics());
         $this->assertStringContainsString('application/json', $response['headers']);
         $this->assertStringContainsString('no-store', $response['headers']);
         $this->assertSame($body, json_decode($response['body'], true), $response['body']);
@@ -168,6 +181,12 @@ final class ApplicationProfileHttpTest extends TestCase
             usleep(50000);
         } while (microtime(true) < $deadline);
         $this->fail('Profile HTTP server did not start.');
+    }
+
+    private function diagnostics(): string
+    {
+        $log = $this->host . '/storage/error.log';
+        return is_file($log) ? "\n" . file_get_contents($log) : '';
     }
 
     private function request(string $path, string $header = '', string $method = 'GET', string $body = ''): array
