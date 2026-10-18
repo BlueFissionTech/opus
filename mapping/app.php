@@ -1,4 +1,5 @@
 <?php
+if (\App\Business\Services\ApplicationProfile::current()->minimal()) { return; }
 use BlueFission\BlueCore\Engine as App;
 use BlueFission\Wise\Res\EncyclopediaResource;
 use BlueFission\Wise\Res\CalculatorResource;

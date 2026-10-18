@@ -1,4 +1,5 @@
 <?php
+if (\App\Business\Services\ApplicationProfile::current()->minimal()) { return; }
 use App\Business\Presentation\VibeValue;
 use BlueFission\Services\Mapping;
 use BlueFission\Net\HTTP;

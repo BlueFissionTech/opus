@@ -1,4 +1,5 @@
 <?php
+if (\App\Business\Services\ApplicationProfile::current()->minimal()) { return; }
 use App\Business\Presentation\VibeMenu as Menu;
 use App\Business\Presentation\VibeMenuItem as MenuItem;
 use BlueFission\BlueCore\Business\Managers\NavMenuManager;
