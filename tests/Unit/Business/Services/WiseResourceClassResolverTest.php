@@ -70,6 +70,7 @@ final class WiseResourceClassResolverTest extends TestCase
         $application = new class {
             /** @var array<string, class-string> */
             public array $delegates = [];
+            public array $actions = [];
 
             public function delegate(string $name, string $resource): void
             {
@@ -78,6 +79,7 @@ final class WiseResourceClassResolverTest extends TestCase
 
             public function register(string $service, string $behavior, string $callable): void
             {
+                $this->actions[$service][$behavior] = $callable;
             }
         };
 
@@ -94,7 +96,26 @@ final class Engine
 }
 PHP);
 
-        require dirname(__DIR__, 4) . '/mapping/app.php';
+        $report = require dirname(__DIR__, 4) . '/mapping/app.php';
+
+        $catalog = new \BlueFission\Wise\Res\ResourceCatalog();
+        foreach ($catalog->definitions() as $name => $class) {
+            $this->assertSame($class, $application->delegates[$name] ?? null);
+        }
+        foreach ($catalog->aliases() as $alias => $canonical) {
+            $this->assertSame($catalog->classFor($canonical), $application->delegates[$alias] ?? null);
+        }
+        foreach ($catalog->unavailable() as $name => $reason) {
+            $this->assertArrayNotHasKey($name, $application->delegates);
+            $this->assertSame($reason, $report['unavailable'][$name]);
+        }
+        $this->assertArrayNotHasKey('task', $application->delegates, 'Do not invent catalog aliases.');
+        $this->assertArrayNotHasKey('task', $application->actions);
+        $this->assertArrayNotHasKey('resource', $application->actions);
+        $this->assertSame('browse', $application->actions['web']['get']);
+        $this->assertSame('handle', $application->actions['search']['find']);
+        $this->assertSame($application->actions['calc'], $application->actions['calculator']);
+        $this->assertSame(\App\Business\Commands\UserResource::class, $application->delegates['user']);
 
         $resource = $application->delegates['file'] ?? null;
         $this->assertNotNull($resource);

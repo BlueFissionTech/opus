@@ -498,3 +498,14 @@ state, scope isolation, review and persistence requirements remain mandatory aft
 configuration extensions. These are host configuration guarantees; persistent
 learning, application-scoped profile adapters, live authorization and promotion
 workflows remain required before #99 is complete.
+
+### Authoritative Wise resource mappings (#61)
+
+Wise delegate names, classes, aliases and unavailable-capability diagnostics come
+from the released ResourceCatalog in the locked optional Wise package. The host
+preflights the catalog and every available definition before any Wise delegate or
+command mapping is written. Missing required integration fails; missing optional
+integration skips the entire Wise mapping. Local application commands remain
+independent. Catalog lookup must not construct resources or providers, and catalog
+availability is not a permission grant or proof that private profile adapters exist.
+Host-owned command verbs remain explicit; aliases inherit their canonical bindings.
