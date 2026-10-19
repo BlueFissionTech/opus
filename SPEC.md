@@ -234,6 +234,10 @@ Acceptance criteria:
   names, and command execution rechecks the same policy.
 - Confirmation continuations remain pinned to the originating actor, tenant,
   agent, tool, and profile.
+- A denied continuation exposes no stored tool, profile, command or token.
+  Missing and foreign tokens produce the same public denial for the same
+  caller context. Scope checks precede profile policy resolution; denial must
+  neither consume the owner's continuation nor invoke the underlying processor.
 - The built-in conversation catalog is versioned and deterministic, starts in
   shadow mode, and contains only safe command-discovery and private-profile
   read examples.

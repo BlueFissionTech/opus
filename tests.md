@@ -1,5 +1,13 @@
 # Testing Opus Framework
 
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentScopedProfileTest|AgentCapabilityMapTest|AgentCommandContextLifecycleTest|CommandHostTest'`
+for continuation scope and command-policy regressions. Denied known tokens and
+unknown tokens must produce the same public result for a given caller context,
+without stored tool/profile details, underlying execution or token consumption.
+Fixtures cover actor, tenant, agent, profile and revoked-permission boundaries,
+and prove that the original owner can still resume after a denied attempt.
+These tests do not establish constant-time lookup or atomic storage consumption.
+
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AddOnBootLifecycleTest.php`
 for the canonical boot contract. The real installed `Engine::bootstrap()` loads
 synthetic baseline mappings before add-on routes, themes and service overrides.

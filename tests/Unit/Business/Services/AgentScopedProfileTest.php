@@ -261,6 +261,62 @@ final class AgentScopedProfileTest extends TestCase
         $this->assertSame(0, $processor->executions);
     }
 
+    /** @dataProvider deniedContinuationContexts */
+    public function testDeniedContinuationDoesNotRevealWhetherATokenExists(array $changes, bool $approved): void
+    {
+        $this->requireWiseProcessor();
+        $processor = $this->processor(true);
+        $continuations = $this->continuations();
+        $scoped = $this->scoped($processor, $continuations);
+        $owner = $this->userContext();
+        $pending = $scoped->process(new CommandRequest('list todo', CommandRequest::EXECUTE, $owner));
+        $this->assertTrue($pending->confirmationRequired());
+        $context = array_replace($owner, $changes);
+
+        $known = $scoped->process(CommandRequest::resume('profile-continuation', $approved, $context));
+        $unknown = $scoped->process(CommandRequest::resume('unknown-token', $approved, $context));
+
+        $this->assertSame(CommandResult::INVALID, $known->status());
+        $this->assertSame($unknown->output(), $known->output());
+        $this->assertSame($unknown->diagnostics(), $known->diagnostics());
+        $this->assertSame($unknown->metadata(), $known->metadata());
+        $this->assertArrayNotHasKey('agent_tool', $known->metadata());
+        $this->assertArrayNotHasKey('wise_profile_access', $known->metadata());
+        $this->assertNull($known->command());
+        $this->assertNull($known->continuationToken());
+        $this->assertFalse($known->confirmationRequired());
+        $this->assertSame(1, $processor->executions);
+        $this->assertNotNull($continuations->get('profile-continuation'));
+
+        $completed = $scoped->process(CommandRequest::resume('profile-continuation', true, $owner));
+        $this->assertSame(CommandResult::COMPLETED, $completed->status());
+        $this->assertSame(2, $processor->executions);
+        $this->assertNull($continuations->get('profile-continuation'));
+    }
+
+    public static function deniedContinuationContexts(): iterable
+    {
+        $contexts = [
+            'other actor' => ['actor' => ['id' => 'user-b']],
+            'missing actor' => ['actor' => null],
+            'other tenant' => ['tenant_id' => 'tenant-b'],
+            'other agent' => ['agent_id' => 'addon.other'],
+            'other profile' => ['wise_profile_target' => [
+                'type' => WiseProfile::USER,
+                'principal_id' => 'user-b',
+                'tenant_id' => 'tenant-a',
+            ]],
+            'invalid profile' => ['wise_profile_target' => ['principal_id' => 'user-b']],
+        ];
+        foreach ($contexts as $name => $context) {
+            yield $name . ' approve' => [$context, true];
+            yield $name . ' reject' => [$context, false];
+        }
+        yield 'revoked profile permission' => [[
+            'profile_policy' => ['tenant' => ['denies' => ['todos.read']]],
+        ], true];
+    }
+
     private function scoped(
         ICommandProcessor $processor,
         ?IAgentContinuationScopeStore $continuations = null
