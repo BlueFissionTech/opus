@@ -51,7 +51,8 @@ final class AutomataStrategyRuntimeFactory implements IAgentRuntimeFactory
             $context->tenantId(),
             (array) $this->profiles->get($descriptor->profile()),
             $router,
-            $this->authorize
+            $this->authorize,
+            $context->applicationId()
         );
     }
 }

@@ -8,6 +8,8 @@ use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentCompositionService;
 use App\Business\Services\AgentDelegationService;
+use App\Business\Services\ApplicationAgentRuntimeStateStore;
+use App\Domain\Agents\AgentApplicationScope;
 use App\Domain\Agents\AgentCapabilityMap;
 use App\Domain\Agents\AgentDelegationResult;
 use App\Domain\Agents\AgentDescriptor;
@@ -179,16 +181,51 @@ final class AgentDelegationServiceTest extends TestCase
         $this->assertSame('hierarchical', $data['metadata']['pattern']);
     }
 
-    private function service(array $billingPermissions = []): array
+    public function testDelegationPreservesApplicationBindingAndRejectsForeignOrAbsentScope(): void
+    {
+        $scope = new AgentApplicationScope('app-a');
+        [$service, $composition, $factory] = $this->service(applicationScope: $scope);
+        $context = $this->context(applicationScope: $scope);
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $factory->outputs['addon.search'] = ['matches' => 1];
+        foreach ([null, new AgentApplicationScope('app-b')] as $foreign) {
+            $denied = $service->delegate('opus.central', ['addon.search'], ['query' => 'bounded'],
+                $this->context(applicationScope: $foreign));
+            $this->assertFalse($denied->ok());
+            $this->assertContains('agent_application_scope_mismatch', $denied->diagnostics());
+            $this->assertSame([], $factory->executions);
+        }
+        $allowed = $service->delegate('opus.central', ['addon.search'], ['query' => 'bounded'], $context);
+        $this->assertTrue($allowed->ok());
+        $this->assertSame(['matches' => 1], $allowed->output()['addon.search']);
+        $this->assertCount(1, $factory->executions['opus.central']);
+        $this->assertCount(1, $factory->executions['addon.search']);
+    }
+
+    public function testApplicationScopeDenialPrecedesDelegationDescriptorValidation(): void
+    {
+        [$service, , $factory] = $this->service(applicationScope: new AgentApplicationScope('app-a'));
+        $foreign = $this->context(applicationScope: new AgentApplicationScope('app-b'));
+        foreach ([['opus.central', ['addon.search']], ['unknown', ['unknown']], ['opus.central', []]] as [$coordinator, $participants]) {
+            $result = $service->delegate($coordinator, $participants, [], $foreign);
+            $this->assertSame(AgentDelegationResult::DENIED, $result->status());
+            $this->assertSame(['agent_application_scope_mismatch'], $result->diagnostics());
+        }
+        $this->assertSame([], $factory->executions);
+    }
+
+    private function service(array $billingPermissions = [], ?AgentApplicationScope $applicationScope = null): array
     {
         $root = $this->map('application', 'opus.central', 'central');
         $search = $this->map('search', 'addon.search', 'specialist');
         $billing = $this->map('billing', 'addon.billing', 'generated', $billingPermissions);
         $factory = new DelegationRuntimeFactory();
+        $states = new DelegationStateStore();
         $composition = new AgentCompositionService(
             new AgentCapabilityMapResolver($root),
             $factory,
-            new DelegationStateStore()
+            $applicationScope === null ? $states : new ApplicationAgentRuntimeStateStore($applicationScope, $states)
         );
         $composition->registerMap($root);
         $composition->registerMap($search);
@@ -204,7 +241,7 @@ final class AgentDelegationServiceTest extends TestCase
         $this->assertTrue($composition->start('addon.billing', $context)->ok());
     }
 
-    private function context(array $capabilities = []): AgentRuntimeContext
+    private function context(array $capabilities = [], ?AgentApplicationScope $applicationScope = null): AgentRuntimeContext
     {
         return new AgentRuntimeContext(
             tenantId: 'tenant-a',
@@ -212,7 +249,8 @@ final class AgentDelegationServiceTest extends TestCase
             activeAddOns: ['search', 'billing'],
             lifecycleStates: ['search' => 'active', 'billing' => 'active'],
             capabilities: $capabilities,
-            correlationId: 'correlation-a'
+            correlationId: 'correlation-a',
+            applicationScope: $applicationScope
         );
     }
 

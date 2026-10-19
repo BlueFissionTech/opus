@@ -22,7 +22,8 @@ final class AgentRuntimeContext
         array $activeAddOns = [],
         array $lifecycleStates = [],
         array $capabilities = [],
-        ?string $correlationId = null
+        ?string $correlationId = null,
+        private ?AgentApplicationScope $applicationScope = null
     ) {
         $this->tenantId = Str::isNotEmpty((string) $tenantId) ? Str::make((string) $tenantId) : null;
         $this->actor = Arr::make($actor);
@@ -37,6 +38,11 @@ final class AgentRuntimeContext
     public function tenantId(): ?string
     {
         return $this->tenantId?->val();
+    }
+
+    public function applicationId(): ?string
+    {
+        return $this->applicationScope?->id();
     }
 
     public function actor(): array
@@ -66,7 +72,7 @@ final class AgentRuntimeContext
 
     public function toArray(): array
     {
-        return [
+        $context = [
             'tenant_id' => $this->tenantId(),
             'actor' => $this->actor(),
             'active_addons' => $this->activeAddOns(),
@@ -74,5 +80,10 @@ final class AgentRuntimeContext
             'capabilities' => $this->capabilities(),
             'correlation_id' => $this->correlationId(),
         ];
+        if ($this->applicationScope !== null) {
+            $context['application_id'] = $this->applicationId();
+        }
+
+        return $context;
     }
 }

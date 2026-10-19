@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Business\Services;
 
 use App\Domain\Agents\AgentCapabilityMap;
+use App\Domain\Agents\AgentApplicationScope;
 use App\Domain\Agents\AgentDescriptor;
 use App\Domain\Agents\AgentRuntimeContext;
 use App\Domain\Agents\AgentRuntimeResult;
 use App\Domain\Agents\IAgentRuntime;
 use App\Domain\Agents\IAgentRuntimeFactory;
 use App\Domain\Agents\IAgentRuntimeStateStore;
+use App\Domain\Agents\IApplicationScopedAgentRuntimeStateStore;
 use BlueFission\Arr;
 use BlueFission\Services\Service;
 use BlueFission\Str;
@@ -29,6 +31,7 @@ final class AgentCompositionService extends Service
 
     private Arr $descriptors;
     private Arr $runtimes;
+    private ?AgentApplicationScope $applicationScope;
 
     public function __construct(
         private AgentCapabilityMapResolver $resolver,
@@ -39,6 +42,9 @@ final class AgentCompositionService extends Service
         parent::__construct();
         $this->descriptors = Arr::make([]);
         $this->runtimes = Arr::make([]);
+        $this->applicationScope = $states instanceof IApplicationScopedAgentRuntimeStateStore
+            ? $states->applicationScope()
+            : null;
     }
 
     public function registerMap(AgentCapabilityMap $map): AgentRuntimeResult
@@ -471,7 +477,9 @@ final class AgentCompositionService extends Service
             ], $completion);
             $latestState = $this->state($agentId, $context);
 
-            return $result->forScope('execute', $agentId, $context->tenantId(), $latestState);
+            return $this->correlate(
+                $result->forScope('execute', $agentId, $context->tenantId(), $latestState), $context
+            );
         } catch (Throwable) {
             $claimRelease = 'not_attempted';
             // A reporting failure must not trigger another completion write.
@@ -767,11 +775,21 @@ final class AgentCompositionService extends Service
         }
     }
 
+    public function matchesApplicationScope(AgentRuntimeContext $context): bool
+    {
+        return $this->applicationScope?->id() === $context->applicationId();
+    }
+
     private function authorize(
         string $action,
         string $agentId,
         AgentRuntimeContext $context
     ): ?AgentRuntimeResult {
+        if (!$this->matchesApplicationScope($context)) {
+            return AgentRuntimeResult::denied(
+                $action, $agentId, $context->tenantId(), self::UNKNOWN, 'agent_application_scope_mismatch'
+            );
+        }
         $descriptor = $this->descriptorFor($agentId);
         $state = $this->state($agentId, $context);
         if (!$descriptor instanceof AgentDescriptor) {
@@ -976,6 +994,9 @@ final class AgentCompositionService extends Service
 
     private function correlate(AgentRuntimeResult $result, AgentRuntimeContext $context): AgentRuntimeResult
     {
+        if ($this->applicationScope !== null && $this->applicationScope->id() === $context->applicationId()) {
+            $result = $result->withMetadata(['application_id' => $this->applicationScope->id()]);
+        }
         return $result->withMetadata(['correlation_id' => $context->correlationId()]);
     }
 

@@ -28,7 +28,8 @@ final class AutomataStrategyRuntime implements IAgentRuntime
         private ?string $tenantId,
         array $policy,
         private StrategyRouter $router,
-        private Closure $authorize
+        private Closure $authorize,
+        private ?string $applicationId = null
     ) {
         $this->policy = Arr::make($policy);
     }
@@ -76,7 +77,9 @@ final class AutomataStrategyRuntime implements IAgentRuntime
             $request = new StrategyRouteRequest([
                 'id' => $executionId,
                 'subject_id' => $this->descriptor->id() . ':' . hash('sha256',
-                    $this->tenantId === null ? 'application' : 'tenant:' . $this->tenantId),
+                    $this->applicationId === null
+                        ? ($this->tenantId === null ? 'application' : 'tenant:' . $this->tenantId)
+                        : Arr::make([$this->applicationId, $this->tenantId])->toJson()),
                 'capability_id' => (string) $this->policy->get('capability_id'),
                 'capability_version' => (string) $this->policy->get('capability_version'),
                 'candidates' => (array) $this->policy->get('candidates'),
@@ -141,7 +144,8 @@ final class AutomataStrategyRuntime implements IAgentRuntime
 
     private function scopeDenial(string $action, AgentRuntimeContext $context): ?AgentRuntimeResult
     {
-        return $context->tenantId() === $this->tenantId ? null : AgentRuntimeResult::denied(
+        return $context->tenantId() === $this->tenantId && $context->applicationId() === $this->applicationId
+            ? null : AgentRuntimeResult::denied(
             $action, $this->descriptor->id(), $context->tenantId(), 'unknown', 'agent_runtime_scope_mismatch'
         );
     }
