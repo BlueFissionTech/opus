@@ -561,3 +561,12 @@ failed diagnostic remains inspectable with required/isolated flags. Partial or
 unknown effects still stop boot. Later policy changes and file repair must not
 replay failed registration inside the same engine. Real Engine bootstrap proof
 must preserve an unaffected host route and separately registered healthy package.
+
+### Canonical boot result observation (#110)
+
+Publish one detached, redacted boot report through opus.addon.boot.result after
+a canonical queued registration settles, preserving the original outcome and
+failure. Observer return values, argument mutation, exceptions and reentrant
+boot events must not change policy or replay registration. Disabled dispatch and
+later subscriptions do not backfill results. Catalog version1.3.0 documents the
+payload, order and failure policy; lifecycle mutation stays service-owned.
