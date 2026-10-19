@@ -512,6 +512,19 @@ subsequent integration work and are not claimed by this persistence increment.
 
 
 
+### Explicit application runtime scope (#29)
+
+An installation may bind its runtime state store to an immutable application
+identity supplied by trusted host configuration. Explicitly scoped composition
+requires the same application identity in every lifecycle/execution context,
+before state reads, provider discovery or runtime construction. An absent
+identity is not an application-wide grant. Tenant and agent checks still apply.
+Shared storage and operation locks must isolate identical tenant/agent names
+across applications, and native strategy subjects must include the application.
+Legacy unbound composition may accept only unbound contexts; it cannot claim
+these guarantees. Scoped storage never inherits legacy claims or approvals.
+This boundary does not install Cogito modules or provide their teardown.
+
 ### Conversational learning policy guards (#99)
 
 Unknown-intent capture requires a strict boolean allow through the package,

@@ -29,6 +29,9 @@ final class AgentDelegationService extends Service
         array $task,
         AgentRuntimeContext $context
     ): AgentDelegationResult {
+        if (!$this->agents->matchesApplicationScope($context)) {
+            return AgentDelegationResult::denied($coordinatorId, [], 'agent_application_scope_mismatch');
+        }
         $participants = Arr::make($specialistIds)
             ->map(fn ($id): string => Str::make((string) $id)->trim()->val())
             ->filter(fn (string $id): bool => Str::isNotEmpty($id))

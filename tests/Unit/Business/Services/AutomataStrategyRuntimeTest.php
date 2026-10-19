@@ -6,11 +6,16 @@ namespace Tests\Unit\Business\Services;
 
 use App\Business\Services\AutomataStrategyRuntimeFactory;
 use App\Business\Services\AgentCompositionService;
+use App\Business\Services\AgentRuntimeStateStore;
+use App\Business\Services\ApplicationAgentRuntimeStateStore;
 use App\Business\Services\AgentCapabilityMapResolver;
 use App\Domain\Agents\AgentCapabilityMap;
+use App\Domain\Agents\AgentApplicationScope;
 use App\Domain\Agents\AgentDescriptor;
 use App\Domain\Agents\AgentRuntimeContext;
 use App\Domain\Agents\IAgentRuntimeStateStore;
+use App\Domain\Agents\IAgentRuntimeStateSynchronizer;
+use BlueFission\Data\Storage\Storage;
 use BlueFission\Automata\DecisionTree\DecisionTree;
 use BlueFission\Automata\DecisionTree\DepthFirstTraceMethod;
 use BlueFission\Automata\DecisionTree\Node;
@@ -248,6 +253,65 @@ final class AutomataStrategyRuntimeTest extends TestCase
         $this->assertTrue($service->stop('opus.central', $allowed)->ok());
         $this->assertSame(1, $this->builds);
         $this->assertSame(1, $this->authorizations);
+    }
+
+    public function testApplicationsSharingTenantAndAgentHaveSeparateNativeLifecycleAndSubjects(): void
+    {
+        $root = new AgentCapabilityMap(1, 'application', ['opus.central' => [
+            'mode' => 'central', 'profile' => 'review', 'permissions' => ['review.execute'],
+            'tools' => [], 'imports' => [], 'exports' => [],
+        ]]);
+        $lock = $this->createMock(IAgentRuntimeStateSynchronizer::class);
+        $lock->method('synchronized')->willReturnCallback(fn ($scope, $operation) => $operation());
+        $base = new AgentRuntimeStateStore(new Storage(), $lock);
+        $factory = $this->factory();
+        $services = $contexts = [];
+        foreach (['app-a', 'app-b'] as $id) {
+            $scope = new AgentApplicationScope($id);
+            $services[$id] = new AgentCompositionService(new AgentCapabilityMapResolver($root), $factory,
+                new ApplicationAgentRuntimeStateStore($scope, $base));
+            $services[$id]->registerMap($root);
+            $contexts[$id] = new AgentRuntimeContext('same-tenant', capabilities: ['review.execute'], applicationScope: $scope);
+        }
+        $a = $services['app-a'];
+        $b = $services['app-b'];
+        $this->assertTrue($a->start('opus.central', $contexts['app-a'])->ok());
+        $this->assertSame('registered', $b->inspect('opus.central', $contexts['app-b'])->state());
+        $this->assertSame('denied', $a->execute('opus.central', [], $contexts['app-b'])->status());
+        $this->assertSame(0, $this->authorizations);
+        $this->assertSame(1, $this->builds);
+        $this->assertTrue($b->start('opus.central', $contexts['app-b'])->ok());
+        foreach (['app-a', 'app-b'] as $id) {
+            $result = $services[$id]->execute('opus.central', ['input' => [], 'application_id' => 'forged'], $contexts[$id]);
+            $this->assertTrue($result->ok());
+            $this->assertSame($id, $result->toArray()['metadata']['application_id']);
+        }
+        $this->assertNotSame($this->requests[0]['subject_id'], $this->requests[1]['subject_id']);
+        $this->assertTrue($a->stop('opus.central', $contexts['app-a'])->ok());
+        $this->assertSame('running', $b->inspect('opus.central', $contexts['app-b'])->state());
+        $this->assertSame(2, $this->builds);
+    }
+
+    public function testNativeApplicationScopeIsDistinctFromMissingAndForeignScope(): void
+    {
+        $descriptor = new AgentDescriptor('opus.central', 'application', ['mode' => 'central', 'profile' => 'review']);
+        $factory = $this->factory();
+        $a = new AgentRuntimeContext(applicationScope: new AgentApplicationScope('app-a'));
+        $b = new AgentRuntimeContext(applicationScope: new AgentApplicationScope('app-b'));
+        $runtime = $factory->create($descriptor, $a);
+        foreach ([$b, new AgentRuntimeContext()] as $foreign) {
+            foreach (['start', 'suspend', 'resume', 'stop'] as $action) {
+                $this->assertSame('denied', $runtime->{$action}($foreign)->status());
+            }
+            $this->assertSame('denied', $runtime->cancel('execution', $foreign)->status());
+            $this->assertSame('denied', $runtime->execute('execution', [], $foreign)->status());
+        }
+        $this->assertSame(0, $this->authorizations);
+        $this->assertTrue($runtime->execute('a', ['input' => []], $a)->ok());
+        $this->assertTrue($factory->create($descriptor, $b)->execute('b', ['input' => []], $b)->ok());
+        $this->assertNotSame($this->requests[0]['subject_id'], $this->requests[1]['subject_id']);
+        $this->assertSame('app-a', $a->toArray()['application_id']);
+        $this->assertArrayNotHasKey('application_id', (new AgentRuntimeContext())->toArray());
     }
 
     private function descriptor(string $profile = 'review'): AgentDescriptor

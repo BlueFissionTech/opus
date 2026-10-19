@@ -1,5 +1,12 @@
 # Testing Opus Framework
 
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'ApplicationAgentRuntimeScopeTest|AutomataStrategyRuntimeTest|AgentCompositionServiceTest|AgentDelegationServiceTest'`
+for [application-bound runtime isolation](docs/agent-application-scope.md).
+Fixtures share a real host `Storage` object with synthetic synchronization and
+exercise native Automata routing, isolated state/claims/locks, pre-read denial,
+scope-preserving delegation and legacy separation. They do not certify live
+database concurrency or principal-module installation.
+
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentScopedProfileTest|AgentCapabilityMapTest|AgentCommandContextLifecycleTest|CommandHostTest'`
 for continuation scope and command-policy regressions. Denied known tokens and
 unknown tokens must produce the same public result for a given caller context,
