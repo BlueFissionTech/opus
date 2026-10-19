@@ -315,6 +315,15 @@ silently resuming them with empty answers or defaults. Encoding failures raise
 `intake_session_encoding_failed` without persisting or including content in the
 error message.
 
+### Wise resource catalog integration
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "WiseResource|WiseIntegrationGuard|DevElationHelperUsageTest"`.
+Coverage includes the exact installed catalog, canonical and alias mappings,
+unavailable diagnostics, missing required/optional dependencies, preflight atomicity,
+local command separation and actual Application delegation with a controlled
+resolver. See [Wise resource catalog integration](docs/wise-resource-catalog.md)
+for command-name migration and the construction/execution proof boundary.
+
 ### Add-on organization persistence
 
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AddOnOrganizationTest.php`.
