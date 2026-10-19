@@ -28,12 +28,26 @@ adoption packet; no dependency update is proposed here.
 | SimpleClients `v0.1.0-alpha`, `0efa8e3ba0f012d107b7aa1a70040b95e313065e` | `Contracts/ClientInterface.php`, `ProviderCapabilityMap.php` | A configure/capabilities/send contract exists, but the capability map inspected does not register OpenAI, Gemini, Hugging Face or Pokee. An absent entry yields empty actions; that is not proof of support. |
 | Same SimpleClients revision | `OpenAIClient.php`, `GoogleGeminiClient.php` | OpenAI delegates to the Automata connector. Gemini uses an injected/resolved client and `geminiPro()->generateContent()` for generation. Neither wrapper declares the inspected ClientInterface. Provider-specific wrappers and the generic contract need an owner-reviewed convergence path. |
 | Same SimpleClients revision | `HuggingFaceClient.php` | Defaults to Hub API access; `useModel()` posts to a model `/usage` path. This is not evidence of implementing the documented Inference Providers chat endpoint. Keep model discovery separate from inference execution. |
+| Synthetiq `v0.1.0-alpha.1`, `666ac8f0585fc92f7a1f9de8405e0eba39d31198` | `Fallback/FallbackProviderInterface.php`, `LocalModelFallbackResponder.php` | The provider returns nullable text from prompt/context/metadata. The responder is disabled by default; when enabled, it constructs a prompt and captures a training candidate containing prompt/response/input/metadata. This is not a provider-neutral structured tool/stream contract. Candidate capture requires an explicit retention and permissible-use review before hosted fallback adoption. |
+| Wise `v0.1.0-alpha.2`, `e55c68fd690c529989ccce62c74f2fe62e00edef` | `Wise/Cmd/ICommandProcessor.php`, `IContinuationStore.php` | Processing returns CommandResult; continuation storage exposes put and scoped consume returning a claim. Reuse these host-facing boundaries. The interfaces alone do not prove atomic consumption, grant freshness or provider-specific tool-call correlation. |
+| Annex PHP SDK `dev-main`, `68d109548791e8dd9d54b3fd8e3542495f0e5ee7` | `resources/schemas/annex-capability-profile-v0.2.0.schema.json` | The schema requires entry manifest, client negotiation, delegated actions, service scopes, transports, SDK handoff and signature. It includes bounded retry and idempotency declarations. Map into these existing concepts before proposing extensions. |
 | Opus PR #172, `06a6d0801f3916692f892c348a83bf005e4e7f41` | Native strategy runtime and tests | Host injection connects composition to native routing without activating a default provider. Local proof: 13 focused tests/77 assertions; full 710 tests/3,780 assertions, 12 skips. This is deterministic routing and host-boundary evidence, not hosted-model or asynchronous cancellation evidence. |
 
-Source locations are relative to each package's `src/` directory. The Opus
-change remains a PR at this research checkpoint. Synthetiq normalization, Wise
-tool continuation, Annex manifest mapping and model-specific licenses require
-separate exact-source reviews before R1 can be considered complete.
+Source locations are relative to each package's `src/` directory unless an
+explicit `resources/` path is given. The Opus change remains a PR at this
+research checkpoint. Interface inventory is not full implementation review:
+normalization fidelity, continuation-store atomicity, complete Annex validation
+and model-specific licenses remain open before R1 acceptance.
+
+Proposed Annex mapping: use profile identity/version for the negotiated profile,
+entry-manifest capabilities for advertised operations, service scopes for
+required scope declarations, and delegated-action fields for idempotency/retry
+requirements. Do not store execution grants in those declarations. The inspected
+schema does not itself settle the representation of model/template digests,
+measured fidelity or the six capability dispositions in the plan. Request the
+protocol owner's mapping or extension decision rather than adding arbitrary
+fields and declaring interoperability. A signature also needs verifier/trust
+policy evidence; the presence of a signature field is insufficient.
 
 ### Primary documentation assessment
 
