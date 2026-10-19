@@ -342,3 +342,22 @@ Coverage includes explicit and malformed capture denials at every layer, denial
 preservation through both filters, immutable seed hints, and mandatory artifact
 trust/serialization/isolation guards. This is configuration proof, not a live
 learning or provider integration claim.
+
+### Add-on PSR-4 declarations
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "AddOnClassAutoloadTest|AddOnScaffoldServiceTest|AddOnBootLifecycleTest"`.
+The declaration tests cover class, interface, trait and enum names, case-sensitive
+filename matching, additional declarations and namespace changes. They retain
+anonymous-class and function-only support and prove package statements are not
+executed or classes loaded during validation. Engine lifecycle tests separately
+exercise generated packages through the installed BlueCore engine.
+
+### Embedded add-on validation
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "AddOnValidationProfileTest|AddOnBootLifecycleTest"`.
+Coverage includes explicit host containment, inherited/local tooling precedence,
+exact host PSR-4 mappings, missing files, malformed layer declarations, optional
+unused directories, migration warnings and unchanged source/mapping/template
+errors. Installed-engine tests register an embedded package exactly once and
+reject metadata that tries to choose its own validation policy. No Composer
+installation, database connection or provider credentials are needed.

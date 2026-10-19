@@ -79,11 +79,53 @@ resource/
         default.vibe
     src/
 datasources/
-    generator/     # required; may be empty
-    structure/     # required; may be empty
+    generator/     # required by the current lifecycle manager; may be empty
+    structure/     # required by the current lifecycle manager; may be empty
 tests/
 phpunit.xml
 ```
+
+### Package and embedded validation
+
+Validation defaults to the `package` profile: `composer.json`, `phpunit.xml` and
+`tests/bootstrap.php` belong to the add-on. Use the explicit `embedded` profile
+for a host-owned add-on that inherits any missing tooling files:
+
+```shell
+php bin/opus-addon.php validate addons/sample_tools package
+php bin/opus-addon.php validate addons/sample_tools embedded .
+```
+
+The service equivalent is `validate($root, 'embedded', $hostRoot)`. The resolved
+host must contain the add-on. Each inherited file must exist inside that host;
+existing local files always take precedence and malformed local metadata fails.
+An inherited Composer manifest must map the exact `AddOns\\SampleTools\\`
+PSR-4 prefix to `addons/sample_tools/logic/` (a Composer path list is supported).
+It describes the host, so its package type/name need not describe the add-on.
+The definition, registration factory, mappings, source namespaces and Vibe
+resources remain package-owned and receive the same checks in both profiles.
+Validation reads tooling without executing it or granting lifecycle authority.
+Both profiles reject broken links and links escaping the package before reading
+its metadata or source; shared host tooling is selected only by explicit inheritance.
+
+Host composition can call `$manager->useValidationProfile('embedded', $hostRoot)`
+on `BootAddOnManager` or `SelectedAddOnManager` before queuing add-ons. Each queued
+registration retains that context. The default remains `package`; an add-on's
+own metadata cannot select its validation profile.
+
+Declare required code layers in `definition.json`, for example
+`"layers": ["models", "repositories"]`. Supported layer names are `http`,
+`commands`, `prompts`, `models`, `queries`, `repositories`, `values` and `assets`,
+corresponding to the directories in the generated tree.
+Unused layer directories are optional; `logic/`, `mapping/` and `resource/markup/`
+remain required. The current lifecycle manager also requires both datasource
+directories, even without database work. The scaffold provides empty directories for convenience and
+declares no required layers until the author selects capabilities.
+
+Existing definitions without `layers` remain valid with `layers_undeclared`;
+add an explicit list during migration. `host_tooling_inherited` identifies each
+inherited file. These warnings never suppress `layer_missing`, malformed metadata,
+autoload, mapping or template errors. Unknown profiles and layer names fail closed.
 
 Mapping files use one of two contracts. The generated form contains an optional
 strict-types declaration followed by a single returned array. Existing packages
@@ -177,6 +219,15 @@ root autoloader for packages installed under `addons/`.
 Server-rendered templates use `.vibe`, canonical `{$value}` variables,
 executable `.vibe` includes, and named regions. Client-side Reactor bindings
 remain separate from the server template contract.
+
+Named classes, interfaces, traits and enums under `logic/` must match their
+PSR-4 namespace and filename exactly, including case. For example,
+`logic/Domain/Values/Status.php` declares `AddOns\Example\Domain\Values\Status`.
+Move additional named declarations into their own matching files when migrating
+an existing package. Function-only lifecycle files and anonymous classes remain
+supported. The validator reports `class_file_mismatch` without executing source
+or invoking autoloaders; successful validation does not certify arbitrary package
+code as safe to execute.
 
 Values used outside ordinary text or attribute contexts must carry an explicit
 host policy. Use `VibeValue::url()` for links, form actions, and media sources;
