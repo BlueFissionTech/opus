@@ -570,3 +570,12 @@ failure. Observer return values, argument mutation, exceptions and reentrant
 boot events must not change policy or replay registration. Disabled dispatch and
 later subscriptions do not backfill results. Catalog version1.3.0 documents the
 payload, order and failure policy; lifecycle mutation stays service-owned.
+
+### Passive DevElation source inventory (#151)
+
+Provide a dependency-free audit command for app/common/mapping PHP source with
+stable per-module summaries, source hashes and line-addressed primitive, service,
+behavior and hook references. Keep declarations, static fluent chains and
+unresolved behavior candidates distinct. Never execute inspected source or infer
+runtime compatibility from lexical counts. Missing/unreadable or unparsable input
+must yield an incomplete report and a nonzero process result.
