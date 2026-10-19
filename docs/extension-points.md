@@ -16,6 +16,8 @@ privacy, review, and execution invariants after filters where required.
 
 | Name | Kind | Phase | Failure policy |
 | --- | --- | --- | --- |
+| `opus.addon.boot.result` | action | After a canonical registration outcome settles | Ignore observer failure; preserve boot result |
+| `opus.addon.organization.changed` | action | After persistence | Ignore observer failure |
 | `opus.intake.defaults` | filter | Before session creation | Propagate before persistence |
 | `opus.intake.session.transitioned` | action | After persistence | Propagate without rolling back the completed write |
 | `opus.agent.command_context` | filter | After authoritative context resolution | Propagate before execution |
@@ -92,3 +94,38 @@ hints follow the final decision. Trusted-artifact requirements, disabled seriali
 learning state, and scope isolation are restored after configuration filters. See
 [Conversational learning policy](conversational-learning-policy.md) for the exact
 composition rules and remaining runtime integration requirements.
+
+## Canonical boot results (catalog 1.3.0)
+
+`opus.addon.boot.result` delivers the version 1 `bootReport()` snapshot once for
+an engine's canonical queued registration after it becomes `registered`,
+`skipped`, or `failed`. Success has registered themes/contributions already
+available; failure has cleared contributions and settled required/optional
+isolation policy. A required failure still throws its original sanitized
+`AddOnBootException` after observation.
+
+The array contains `version`, `identity`, `state`, `phase`, `reason`, `effects`,
+`retryable`, `required`, and `isolated`. Identity contains only the persisted
+`id`, `name`, `namespace`, and `version` strings. Reason is a stable diagnostic
+string for failed/skipped attempts or null for success. No paths, configuration,
+contribution bodies, provider data, exception objects or private exception text
+are passed to observers. The host record is not passed by reference.
+
+Register handlers before the boot event and enable DevElation through the host's
+normal configuration. Priorities ascend; equal-priority handlers retain their
+registration order. Return values are ignored. A throwing handler stops later
+handlers for that delivery under the installed DevElation dispatcher; the host
+ignores that observer error without altering success, isolation or the original
+failure. Reentrant/repeated boot events, later subscriptions, file repairs and
+subsequent dispatcher activation do not replay the result. A new engine has its
+own registration attempt.
+
+This is process-local observation, not durable audit delivery or proof that an
+optional package became healthy. It adds no lifecycle mutation, retry, authority,
+provider access, or administrative transport. Legacy imperative entrypoints and
+failures before canonical registration is queued remain outside this hook.
+Extensions are trusted application code responsible for their own side effects;
+this data boundary is not a PHP sandbox.
+
+This additive catalog release changes no existing hook name or payload. See
+[Add-on conventions](../ADDONS.md) for boot policy and report interpretation.

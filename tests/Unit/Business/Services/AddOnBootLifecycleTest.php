@@ -7,8 +7,10 @@ namespace Tests\Unit\Business\Services;
 use App\Business\Services\AddOnScaffoldService;
 use App\Business\Services\BootAddOnManager as AddOnManager;
 use App\Business\Services\SelectedAddOnManager;
+use App\Business\Services\ExtensionPointCatalog;
 use BlueFission\BlueCore\Domain\AddOn\Models\AddOnModel;
 use BlueFission\BlueCore\Engine;
+use BlueFission\DevElation;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionProperty;
@@ -55,9 +57,26 @@ PHP);
 
     public function testGeneratedFactoryRegistersRoutesAndThemesOnlyAtEngineLoaded(): void
     {
+        DevElation::up();
         $engine = Engine::instance();
         $manager = $this->manager();
+        $order = [];
+        $observed = [];
+        DevElation::action(ExtensionPointCatalog::ADDON_BOOT_RESULT,
+            static function (array $report) use (&$order, &$observed, $engine, $manager): array {
+                $order[] = 'early';
+                $observed[] = [$report, $manager->bootState('boot_probe'),
+                    $engine->theme('boot_probe/default') !== null,
+                    $manager->bootContributions('boot_probe')];
+                $engine->dispatch('OnAppLoaded');
+                return ['state' => 'failed'];
+            }, 5);
+        DevElation::action(ExtensionPointCatalog::ADDON_BOOT_RESULT,
+            static function (array $report) use (&$order): void { $order[] = 'first_equal'; }, 10);
+        DevElation::action(ExtensionPointCatalog::ADDON_BOOT_RESULT,
+            static function (array $report) use (&$order): void { $order[] = 'second_equal'; }, 10);
         $manager->loadActivatedAddOns();
+        $this->assertSame([], $order);
         $this->assertArrayNotHasKey('get', $engine->maps());
         $this->assertNull($engine->theme('boot_probe/default'));
 
@@ -79,6 +98,82 @@ PHP);
         $this->assertSame($theme, $engine->theme('boot_probe/default'));
         $this->assertSame('registered', $manager->bootState('boot_probe'));
         $this->assertSame(1, $manager->bootContributions('boot_probe')['agents']['version']);
+        $this->assertSame(['early', 'first_equal', 'second_equal'], $order);
+        $this->assertCount(1, $observed);
+        $this->assertSame($manager->bootReport('boot_probe'), $observed[0][0]);
+        $this->assertSame('registered', $observed[0][1]);
+        $this->assertTrue($observed[0][2]);
+        $this->assertSame($manager->bootContributions('boot_probe'), $observed[0][3]);
+        $this->assertSame(['version', 'identity', 'state', 'phase', 'reason', 'effects', 'retryable', 'required', 'isolated'],
+            array_keys($observed[0][0]));
+        $this->assertStringNotContainsString($this->workspace,
+            json_encode($observed[0][0], JSON_UNESCAPED_SLASHES));
+    }
+
+    /** @dataProvider settledBootOutcomes */
+    public function testObserversCannotChangeSettledOutcomesOrReplayRegistration(string $outcome): void
+    {
+        DevElation::up();
+        $engine = Engine::instance();
+        $manager = $this->manager();
+        $this->prependRegistration('$GLOBALS["boot_attempts"] = ($GLOBALS["boot_attempts"] ?? 0) + 1;');
+        if ($outcome === 'optional_failure') {
+            $manager->useOptionalAddOns(['boot_probe']);
+            unlink($this->workspace . '/boot_probe/logic/Lifecycle.php');
+        } elseif ($outcome === 'required_failure') {
+            $this->prependRegistration('throw new \\RuntimeException("private-provider-value");');
+        }
+        $observed = [];
+        $laterCalled = false;
+        DevElation::action(ExtensionPointCatalog::ADDON_BOOT_RESULT,
+            static function (array $report) use (&$observed, $manager): void {
+                $observed[] = $report;
+                $report['state'] = 'forged';
+                $report['required'] = false;
+                $report['retryable'] = true;
+                $manager->useOptionalAddOns(['boot_probe']);
+                throw new \RuntimeException('private-observer-value');
+            });
+        DevElation::action(ExtensionPointCatalog::ADDON_BOOT_RESULT,
+            static function (array $report) use (&$laterCalled): void { $laterCalled = true; }, 20);
+        $manager->loadActivatedAddOns();
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            if ($outcome === 'required_failure') {
+                $this->assertBootFailure($engine);
+            } else {
+                $engine->dispatch('OnAppLoaded');
+            }
+        }
+        $this->assertCount(1, $observed);
+        $this->assertFalse($laterCalled, 'A throwing DevElation action aborts later handlers for that delivery.');
+        $this->assertSame($manager->bootReport('boot_probe'), $observed[0]);
+        $this->assertSame($outcome === 'success' ? 'registered' : 'failed', $observed[0]['state']);
+        $this->assertSame($outcome !== 'optional_failure', $observed[0]['required']);
+        $this->assertSame($outcome === 'optional_failure', $observed[0]['isolated']);
+        $this->assertFalse($observed[0]['retryable']);
+        $this->assertSame($outcome === 'optional_failure' ? 0 : 1, $GLOBALS['boot_attempts'] ?? 0);
+        $this->assertStringNotContainsString('private-', json_encode($observed[0]));
+        $this->assertStringNotContainsString($this->workspace, json_encode($observed[0], JSON_UNESCAPED_SLASHES));
+    }
+
+    public static function settledBootOutcomes(): array
+    {
+        return [['success'], ['optional_failure'], ['required_failure']];
+    }
+
+    public function testDisabledDispatcherDoesNotReplaySettledBootWhenLaterEnabled(): void
+    {
+        DevElation::down();
+        $observations = 0;
+        DevElation::action(ExtensionPointCatalog::ADDON_BOOT_RESULT,
+            static function (array $report) use (&$observations): void { $observations++; });
+        $manager = $this->manager();
+        $manager->loadActivatedAddOns();
+        Engine::instance()->dispatch('OnAppLoaded');
+        DevElation::up();
+        Engine::instance()->dispatch('OnAppLoaded');
+        $this->assertSame('registered', $manager->bootState('boot_probe'));
+        $this->assertSame(0, $observations);
     }
 
     public function testBootReportIsReadOnlyAndDoesNotLoadAnUnknownPackage(): void
@@ -469,13 +564,21 @@ PHP);
 
     public function testChangedStoredIdentityIsNotRegisteredFromAnEarlierSelection(): void
     {
+        DevElation::up();
         $engine = Engine::instance();
         $manager = $this->manager();
+        $observed = [];
+        DevElation::action(ExtensionPointCatalog::ADDON_BOOT_RESULT,
+            static function (array $report) use (&$observed): void { $observed[] = $report; });
         $manager->loadActivatedAddOns();
         $this->active[0]['addon_id'] = 2;
         $engine->dispatch('OnAppLoaded');
         $this->assertSame('skipped', $manager->bootState('boot_probe'));
         $this->assertSame([], $engine->maps());
+        $engine->dispatch('OnAppLoaded');
+        $this->assertCount(1, $observed);
+        $this->assertSame($manager->bootReport('boot_probe'), $observed[0]);
+        $this->assertSame('addon_not_active_or_identity_changed', $observed[0]['reason']);
     }
 
     public function testRegistrationClassFromAnotherFileFailsWithoutRedeclaration(): void

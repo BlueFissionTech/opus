@@ -11,6 +11,7 @@ use BlueFission\BlueCore\Business\Managers\AddOnManager;
 use BlueFission\BlueCore\Domain\AddOn\AddOn;
 use BlueFission\BlueCore\Engine;
 use BlueFission\Data\FileSystem;
+use BlueFission\DevElation;
 use BlueFission\Net\HTTP;
 use BlueFission\Str;
 use InvalidArgumentException;
@@ -122,8 +123,19 @@ class BootAddOnManager extends AddOnManager
                 }
                 // Package exceptions may contain credentials or private payloads.
                 throw new AddOnBootException($this->report($record));
+            } finally {
+                $this->publishBootResult($record);
             }
         });
+    }
+
+    private function publishBootResult(Arr $record): void
+    {
+        try {
+            DevElation::do(ExtensionPointCatalog::ADDON_BOOT_RESULT, [$this->report($record)]);
+        } catch (Throwable) {
+            // Observers cannot change the settled boot outcome.
+        }
     }
 
     /** Data catalogs remain subject to their owning consumer's permission checks. */

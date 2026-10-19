@@ -1,8 +1,54 @@
 {
   "schema_version": 1,
-  "catalog_version": "1.2.0",
+  "catalog_version": "1.3.0",
   "namespace": "opus",
   "extension_points": [
+    {
+      "name": "opus.addon.boot.result",
+      "kind": "action",
+      "area": "addon_boot",
+      "phase": "after_registration_outcome",
+      "owner": "BootAddOnManager",
+      "payload": {
+        "type": "object",
+        "required": [
+          "version",
+          "identity",
+          "state",
+          "phase",
+          "reason",
+          "effects",
+          "retryable",
+          "required",
+          "isolated"
+        ],
+        "properties": {
+          "version": "integer",
+          "identity": "object",
+          "state": "string",
+          "phase": "string",
+          "reason": "mixed",
+          "effects": "string",
+          "retryable": "boolean",
+          "required": "boolean",
+          "isolated": "boolean"
+        }
+      },
+      "returns": {
+        "type": "void"
+      },
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "One result per canonical queued registration in an engine, after registered, skipped, or failed state is settled; repeated and reentrant boot events do not redeliver.",
+        "Payload version is 1. Identity contains only persisted id, name, namespace, and version strings. Reason is a stable string for failed/skipped outcomes or null for success.",
+        "Paths, contributions, provider payloads, configuration, exceptions, and mutable internal objects are omitted.",
+        "Return values and payload mutation cannot change boot state, activation, required policy, isolation, retryability, or registration effects.",
+        "Observer exceptions stop later DevElation handlers for that delivery but cannot replace the original boot failure or turn successful/isolated boot into failure.",
+        "Dispatch requires DevElation to be enabled. There is no durable delivery, replay, automatic activation, or permission grant."
+      ]
+    },
     {
       "name": "opus.addon.organization.changed",
       "kind": "action",
@@ -253,6 +299,15 @@
   ],
   "boundary_inventory": [
     {
+      "area": "addon_boot",
+      "status": "hooked",
+      "owner": "BootAddOnManager",
+      "extension_points": [
+        "opus.addon.boot.result"
+      ],
+      "rationale": "Observe sanitized terminal canonical registration results after host policy and effects are settled. Lifecycle mutation, recovery and authoritative state remain service-owned."
+    },
+    {
       "area": "addon_organization",
       "status": "hooked",
       "owner": "AddOnOrganizationService",
@@ -276,7 +331,7 @@
       "status": "stronger_abstraction",
       "owner": "BlueCore add-on lifecycle contracts and Opus readiness services",
       "extension_points": [],
-      "rationale": "Discovery, validation, registration, activation, and removal remain behind lifecycle services, state validation, idempotency, and approval gates."
+      "rationale": "Discovery, validation, registration mutation, activation, and removal remain behind lifecycle services, state validation, idempotency, and approval gates. Canonical boot-result observation is catalogued separately."
     },
     {
       "area": "agent_wise_runtime",

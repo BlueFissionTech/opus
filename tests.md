@@ -379,3 +379,8 @@ Fixtures exercise real Engine bootstrap with an invalid optional package and a
 healthy package, fail-closed partial effects, captured host-only policy, malformed
 policy and no replay after repair. This does not prove database recovery or
 production operator command bindings.
+
+Boot action contracts: `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "AddOnBootLifecycleTest|ExtensionPointCatalogTest"`.
+Tests use the installed DevElation dispatcher and Engine with synthetic packages;
+they cover settled state, priority order, reentrancy, no replay, disabled dispatch,
+redaction and preserved successful, isolated and required-failure outcomes.

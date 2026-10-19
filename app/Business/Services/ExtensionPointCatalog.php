@@ -13,6 +13,7 @@ use RuntimeException;
 
 final class ExtensionPointCatalog extends Service
 {
+    public const ADDON_BOOT_RESULT = 'opus.addon.boot.result';
     public const ADDON_ORGANIZATION_CHANGED = 'opus.addon.organization.changed';
     public const INTAKE_DEFAULTS = 'opus.intake.defaults';
     public const INTAKE_SESSION_TRANSITIONED = 'opus.intake.session.transitioned';
@@ -24,6 +25,7 @@ final class ExtensionPointCatalog extends Service
     public const FRONTEND_MARKUP_DIRECTORY = 'opus.frontend.markup_directory';
 
     public const NAMES = [
+        self::ADDON_BOOT_RESULT,
         self::ADDON_ORGANIZATION_CHANGED,
         self::INTAKE_DEFAULTS,
         self::INTAKE_SESSION_TRANSITIONED,
@@ -36,6 +38,24 @@ final class ExtensionPointCatalog extends Service
     ];
 
     private const RUNTIME_CONTRACTS = [
+        self::ADDON_BOOT_RESULT => [
+            'kind' => 'action',
+            'area' => 'addon_boot',
+            'phase' => 'after_registration_outcome',
+            'owner' => 'BootAddOnManager',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'payload_required' => ['version', 'identity', 'state', 'phase', 'reason', 'effects', 'retryable', 'required', 'isolated'],
+            'payload_properties' => [
+                'version' => 'integer', 'identity' => 'object', 'state' => 'string', 'phase' => 'string',
+                'reason' => 'mixed', 'effects' => 'string', 'retryable' => 'boolean',
+                'required' => 'boolean', 'isolated' => 'boolean',
+            ],
+            'return_type' => 'void',
+            'return_required' => [],
+            'return_properties' => [],
+        ],
         self::ADDON_ORGANIZATION_CHANGED => [
             'kind' => 'action',
             'area' => 'addon_organization',
