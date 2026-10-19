@@ -509,3 +509,13 @@ integration skips the entire Wise mapping. Local application commands remain
 independent. Catalog lookup must not construct resources or providers, and catalog
 availability is not a permission grant or proof that private profile adapters exist.
 Host-owned command verbs remain explicit; aliases inherit their canonical bindings.
+
+### Add-on PSR-4 declaration alignment (#43)
+
+Every named class, interface, trait and enum in `logic/` must match its exact
+case-sensitive PSR-4 namespace and filename. Validation inspects PHP tokens;
+it must not load a class, invoke an autoloader or execute package statements.
+Anonymous classes, class-name constants and function-only lifecycle files do
+not introduce named autoload declarations. Validation reports the offending
+relative path with `class_file_mismatch`. This source contract is not a sandbox
+or a claim that arbitrary package code is safe to execute.

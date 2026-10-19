@@ -342,3 +342,12 @@ Coverage includes explicit and malformed capture denials at every layer, denial
 preservation through both filters, immutable seed hints, and mandatory artifact
 trust/serialization/isolation guards. This is configuration proof, not a live
 learning or provider integration claim.
+
+### Add-on PSR-4 declarations
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "AddOnClassAutoloadTest|AddOnScaffoldServiceTest|AddOnBootLifecycleTest"`.
+The declaration tests cover class, interface, trait and enum names, case-sensitive
+filename matching, additional declarations and namespace changes. They retain
+anonymous-class and function-only support and prove package statements are not
+executed or classes loaded during validation. Engine lifecycle tests separately
+exercise generated packages through the installed BlueCore engine.

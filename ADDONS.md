@@ -178,6 +178,15 @@ Server-rendered templates use `.vibe`, canonical `{$value}` variables,
 executable `.vibe` includes, and named regions. Client-side Reactor bindings
 remain separate from the server template contract.
 
+Named classes, interfaces, traits and enums under `logic/` must match their
+PSR-4 namespace and filename exactly, including case. For example,
+`logic/Domain/Values/Status.php` declares `AddOns\Example\Domain\Values\Status`.
+Move additional named declarations into their own matching files when migrating
+an existing package. Function-only lifecycle files and anonymous classes remain
+supported. The validator reports `class_file_mismatch` without executing source
+or invoking autoloaders; successful validation does not certify arbitrary package
+code as safe to execute.
+
 Values used outside ordinary text or attribute contexts must carry an explicit
 host policy. Use `VibeValue::url()` for links, form actions, and media sources;
 `VibeValue::script()` for JSON literals embedded in scripts; and

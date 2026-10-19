@@ -213,6 +213,7 @@ final class AddOnContractValidator extends Service
                 if ($declared !== $expected) {
                     $errors->push($this->problem('namespace_mismatch', $relative, "PHP namespace must be {$expected}."));
                 }
+                $this->validateNamedDeclarations($tokens, $expected, $relative, $errors);
             }
 
             if (Str::startsWith($relative, 'mapping/') && !$this->isSupportedMapping($tokens)) {
@@ -220,6 +221,46 @@ final class AddOnContractValidator extends Service
                     'mapping_contract',
                     $relative,
                     'Mapping file must return a declarative array or contain only supported Mapping registrations.'
+                ));
+            }
+        }
+    }
+
+    private function validateNamedDeclarations(array $tokens, string $namespace, string $relative, Arr $errors): void
+    {
+        $tokens = $this->significantTokens($tokens);
+        $declarationTypes = Arr::make([T_CLASS, T_INTERFACE, T_TRAIT, T_ENUM]);
+        $namespaceTypes = Arr::make([T_STRING, T_NAME_QUALIFIED, T_NS_SEPARATOR]);
+        $expected = $namespace . '\\' . Str::sub((string) FileSystem::fileBasename($relative), 0, -4);
+        $currentNamespace = Str::make('');
+
+        // Token inspection preserves PHP declaration spelling without loading package code.
+        // Anonymous classes and ::class constants have no following T_STRING declaration.
+        for ($index = 0; $index < $tokens->count(); $index++) {
+            $token = $tokens->get($index);
+            if ($this->tokenIs($token, T_NAMESPACE)) {
+                $currentNamespace = Str::make('');
+                while ($namespaceTypes->has(Arr::is($tokens->get($index + 1))
+                    ? $tokens->get($index + 1)[0] : null, true)
+                ) {
+                    $index++;
+                    $currentNamespace->append($tokens->get($index)[1]);
+                }
+                continue;
+            }
+            if (!Arr::is($token) || !$declarationTypes->has($token[0], true)) {
+                continue;
+            }
+            $name = $tokens->get($index + 1);
+            if (!$this->tokenIs($name, T_STRING)) {
+                continue;
+            }
+            $declared = $currentNamespace->val() . '\\' . $name[1];
+            if ($declared !== $expected) {
+                $errors->push($this->problem(
+                    'class_file_mismatch',
+                    $relative,
+                    "Named declaration {$declared} must match the PSR-4 path {$expected}."
                 ));
             }
         }
