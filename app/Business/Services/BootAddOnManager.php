@@ -21,6 +21,19 @@ use WeakMap;
 class BootAddOnManager extends AddOnManager
 {
     private static ?WeakMap $boots = null;
+    private string $validationProfile = 'package';
+    private ?string $validationHostRoot = null;
+
+    /** Configure from trusted host composition before queuing add-ons. */
+    public function useValidationProfile(string $profile, ?string $hostRoot = null): static
+    {
+        if (!Arr::make(['package', 'embedded'])->has($profile, true)) {
+            throw new RuntimeException('addon_validation_profile_invalid');
+        }
+        $this->validationProfile = $profile;
+        $this->validationHostRoot = $hostRoot;
+        return $this;
+    }
 
     protected function loadAddOn(AddOn $addOn)
     {
@@ -46,7 +59,13 @@ class BootAddOnManager extends AddOnManager
             return;
         }
 
-        $record = Arr::make(['identity' => $identity, 'state' => 'pending', 'contributions' => []]);
+        $record = Arr::make([
+            'identity' => $identity,
+            'state' => 'pending',
+            'contributions' => [],
+            'validation_profile' => $this->validationProfile,
+            'validation_host' => $this->validationHostRoot,
+        ]);
         $records->set($name, $record);
         $engine->behavior('OnAppLoaded', function () use ($engine, $record, $root, $name): void {
             $state = $record->get('state');
@@ -90,7 +109,11 @@ class BootAddOnManager extends AddOnManager
 
     private function registerContributions(Engine $engine, Arr $record, string $root, string $name): void
     {
-        if (!(new AddOnContractValidator())->validate($root)['valid']) {
+        if (!(new AddOnContractValidator())->validate(
+            $root,
+            $record->get('validation_profile'),
+            $record->get('validation_host')
+        )['valid']) {
             throw new RuntimeException('addon_contract_invalid');
         }
         $definition = Arr::make($this->definition($root));
