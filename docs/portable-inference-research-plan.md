@@ -1,7 +1,8 @@
 # Portable inference: proposed architecture and research plan
 
-Status: **proposed for approval**, not an accepted adapter contract or a provider
-recommendation. This document is the pre-research gate for [issue #126](https://github.com/BlueFissionTech/opus/issues/126).
+Status: **R1–R4 discovery scope approved by the operator on 2026-10-19**.
+Package-owner acceptance, adapter contracts and provider selection remain open.
+This document records the pre-research gate for [issue #126](https://github.com/BlueFissionTech/opus/issues/126).
 Approval of this plan authorizes the bounded discovery work below. It does not
 approve a dependency installation, provider credential change, production
 activation, generated adapter execution, or a claim of behavioral equivalence.
@@ -207,7 +208,8 @@ maintained adapter. Each must name an exact owner, accepted upstream contracts,
 positive/negative fixtures, executable validation commands and a release gate.
 Do not create empty adapter packages as a substitute for that evidence.
 
-This plan does not complete #126's discovery acceptance criteria. Approval,
-owner decisions, actual source/provider research, reviewed corpus and migration
-design, evidence-backed candidate selection and implementation issue split are
-still required. No provider research has been represented as completed here.
+This plan does not complete #126's discovery acceptance criteria. The operator
+approved discovery; owner decisions, reviewed corpus and migration design,
+evidence-backed candidate selection and implementation issue split remain open.
+See the [initial research findings](portable-inference-research-findings.md) for
+the dated source review and documented candidate limitations.
