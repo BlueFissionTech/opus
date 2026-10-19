@@ -102,7 +102,10 @@
     ],
     "archive": {
       "exclude": [
-        ".babelrc"
+        ".babelrc",
+        "**/[Ss][Nn][Oo][Ww]",
+        "**/[Ss][Nn][Oo][Ww][-_.]*",
+        "**/[Pp][Rr][Ii][Vv][Aa][Tt][Ee]-[Aa][Ss][Ss][Ee][Tt][Ss]"
       ]
     },
     "minimum-stability": "dev",

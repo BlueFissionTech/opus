@@ -1,0 +1,25 @@
+/node_modules
+# Local agent operating policy; repository standards remain tracked.
+/AGENTS.behavior.md
+/vendor
+/.env
+.DS_Store
+addons/*
+*.zip
+*.pem
+storage/logs/*
+storage/data/*
+storage/files/*
+storage/models/*
+storage/system/*
+/public/assets/*
+error.log
+
+# Local Compose orchestration; installation-specific and not distributed.
+/docker/compose.opus.yml
+/harness.json
+
+# Licensed private theme inputs and outputs, at every depth.
+**/[Ss][Nn][Oo][Ww]
+**/[Ss][Nn][Oo][Ww][-_.]*
+**/[Pp][Rr][Ii][Vv][Aa][Tt][Ee]-[Aa][Ss][Ss][Ee][Tt][Ss]

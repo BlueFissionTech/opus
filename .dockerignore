@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+!.env.example
+artifacts
+**/private-assets
+**/[Ss][Nn][Oo][Ww]
+**/[Ss][Nn][Oo][Ww][-_.]*
+**/[Pp][Rr][Ii][Vv][Aa][Tt][Ee]-[Aa][Ss][Ss][Ee][Tt][Ss]
