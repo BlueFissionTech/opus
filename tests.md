@@ -369,3 +369,7 @@ unused directories, migration warnings and unchanged source/mapping/template
 errors. Installed-engine tests register an embedded package exactly once and
 reject metadata that tries to choose its own validation policy. No Composer
 installation, database connection or provider credentials are needed.
+
+Private asset distribution: run npm run audit:public-assets and npm run test:assets.
+The latter requires Git, tar, npm and Composer and uses only synthetic temporary fixtures;
+no licensed theme, application dependencies or provider credentials are needed.

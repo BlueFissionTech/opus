@@ -542,3 +542,11 @@ domain directories follow the declared `layers`; unused layers need no empty
 directories. Legacy omissions and inherited tooling produce stable warnings,
 while missing declared layers and invalid contracts remain errors. Engine boot
 uses the host-selected profile captured when registration is queued.
+
+### Public private-asset boundary (#68)
+
+Reserved Snow and private-assets path components must be excluded from normal
+staging and public source/package archives. Forced staging must fail a dependency-
+free CI audit with redacted structured reasons. Synthetic fixtures must retain
+public fallback templates while excluding private sentinels. Private injection
+and container-layer proof remain separate deployment acceptance requirements.
