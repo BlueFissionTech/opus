@@ -140,6 +140,7 @@ final class AddOnScaffoldService extends Service
             'version' => '0.1.0-alpha',
             'namespace' => $namespace,
             'libraries' => [],
+            'layers' => [],
             'primary_file' => 'main.php',
             'registration' => [
                 'class' => $namespace . '\\Registration\\AddOnRegistration',

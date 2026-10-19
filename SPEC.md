@@ -469,3 +469,84 @@ Command activity schema installation uses an opt-in BlueCore Delta with
 DevElation SQLiteStructure through the existing migration manager. The runtime
 store does not migrate. CommandHost and CommandActivityService extend Service;
 ActivityEvent extends Obj with an immutable, closed receipt projection.
+
+### Resumable intake persistence integrity (#95)
+
+All four structured intake columns (answers, defaults, skipped fields, actor)
+must serialize successfully before any storage mutation. Invalid encoding must
+return a stable failure without exposing content or replacing a saved revision.
+Stored structured columns must decode to arrays; invalid JSON, scalar roots and
+non-string storage values fail explicitly rather than silently substituting empty
+data. Valid Unicode and normalized nested values retain round-trip behavior.
+This boundary does not certify live database deployment or add command, provider,
+planning, code-generation or execution authority.
+
+### Add-on organization persistence (#120)
+
+The organization service owns application/tenant-scoped feature groups, ordered
+many-to-many memberships, and per-add-on tags. Groups and tags are descriptive;
+they never supply package dependencies, capabilities, roles, or lifecycle grants.
+An injected host policy must explicitly authorize every read and mutation, including
+bulk members. Missing actor or any denied target rejects the whole mutation.
+Group visibility is evaluated by that policy, not inferred from caller roles.
+
+A revision-checked store commits organization state and its audit receipt in one
+transaction. Stale writers cannot replace newer organization metadata; failed
+audit persistence rolls back the mutation. Empty installations remain ungrouped.
+The first storage adapter uses an explicitly configured private SQLiteLink and
+an opt-in BlueCore delta; constructors never create tables.
+
+Proof includes real database reopen, isolated application/tenant scopes, denied
+bulk writes, hidden-group non-disclosure, stale writers, audit failure rollback,
+deterministic ordering, 100-add-on filtering, and tags that do not change dependency
+metadata. HTTP/Wise/UI binding and authoritative lifecycle impact enforcement are
+subsequent integration work and are not claimed by this persistence increment.
+
+
+
+### Conversational learning policy guards (#99)
+
+Unknown-intent capture requires a strict boolean allow through the package,
+application, tenant, and principal layers. An explicit denial or malformed
+explicit value cannot be reversed by a narrower layer or either conversation
+configuration filter. A filter may disable capture but cannot grant denied capture.
+Scoped fallback candidate hints must reflect the effective capture decision without
+mutating package seeds. Trusted-artifact requirements, disabled serialized learning
+state, scope isolation, review and persistence requirements remain mandatory after
+configuration extensions. These are host configuration guarantees; persistent
+learning, application-scoped profile adapters, live authorization and promotion
+workflows remain required before #99 is complete.
+
+### Authoritative Wise resource mappings (#61)
+
+Wise delegate names, classes, aliases and unavailable-capability diagnostics come
+from the released ResourceCatalog in the locked optional Wise package. The host
+preflights the catalog and every available definition before any Wise delegate or
+command mapping is written. Missing required integration fails; missing optional
+integration skips the entire Wise mapping. Local application commands remain
+independent. Catalog lookup must not construct resources or providers, and catalog
+availability is not a permission grant or proof that private profile adapters exist.
+Host-owned command verbs remain explicit; aliases inherit their canonical bindings.
+
+### Add-on PSR-4 declaration alignment (#43)
+
+Every named class, interface, trait and enum in `logic/` must match its exact
+case-sensitive PSR-4 namespace and filename. Validation inspects PHP tokens;
+it must not load a class, invoke an autoloader or execute package statements.
+Anonymous classes, class-name constants and function-only lifecycle files do
+not introduce named autoload declarations. Validation reports the offending
+relative path with `class_file_mismatch`. This source contract is not a sandbox
+or a claim that arbitrary package code is safe to execute.
+
+### Package and embedded validation profiles (#43)
+
+Package validation requires local Composer and test tooling. Explicit embedded
+validation may inherit missing tooling from a containing host whose Composer
+autoload mapping points to the package's logic directory. It must never execute
+tooling, silently replace malformed local files, infer the host from ambient
+state, or let package metadata select a weaker validation profile. Both profiles
+retain definition, mapping, namespace, registration and Vibe checks. Required
+domain directories follow the declared `layers`; unused layers need no empty
+directories. Legacy omissions and inherited tooling produce stable warnings,
+while missing declared layers and invalid contracts remain errors. Engine boot
+uses the host-selected profile captured when registration is queued.

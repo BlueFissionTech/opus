@@ -71,3 +71,24 @@ remain supported. This patch adds no hook names and changes no payload types.
 A command-context lifecycle refresh that throws while normalizing records denies
 all add-on activation for that refresh, including records already read. Filters
 observe that empty authority snapshot and cannot restore prior or partial state.
+
+
+### Add-on organization changes
+
+`opus.addon.organization.changed` observes a committed scoped organization write.
+The payload is `application_id` (string), `tenant_id` (string or null), `revision`
+(integer), and `action` (string). It omits actor, group, and tag contents. State and
+audit are already durable; observer failure is ignored and cannot grant authority
+or roll back the write. See [Add-on organization](addon-organization.md) for the
+policy, persistence, and remaining transport integration contracts.
+
+
+
+### Conversation policy denials
+
+Neither conversation filter may re-enable unknown-intent capture denied by package,
+application, tenant, principal, or an earlier filter. Scoped fallback candidate
+hints follow the final decision. Trusted-artifact requirements, disabled serialized
+learning state, and scope isolation are restored after configuration filters. See
+[Conversational learning policy](conversational-learning-policy.md) for the exact
+composition rules and remaining runtime integration requirements.

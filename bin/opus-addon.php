@@ -22,10 +22,10 @@ if ($command === 'generate') {
 
 if ($command === 'validate') {
     $target = $argv[2] ?? '';
-    $result = (new AddOnContractValidator())->validate($target);
+    $result = (new AddOnContractValidator())->validate($target, $argv[3] ?? 'package', $argv[4] ?? null);
     print Str::make(Arr::make($result)->toJson())->append(PHP_EOL)->val();
     exit($result['valid'] ? 0 : 1);
 }
 
-fwrite(STDERR, "Usage:\n  php bin/opus-addon.php generate <name> <target> [namespace]\n  php bin/opus-addon.php validate <target>\n");
+fwrite(STDERR, "Usage:\n  php bin/opus-addon.php generate <name> <target> [namespace]\n  php bin/opus-addon.php validate <target> [package|embedded] [host-root]\n");
 exit(2);

@@ -81,6 +81,50 @@ PHP);
         $this->assertSame(1, $manager->bootContributions('boot_probe')['agents']['version']);
     }
 
+    public function testEmbeddedProfileRegistersThroughTheEngineOnce(): void
+    {
+        $this->embeddedTooling();
+        $engine = Engine::instance();
+        $manager = $this->manager()->useValidationProfile('embedded', $this->workspace);
+        $manager->loadActivatedAddOns();
+        // A later manager configuration must not rewrite an already queued context.
+        $manager->useValidationProfile('package');
+        $engine->dispatch('OnAppLoaded');
+        $mapping = $engine->maps()['get']['boot/probe'];
+        $this->assertSame('ready', ($mapping->callable)());
+        $engine->dispatch('OnAppLoaded');
+        $this->assertSame($mapping, $engine->maps()['get']['boot/probe']);
+        $this->assertSame('registered', $manager->bootState('boot_probe'));
+    }
+
+    public function testPackageCannotSelectItsOwnEmbeddedValidationPolicy(): void
+    {
+        $this->embeddedTooling();
+        $path = $this->workspace . '/boot_probe/definition.json';
+        $definition = json_decode(file_get_contents($path), true);
+        $definition['validation_profile'] = 'embedded';
+        file_put_contents($path, json_encode($definition));
+        $manager = $this->manager();
+        $manager->loadActivatedAddOns();
+        $this->assertBootFailure(Engine::instance());
+        $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
+        $this->assertSame('failed', $manager->bootState('boot_probe'));
+    }
+
+    private function embeddedTooling(): void
+    {
+        foreach (['composer.json', 'phpunit.xml', 'tests/bootstrap.php'] as $path) {
+            unlink($this->workspace . '/boot_probe/' . $path);
+        }
+        mkdir($this->workspace . '/tests');
+        file_put_contents($this->workspace . '/composer.json', json_encode([
+            'name' => 'example/host', 'type' => 'project',
+            'autoload' => ['psr-4' => ['AddOns\\BootProbe\\' => 'boot_probe/logic/']],
+        ]));
+        file_put_contents($this->workspace . '/phpunit.xml', '<phpunit bootstrap="tests/bootstrap.php"/>');
+        file_put_contents($this->workspace . '/tests/bootstrap.php', '<?php throw new RuntimeException("not executed");');
+    }
+
     public function testInactiveAddonsNeverLoadTheFactory(): void
     {
         $engine = Engine::instance();

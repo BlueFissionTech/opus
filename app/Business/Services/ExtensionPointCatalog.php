@@ -13,6 +13,7 @@ use RuntimeException;
 
 final class ExtensionPointCatalog extends Service
 {
+    public const ADDON_ORGANIZATION_CHANGED = 'opus.addon.organization.changed';
     public const INTAKE_DEFAULTS = 'opus.intake.defaults';
     public const INTAKE_SESSION_TRANSITIONED = 'opus.intake.session.transitioned';
     public const AGENT_COMMAND_CONTEXT = 'opus.agent.command_context';
@@ -23,6 +24,7 @@ final class ExtensionPointCatalog extends Service
     public const FRONTEND_MARKUP_DIRECTORY = 'opus.frontend.markup_directory';
 
     public const NAMES = [
+        self::ADDON_ORGANIZATION_CHANGED,
         self::INTAKE_DEFAULTS,
         self::INTAKE_SESSION_TRANSITIONED,
         self::AGENT_COMMAND_CONTEXT,
@@ -34,6 +36,21 @@ final class ExtensionPointCatalog extends Service
     ];
 
     private const RUNTIME_CONTRACTS = [
+        self::ADDON_ORGANIZATION_CHANGED => [
+            'kind' => 'action',
+            'area' => 'addon_organization',
+            'phase' => 'after_persistence',
+            'owner' => 'AddOnOrganizationService',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'payload_required' => ['application_id', 'tenant_id', 'revision', 'action'],
+            'payload_properties' => ['application_id' => 'string', 'tenant_id' => 'mixed', 'revision' => 'integer', 'action' => 'string'],
+            'return_type' => 'void',
+            'return_required' => [],
+            'return_properties' => [],
+        ],
+
         self::INTAKE_DEFAULTS => [
             'kind' => 'filter',
             'area' => 'application_intake',

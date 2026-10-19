@@ -21,7 +21,6 @@ final class AddOnContractValidator extends Service
     private DeclarativeArrayParser $declarativeParser;
 
     private const REQUIRED_FILES = [
-        'composer.json',
         'definition.json',
         'main.php',
         'logic/Lifecycle.php',
@@ -31,23 +30,14 @@ final class AddOnContractValidator extends Service
         'mapping/console.php',
         'mapping/default.php',
         'mapping/menus.php',
-        'phpunit.xml',
-        'tests/bootstrap.php',
     ];
 
     private const REQUIRED_DIRECTORIES = [
         'datasources/generator',
         'datasources/structure',
-        'logic/Business/Http',
-        'logic/Business/Managers',
-        'logic/Business/Prompts',
-        'logic/Domain/Models',
-        'logic/Domain/Queries',
-        'logic/Domain/Repositories',
-        'logic/Domain/Values',
+        'logic',
+        'mapping',
         'resource/markup',
-        'resource/src',
-        'tests',
     ];
 
     public function __construct(
@@ -64,7 +54,7 @@ final class AddOnContractValidator extends Service
             ?? new AgentCapabilityMapValidator($this->declarativeParser);
     }
 
-    public function validate(string $root): array
+    public function validate(string $root, string $profile = 'package', ?string $hostRoot = null): array
     {
         $errors = Arr::make([]);
         $warnings = Arr::make([]);
@@ -77,6 +67,10 @@ final class AddOnContractValidator extends Service
         }
 
         $root = (string) $resolvedRoot;
+        $this->validateOwnedPaths($root, $errors);
+        if (!$errors->isEmpty()) {
+            return $this->report($errors, $warnings);
+        }
         foreach (Arr::make(self::REQUIRED_FILES) as $path) {
             if (!FileSystem::fileExists($this->path($root, (string) $path))) {
                 $errors->push($this->problem('file_missing', (string) $path, 'Required file is missing.'));
@@ -88,9 +82,15 @@ final class AddOnContractValidator extends Service
             }
         }
 
-        $composer = $this->readJson($root, 'composer.json', $errors);
         $definition = $this->readJson($root, 'definition.json', $errors);
-        $namespace = $this->validateMetadata($composer, $definition, $errors);
+        $tooling = (new AddOnValidationProfile())->inspect($root, $definition, $profile, $hostRoot);
+        foreach ($tooling['errors'] as $problem) {
+            $errors->push($problem);
+        }
+        foreach ($tooling['warnings'] as $problem) {
+            $warnings->push($problem);
+        }
+        $namespace = $this->validateMetadata($tooling['composer'], $definition, $errors, $tooling['inherited_composer']);
 
         $this->validateInstalledIdentity($root, $definition, $errors);
         $this->validateRegistration($root, $namespace, $definition, $errors);
@@ -102,16 +102,45 @@ final class AddOnContractValidator extends Service
         return $this->report($errors, $warnings);
     }
 
-    private function validateMetadata(array $composer, array $definition, Arr $errors): string
+    private function validateOwnedPaths(string $root, Arr $errors): void
+    {
+        $prefix = Str::make($root)->replace('\\', '/')->append('/');
+        if (PHP_OS_FAMILY === 'Windows') {
+            $prefix->lower();
+        }
+        $entries = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($root, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($entries as $entry) {
+            if (!$entry->isLink()) {
+                continue;
+            }
+            $resolved = realpath($entry->getPathname());
+            $target = Str::make($resolved === false ? '' : $resolved)->replace('\\', '/');
+            if (PHP_OS_FAMILY === 'Windows') {
+                $target->lower();
+            }
+            if (!$target->startsWith($prefix->val())) {
+                $errors->push($this->problem(
+                    'path_ownership',
+                    $this->relative($root, $entry->getPathname()),
+                    'Add-on links must resolve inside the package root.'
+                ));
+            }
+        }
+    }
+
+    private function validateMetadata(array $composer, array $definition, Arr $errors, bool $inheritedComposer = false): string
     {
         $composer = Arr::make($composer);
         $definition = Arr::make($definition);
         $namespace = $definition->get('namespace');
 
-        if ($composer->get('type') !== 'opus-addon') {
+        if (!$inheritedComposer && $composer->get('type') !== 'opus-addon') {
             $errors->push($this->problem('composer_type', 'composer.json', 'Composer type must be opus-addon.'));
         }
-        if (!$this->isComposerPackageName($composer->get('name'))) {
+        if (!$inheritedComposer && !$this->isComposerPackageName($composer->get('name'))) {
             $errors->push($this->problem(
                 'composer_name',
                 'composer.json',
@@ -154,14 +183,14 @@ final class AddOnContractValidator extends Service
         }
 
         $extra = Arr::make(Arr::is($composer->get('extra')) ? $composer->get('extra') : []);
-        if ($extra->get('installer-name') !== $name) {
+        if (!$inheritedComposer && $extra->get('installer-name') !== $name) {
             $errors->push($this->problem('installer_name', 'composer.json', 'Installer name must match definition name.'));
         }
 
         $autoload = Arr::make(Arr::is($composer->get('autoload')) ? $composer->get('autoload') : []);
         $psr4 = Arr::make(Arr::is($autoload->get('psr-4')) ? $autoload->get('psr-4') : []);
         $autoloadNamespace = $namespace === '' ? '' : $namespace . '\\';
-        if ($autoloadNamespace === '' || $psr4->get($autoloadNamespace) !== 'logic/') {
+        if (!$inheritedComposer && ($autoloadNamespace === '' || $psr4->get($autoloadNamespace) !== 'logic/')) {
             $errors->push($this->problem('psr4_mapping', 'composer.json', 'Package namespace must map to logic/.'));
         }
 
@@ -213,6 +242,7 @@ final class AddOnContractValidator extends Service
                 if ($declared !== $expected) {
                     $errors->push($this->problem('namespace_mismatch', $relative, "PHP namespace must be {$expected}."));
                 }
+                $this->validateNamedDeclarations($tokens, $expected, $relative, $errors);
             }
 
             if (Str::startsWith($relative, 'mapping/') && !$this->isSupportedMapping($tokens)) {
@@ -220,6 +250,46 @@ final class AddOnContractValidator extends Service
                     'mapping_contract',
                     $relative,
                     'Mapping file must return a declarative array or contain only supported Mapping registrations.'
+                ));
+            }
+        }
+    }
+
+    private function validateNamedDeclarations(array $tokens, string $namespace, string $relative, Arr $errors): void
+    {
+        $tokens = $this->significantTokens($tokens);
+        $declarationTypes = Arr::make([T_CLASS, T_INTERFACE, T_TRAIT, T_ENUM]);
+        $namespaceTypes = Arr::make([T_STRING, T_NAME_QUALIFIED, T_NS_SEPARATOR]);
+        $expected = $namespace . '\\' . Str::sub((string) FileSystem::fileBasename($relative), 0, -4);
+        $currentNamespace = Str::make('');
+
+        // Token inspection preserves PHP declaration spelling without loading package code.
+        // Anonymous classes and ::class constants have no following T_STRING declaration.
+        for ($index = 0; $index < $tokens->count(); $index++) {
+            $token = $tokens->get($index);
+            if ($this->tokenIs($token, T_NAMESPACE)) {
+                $currentNamespace = Str::make('');
+                while ($namespaceTypes->has(Arr::is($tokens->get($index + 1))
+                    ? $tokens->get($index + 1)[0] : null, true)
+                ) {
+                    $index++;
+                    $currentNamespace->append($tokens->get($index)[1]);
+                }
+                continue;
+            }
+            if (!Arr::is($token) || !$declarationTypes->has($token[0], true)) {
+                continue;
+            }
+            $name = $tokens->get($index + 1);
+            if (!$this->tokenIs($name, T_STRING)) {
+                continue;
+            }
+            $declared = $currentNamespace->val() . '\\' . $name[1];
+            if ($declared !== $expected) {
+                $errors->push($this->problem(
+                    'class_file_mismatch',
+                    $relative,
+                    "Named declaration {$declared} must match the PSR-4 path {$expected}."
                 ));
             }
         }

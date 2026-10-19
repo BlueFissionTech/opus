@@ -316,3 +316,66 @@ The command-activity tests execute the optional BlueCore delta on real temporary
 SQLite databases and check installed delta-class discovery, rollback, failed
 index creation atomicity, Service/Obj behavior dispatch and immutable receipt
 projections. They do not claim a live MySQL migration-ledger integration test.
+
+### Intake persistence integrity
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "ApplicationIntake|DevElationHelperUsageTest"`.
+The repository tests exercise actual serialization against a recording in-memory
+model: invalid UTF-8 and non-finite numbers in every structured column fail before
+a write, corrupt/scalar/non-string stored JSON fails explicitly, failed updates
+preserve saved revisions, and Unicode/nested values round-trip. These tests do not
+claim live database isolation or deployment proof.
+
+No schema migration is needed. Valid stored rows retain their representation.
+Previously corrupt structured columns now raise `intake_session_corrupt`; inspect
+and repair such records through an authorized data-recovery process rather than
+silently resuming them with empty answers or defaults. Encoding failures raise
+`intake_session_encoding_failed` without persisting or including content in the
+error message.
+
+### Wise resource catalog integration
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "WiseResource|WiseIntegrationGuard|DevElationHelperUsageTest"`.
+Coverage includes the exact installed catalog, canonical and alias mappings,
+unavailable diagnostics, missing required/optional dependencies, preflight atomicity,
+local command separation and actual Application delegation with a controlled
+resolver. See [Wise resource catalog integration](docs/wise-resource-catalog.md)
+for command-name migration and the construction/execution proof boundary.
+
+### Add-on organization persistence
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AddOnOrganizationTest.php`.
+The SQLite3 extension enables real temporary-database tests; otherwise this optional
+store's tests skip. Coverage includes persistence/reopen, tenant and application
+isolation, host policy checks, bulk atomicity, hidden metadata, stale writers,
+audit rollback, database locking, migration failure/revert, corrupted storage, and
+125-add-on filtering. It does not prove the pending admin UI or Wise bindings.
+
+
+
+### Conversational learning policy guards
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "ConversationalLearningCatalogTest|DevElationHelperUsageTest"`.
+Coverage includes explicit and malformed capture denials at every layer, denial
+preservation through both filters, immutable seed hints, and mandatory artifact
+trust/serialization/isolation guards. This is configuration proof, not a live
+learning or provider integration claim.
+
+### Add-on PSR-4 declarations
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "AddOnClassAutoloadTest|AddOnScaffoldServiceTest|AddOnBootLifecycleTest"`.
+The declaration tests cover class, interface, trait and enum names, case-sensitive
+filename matching, additional declarations and namespace changes. They retain
+anonymous-class and function-only support and prove package statements are not
+executed or classes loaded during validation. Engine lifecycle tests separately
+exercise generated packages through the installed BlueCore engine.
+
+### Embedded add-on validation
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "AddOnValidationProfileTest|AddOnBootLifecycleTest"`.
+Coverage includes explicit host containment, inherited/local tooling precedence,
+exact host PSR-4 mappings, missing files, malformed layer declarations, optional
+unused directories, migration warnings and unchanged source/mapping/template
+errors. Installed-engine tests register an embedded package exactly once and
+reject metadata that tries to choose its own validation policy. No Composer
+installation, database connection or provider credentials are needed.
