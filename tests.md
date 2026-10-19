@@ -391,3 +391,12 @@ Focused syntax/evidence fixtures:
 These verify imports/aliases, namespace boundaries, inert comments/string bodies,
 direct fluent chains, unresolved behavior calls, source hashes and incomplete
 scan errors. This is not runtime type inference, profiling or dependency parity.
+
+# Native strategy runtime
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AutomataStrategyRuntimeTest.php`.
+These provider-free tests use actual Automata routing, Intelligence and decision
+tree classes, with host authorization and persistence fixtures. They cover
+tenant binding, revocation, task/policy separation, budget rejection, redacted
+errors and composition lifecycle. See `docs/native-strategy-runtime.md` for
+configuration and the limits of synchronous cancellation and deployment proof.

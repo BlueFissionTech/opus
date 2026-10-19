@@ -94,6 +94,18 @@ resource, and feedback behavior being exercised.
 
 ## Target Architecture
 
+### Native Strategy Runtime
+
+An opt-in runtime factory must compose the installed Automata strategy router
+and host-configured Intelligence advisor behind `IAgentRuntimeFactory`.
+Availability probes must not construct runtimes or request authorization.
+Every execution must obtain fresh host-owned authorization, bind the subject
+to the descriptor and tenant, and keep task content separate from route policy.
+Deterministic routing is the default; learned/generative escalation requires
+explicit host configuration. Results expose business output and bounded usage
+and routing evidence without copying provider diagnostics or authority packets.
+Synchronous routing must not claim background interruption or module teardown.
+
 ### HTTP Authentication Boundary
 
 Authentication gateways must stop route preparation and execution when identity
