@@ -512,6 +512,19 @@ subsequent integration work and are not claimed by this persistence increment.
 
 
 
+### Scoped runtime unregistration (#29)
+
+Descriptor discovery and runtime enrollment are separate. An authorized operator
+may unregister one application/tenant/agent runtime after its stop operation
+succeeds. Persist an unregistered tombstone and evict only that local cache entry;
+other tenant runtimes remain registered. Start must require explicit runtime
+registration after this tombstone, including after host reconstruction. Repeated
+unregistration is idempotent. Failed cleanup retains the runtime for retry.
+Registration is metadata-only and must not instantiate or start a provider.
+Descriptor replacement must not silently discard a cached runtime; drain and
+unregister its local scopes first. This is host runtime enrollment, not removal
+of package descriptors or proof of distributed-process/module teardown.
+
 ### Explicit application runtime scope (#29)
 
 An installation may bind its runtime state store to an immutable application
