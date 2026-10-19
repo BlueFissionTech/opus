@@ -24,9 +24,12 @@ the listed runtime boundaries; the audit does not change application behavior.
 
 ## Reproducible module evidence
 
-Run `php -n bin/audit-develation-usage.php` for the complete JSON inventory or
+Run `php bin/audit-develation-usage.php` for the complete JSON inventory or
 add `--summary` for module totals. The command requires PHP's tokenizer, but no
 Composer autoloader, database, provider, application bootstrap, or network access.
+Keep the tokenizer extension enabled in PHP configuration; `-n` can disable it
+on installations that load it dynamically. A missing tokenizer returns
+`inventory_tokenizer_unavailable`, not a misleading source-parse failure.
 The [module snapshot](develation-module-inventory.md) covers all 280 PHP files in
 the explicitly scoped `app`, `common`, and `mapping` directories. Tests, tools,
 entrypoint scripts, templates, installed dependencies and generated assets are

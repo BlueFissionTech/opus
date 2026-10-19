@@ -173,7 +173,7 @@ PHP;
             copy(dirname(__DIR__, 2) . '/tools/DevElationUsageInventory.php', $root . '/tools/DevElationUsageInventory.php');
             file_put_contents($root . '/app/Probe.php', '<?php throw new RuntimeException("must not execute");');
             [$exit, $report, $errors] = $this->command($root);
-            $this->assertSame(0, $exit, $errors);
+            $this->assertSame(0, $exit, $errors . json_encode($report));
             $this->assertSame('', $errors);
             $this->assertTrue($report['complete']);
             $this->assertSame(1, $report['file_count']);
@@ -191,7 +191,8 @@ PHP;
 
     private function command(string $root): array
     {
-        $process = proc_open([PHP_BINARY, '-n', $root . '/bin/audit-develation-usage.php', '--summary'],
+        $process = proc_open([PHP_BINARY, '-d', 'auto_prepend_file=', '-d', 'auto_append_file=',
+            $root . '/bin/audit-develation-usage.php', '--summary'],
             [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         $this->assertIsResource($process);
         fclose($pipes[0]);

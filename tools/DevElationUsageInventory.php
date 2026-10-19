@@ -18,6 +18,9 @@ final class DevElationUsageInventory
 
     public function audit(string $root): array
     {
+        if (!class_exists(PhpToken::class, false) || !method_exists(PhpToken::class, 'tokenize')) {
+            throw new RuntimeException('inventory_tokenizer_unavailable');
+        }
         $root = realpath($root) ?: throw new RuntimeException('inventory_root_unavailable');
         $files = [];
         $errors = [];

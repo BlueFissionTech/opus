@@ -385,7 +385,7 @@ Tests use the installed DevElation dispatcher and Engine with synthetic packages
 they cover settled state, priority order, reentrancy, no replay, disabled dispatch,
 redaction and preserved successful, isolated and required-failure outcomes.
 
-Passive usage inventory: `php -n bin/audit-develation-usage.php --summary`.
+Passive usage inventory: `php bin/audit-develation-usage.php --summary`.
 Focused syntax/evidence fixtures:
 `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/DevElationUsageInventoryTest.php`.
 These verify imports/aliases, namespace boundaries, inert comments/string bodies,

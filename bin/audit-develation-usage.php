@@ -13,7 +13,9 @@ try {
     }
     echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
     exit($report['complete'] ? 0 : 1);
-} catch (Throwable) {
-    fwrite(STDERR, "inventory_failed\n");
+} catch (Throwable $error) {
+    $reason = in_array($error->getMessage(), ['inventory_tokenizer_unavailable', 'inventory_root_unavailable'], true)
+        ? $error->getMessage() : 'inventory_failed';
+    fwrite(STDERR, $reason . PHP_EOL);
     exit(1);
 }

@@ -1,6 +1,6 @@
 # Host module source inventory
 
-Reproduce with `php -n bin/audit-develation-usage.php` (full JSON) or add `--summary`.
+Reproduce with `php bin/audit-develation-usage.php` (full JSON) or add `--summary`.
 
 This snapshot covers the 280 PHP files under `app`, `common`, and `mapping` at
 Opus base `4cfee8958ed34eefa42901cb2dd2ac14887577ec`. The full report records
