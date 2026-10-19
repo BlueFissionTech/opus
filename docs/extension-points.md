@@ -81,3 +81,14 @@ The payload is `application_id` (string), `tenant_id` (string or null), `revisio
 audit are already durable; observer failure is ignored and cannot grant authority
 or roll back the write. See [Add-on organization](addon-organization.md) for the
 policy, persistence, and remaining transport integration contracts.
+
+
+
+### Conversation policy denials
+
+Neither conversation filter may re-enable unknown-intent capture denied by package,
+application, tenant, principal, or an earlier filter. Scoped fallback candidate
+hints follow the final decision. Trusted-artifact requirements, disabled serialized
+learning state, and scope isolation are restored after configuration filters. See
+[Conversational learning policy](conversational-learning-policy.md) for the exact
+composition rules and remaining runtime integration requirements.

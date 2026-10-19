@@ -158,6 +158,110 @@ final class ConversationalLearningCatalogTest extends TestCase
         });
     }
 
+
+    public static function captureDenials(): array
+    {
+        $cases = [];
+        foreach (['application', 'tenant', 'principal'] as $layer) {
+            foreach ([false, null, 'false', 0, []] as $index => $value) {
+                $cases[$layer . '-' . $index] = [$layer, $value];
+            }
+        }
+        return $cases;
+    }
+
+    /** @dataProvider captureDenials */
+    public function testCaptureDenialSurvivesBothExtensionFilters(string $layer, mixed $value): void
+    {
+        $this->withDevElationFilters(function () use ($layer, $value): void {
+            $layers = ['application' => ['capture_unknown_intents' => true],
+                'tenant' => ['capture_unknown_intents' => true], 'principal' => ['capture_unknown_intents' => true]];
+            $layers[$layer]['capture_unknown_intents'] = $value;
+            DevElation::filter('opus.conversation.settings', static function (array $payload): array {
+                $payload['settings']['capture_unknown_intents'] = true;
+                return $payload;
+            });
+            DevElation::filter('opus.conversation.configuration', static function (array $payload): array {
+                $payload['configuration']['settings']['capture_unknown_intents'] = true;
+                return $payload;
+            });
+            $catalog = $this->catalog();
+            $this->assertFalse($catalog->settingsFor(...$layers)['capture_unknown_intents']);
+            $configuration = $catalog->configurationFor(new WiseProfile(WiseProfile::USER, 'user', 'tenant'), ...$layers);
+            $this->assertFalse($configuration['settings']['capture_unknown_intents']);
+            $this->assertFalse($configuration['routes']['fallbacks']['unknown.intent']['capture_candidate']);
+            $this->assertFalse($configuration['routes']['fallbacks']['profile.denied']['capture_candidate']);
+            $this->assertTrue($catalog->fallbacks()['unknown.intent']['capture_candidate'], 'Package seeds remain immutable.');
+        });
+    }
+
+    public function testConfigurationFilterCannotRelaxLearningTrustAndIsolation(): void
+    {
+        $this->withDevElationFilters(function (): void {
+            DevElation::filter('opus.conversation.configuration', static function (array $payload): array {
+                $payload['configuration']['learning']['trusted_artifacts_only'] = false;
+                $payload['configuration']['learning']['serialized_state_enabled'] = true;
+                $payload['configuration']['learning']['scope_isolation_required'] = false;
+                $payload['configuration']['learning']['custom_queue'] = 'review';
+                return $payload;
+            });
+            $configuration = $this->catalog()->configurationFor(new WiseProfile(WiseProfile::USER, 'user', 'tenant'));
+            $this->assertTrue($configuration['learning']['trusted_artifacts_only']);
+            $this->assertFalse($configuration['learning']['serialized_state_enabled']);
+            $this->assertTrue($configuration['learning']['scope_isolation_required']);
+            $this->assertSame('review', $configuration['learning']['custom_queue']);
+        });
+    }
+
+
+    public function testPackageCaptureDenialAndMandatoryLearningDefaultsCannotBeRelaxed(): void
+    {
+        $source = require dirname(__DIR__, 4) . '/mapping/conversation.php';
+        $source['settings']['capture_unknown_intents'] = false;
+        $source['learning']['trusted_artifacts_only'] = false;
+        $source['learning']['serialized_state_enabled'] = true;
+        $source['learning']['scope_isolation_required'] = false;
+        $catalog = new ConversationalLearningCatalog($source);
+        $configuration = $catalog->configurationFor(new WiseProfile(WiseProfile::USER, 'user'), principal: ['capture_unknown_intents' => true]);
+        $this->assertFalse($configuration['settings']['capture_unknown_intents']);
+        $this->assertTrue($catalog->toArray()['learning']['trusted_artifacts_only']);
+        $this->assertFalse($catalog->toArray()['learning']['serialized_state_enabled']);
+        $this->assertTrue($catalog->toArray()['learning']['scope_isolation_required']);
+    }
+
+    public function testSettingsFilterCanDisableCaptureAndConfigurationFilterCannotReenableIt(): void
+    {
+        $this->withDevElationFilters(function (): void {
+            DevElation::filter('opus.conversation.settings', static function (array $payload): array {
+                $payload['settings']['capture_unknown_intents'] = false;
+                return $payload;
+            });
+            DevElation::filter('opus.conversation.configuration', static function (array $payload): array {
+                $payload['configuration']['settings']['capture_unknown_intents'] = true;
+                return $payload;
+            });
+            $configuration = $this->catalog()->configurationFor(new WiseProfile(WiseProfile::USER, 'user'));
+            $this->assertFalse($configuration['settings']['capture_unknown_intents']);
+            $this->assertFalse($configuration['routes']['fallbacks']['unknown.intent']['capture_candidate']);
+        });
+    }
+
+    public function testConfigurationFilterCanDisableCaptureWithoutMutatingThePackage(): void
+    {
+        $this->withDevElationFilters(function (): void {
+            DevElation::filter('opus.conversation.configuration', static function (array $payload): array {
+                $payload['configuration']['settings']['capture_unknown_intents'] = false;
+                return $payload;
+            });
+            $catalog = $this->catalog();
+            $configuration = $catalog->configurationFor(new WiseProfile(WiseProfile::USER, 'user'));
+            $this->assertFalse($configuration['settings']['capture_unknown_intents']);
+            $this->assertFalse($configuration['routes']['fallbacks']['unknown.intent']['capture_candidate']);
+            $this->assertTrue($catalog->settingsFor()['capture_unknown_intents']);
+            $this->assertTrue($catalog->fallbacks()['unknown.intent']['capture_candidate']);
+        });
+    }
+
     private function catalog(): ConversationalLearningCatalog
     {
         return new ConversationalLearningCatalog(

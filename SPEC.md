@@ -472,3 +472,18 @@ bulk writes, hidden-group non-disclosure, stale writers, audit failure rollback,
 deterministic ordering, 100-add-on filtering, and tags that do not change dependency
 metadata. HTTP/Wise/UI binding and authoritative lifecycle impact enforcement are
 subsequent integration work and are not claimed by this persistence increment.
+
+
+
+### Conversational learning policy guards (#99)
+
+Unknown-intent capture requires a strict boolean allow through the package,
+application, tenant, and principal layers. An explicit denial or malformed
+explicit value cannot be reversed by a narrower layer or either conversation
+configuration filter. A filter may disable capture but cannot grant denied capture.
+Scoped fallback candidate hints must reflect the effective capture decision without
+mutating package seeds. Trusted-artifact requirements, disabled serialized learning
+state, scope isolation, review and persistence requirements remain mandatory after
+configuration extensions. These are host configuration guarantees; persistent
+learning, application-scoped profile adapters, live authorization and promotion
+workflows remain required before #99 is complete.

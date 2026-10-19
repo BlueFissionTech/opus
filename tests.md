@@ -307,3 +307,13 @@ store's tests skip. Coverage includes persistence/reopen, tenant and application
 isolation, host policy checks, bulk atomicity, hidden metadata, stale writers,
 audit rollback, database locking, migration failure/revert, corrupted storage, and
 125-add-on filtering. It does not prove the pending admin UI or Wise bindings.
+
+
+
+### Conversational learning policy guards
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "ConversationalLearningCatalogTest|DevElationHelperUsageTest"`.
+Coverage includes explicit and malformed capture denials at every layer, denial
+preservation through both filters, immutable seed hints, and mandatory artifact
+trust/serialization/isolation guards. This is configuration proof, not a live
+learning or provider integration claim.
