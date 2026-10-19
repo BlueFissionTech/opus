@@ -1,5 +1,15 @@
 # Opus Framework Specification
 
+## Add-on boot diagnostics
+
+Canonical add-on registration failures retain the selected package identity,
+host-owned phase and reason, and whether effects may have started. The diagnostic
+never includes paths, exception text, provider output or a previous exception.
+Repeated engine dispatch returns the same failure without replaying package code.
+Diagnostics are host-local observations, not activation state or retry authority.
+Baseline mappings must load before add-on routes, themes and services, allowing
+intentional overrides through the real engine bootstrap order.
+
 ## Minimal application profiles
 
 Explicit `OPUS_PROFILE=api` and `OPUS_PROFILE=dashboard` select a small HTTP
