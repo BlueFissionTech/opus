@@ -323,6 +323,38 @@ without a `registration` declaration retain the historical imperative loader;
 migrate them to the canonical factory before relying on these boot guarantees.
 The platform validator checks structure, not a sandbox for untrusted PHP code.
 
+For a queued canonical registration, `BootAddOnManager::bootReport($name)` returns
+a version-1, host-local diagnostic snapshot (or `null` for an unqueued name).
+It does not execute package code or query storage. The snapshot contains only
+persisted package ID/name/namespace/version, boot state, phase, stable reason,
+effect status, and `retryable: false`. It excludes host paths, configuration,
+exception text, contributions and provider data. It is not activation state or
+an authorization grant; any administrative exposure requires host access policy.
+
+`AddOnBootException` retains the existing `addon_boot_registration_failed`
+message and supplies the same snapshot through `report()`, with no previous
+exception attached. Repeated failed dispatch returns the same report and never
+replays code. `effects: none` means package registration code was not entered;
+`unknown` means it may have made partial changes; `registered` means its
+contributions completed. Earlier packages' completed contributions are not rolled
+back when a later package fails. Repair and restart remain explicit operator work.
+
+| Phase | Failure reason |
+| --- | --- |
+| availability | `addon_availability_check_failed` |
+| validation | `addon_contract_invalid` |
+| identity | `addon_identity_mismatch` |
+| registration_class | `addon_registration_class_conflict`, `addon_registration_class_failed` |
+| factory | `addon_registration_factory_failed`, `addon_registration_invalid` |
+| contributions | `addon_contributions_failed`, `addon_contributions_invalid` |
+| themes | `addon_theme_registration_failed` |
+
+An inactive or changed stored identity produces a skipped report with
+`addon_not_active_or_identity_changed`, without entering package code. Pending
+reports use phase `queued`; successful reports use `complete`; both have no
+failure reason. Diagnostics cover the queued canonical contract, not historical
+imperative entrypoints or package discovery before queueing.
+
 Lifecycle commands and administrative endpoints return structured readiness
 outcomes. Single outcomes include `ok`, `action`, `changed`, `stage`,
 `nextAction`, per-step results, and stable readiness reason codes. Batch

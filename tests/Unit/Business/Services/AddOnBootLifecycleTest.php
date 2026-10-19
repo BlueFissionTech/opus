@@ -81,6 +81,61 @@ PHP);
         $this->assertSame(1, $manager->bootContributions('boot_probe')['agents']['version']);
     }
 
+    public function testBootReportIsReadOnlyAndDoesNotLoadAnUnknownPackage(): void
+    {
+        $manager = $this->manager();
+        $this->assertNull($manager->bootReport('unknown'));
+        $manager->loadActivatedAddOns();
+        $report = $manager->bootReport('boot_probe');
+        $this->assertSame('pending', $report['state']);
+        $this->assertSame('none', $report['effects']);
+        $this->assertNull($report['reason']);
+        $report['identity']['name'] = 'changed';
+        $this->assertSame('boot_probe', $manager->bootReport('boot_probe')['identity']['name']);
+        $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
+    }
+
+    public function testRealBootstrapLetsContributionsOverrideBaselineMappings(): void
+    {
+        define('APP_ROOT', $this->workspace);
+        define('PROJECT_ROOT', $this->workspace);
+        mkdir($this->workspace . '/common/config', 0700, true);
+        mkdir($this->workspace . '/mapping');
+        file_put_contents($this->workspace . '/common/config/app.php',
+            '<?php return ["aliases" => [], "extensions" => [], "gateways" => []];');
+        file_put_contents($this->workspace . '/mapping/baseline.php', <<<'PHP'
+<?php
+$engine = \BlueFission\BlueCore\Engine::instance();
+\BlueFission\Services\Mapping::add('/boot/probe', static fn (): string => 'baseline', 'boot.probe', 'get');
+$engine->addTheme(new \App\Business\Presentation\PackageTheme('boot_probe/default', __DIR__));
+$engine->delegate('boot.probe', (object) ['source' => 'baseline']);
+$GLOBALS['baseline_loaded'] = true;
+PHP);
+        $this->prependRegistration(<<<'PHP'
+if (($GLOBALS['baseline_loaded'] ?? false) !== true) { throw new \RuntimeException('baseline_missing'); }
+$GLOBALS['boot_attempts'] = ($GLOBALS['boot_attempts'] ?? 0) + 1;
+\BlueFission\BlueCore\Engine::instance()->delegate('boot.probe', (object) ['source' => 'addon']);
+PHP);
+        $previousKey = getenv('APP_KEY');
+        putenv('APP_KEY=synthetic-boot-test-key');
+        try {
+            \BlueFission\Utils\Loader::instance()->addPath($this->workspace);
+            $engine = Engine::instance();
+            $engine->delegate('session', new \stdClass());
+            $manager = $this->manager();
+            $engine->behavior('OnAppInitialized', fn () => $manager->loadActivatedAddOns());
+            $engine->bootstrap();
+            $this->assertSame('ready', ($engine->maps()['get']['boot/probe']->callable)());
+            $this->assertSame($this->workspace . '/boot_probe/resource/markup' . DIRECTORY_SEPARATOR,
+                $engine->theme('boot_probe/default')->location);
+            $this->assertSame('addon', $engine->service('boot.probe')->source);
+            $engine->dispatch('OnAppLoaded');
+            $this->assertSame(1, $GLOBALS['boot_attempts']);
+        } finally {
+            putenv($previousKey === false ? 'APP_KEY' : 'APP_KEY=' . $previousKey);
+        }
+    }
+
     public function testEmbeddedProfileRegistersThroughTheEngineOnce(): void
     {
         $this->embeddedTooling();
@@ -146,6 +201,7 @@ PHP);
         $engine->dispatch('OnAppLoaded');
         $engine->dispatch('OnAppLoaded');
         $this->assertSame('skipped', $manager->bootState('boot_probe'));
+        $this->assertSame('addon_not_active_or_identity_changed', $manager->bootReport('boot_probe')['reason']);
         $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
         $this->assertSame([], $engine->maps());
         $this->assertNull($engine->theme('boot_probe/default'));
@@ -161,6 +217,64 @@ PHP);
         $this->assertSame('failed', $manager->bootState('boot_probe'));
         $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
         $this->assertSame([], $engine->maps());
+        $this->assertSame('validation', $manager->bootReport('boot_probe')['phase']);
+        $this->assertSame('addon_contract_invalid', $manager->bootReport('boot_probe')['reason']);
+        $this->assertSame('none', $manager->bootReport('boot_probe')['effects']);
+    }
+
+    public function testActivationQueryFailureRetainsIdentityBeforePackageCodeRuns(): void
+    {
+        $calls = 0;
+        $manager = $this->manager(AddOnManager::class, function () use (&$calls): array {
+            if (++$calls > 1) {
+                throw new \RuntimeException('synthetic-private-storage-credential');
+            }
+            return $this->active;
+        });
+        $manager->loadActivatedAddOns();
+        $this->assertBootFailure(Engine::instance());
+        $report = $manager->bootReport('boot_probe');
+        $this->assertSame('availability', $report['phase']);
+        $this->assertSame('addon_availability_check_failed', $report['reason']);
+        $this->assertSame('none', $report['effects']);
+        $this->assertSame('boot_probe', $report['identity']['name']);
+        $this->assertStringNotContainsString('synthetic-private', json_encode($report));
+        $this->assertBootFailure(Engine::instance());
+        $this->assertSame(2, $calls);
+        $this->assertSame($report, $manager->bootReport('boot_probe'));
+    }
+
+    public function testOneFailedPackageKeepsSeparateReportsForCompletedContributions(): void
+    {
+        $generated = (new AddOnScaffoldService($this->workspace))->generate('second_probe', 'second_probe');
+        $this->assertTrue($generated['created']);
+        $this->active[] = [
+            'addon_id' => 2, 'name' => 'second_probe', 'namespace' => 'AddOns\\SecondProbe',
+            'path' => $this->workspace . '/second_probe', 'primary_file' => 'main.php', 'is_active' => 1,
+            'version' => '0.1.0-alpha',
+        ];
+        $file = $this->workspace . '/second_probe/logic/Registration/AddOnRegistration.php';
+        file_put_contents($file, str_replace('        return [',
+            'throw new \\RuntimeException("synthetic-private"); return [', file_get_contents($file)));
+        $manager = $this->manager();
+        $manager->loadActivatedAddOns();
+        $engine = Engine::instance();
+        try {
+            $engine->dispatch('OnAppLoaded');
+            $this->fail('The second package must stop boot.');
+        } catch (\App\Domain\AddOn\AddOnBootException $failure) {
+            $this->assertSame('second_probe', $failure->report()['identity']['name']);
+            $this->assertSame('2', $failure->report()['identity']['id']);
+            $this->assertSame($manager->bootReport('second_probe'), $failure->report());
+        }
+        $completed = $manager->bootReport('boot_probe');
+        $this->assertSame('registered', $completed['state']);
+        $this->assertSame('registered', $completed['effects']);
+        $this->assertNull($completed['reason']);
+        $mapping = $engine->maps()['get']['boot/probe'];
+        $this->assertBootFailure($engine);
+        $this->assertSame($mapping, $engine->maps()['get']['boot/probe']);
+        $this->assertSame($completed, $manager->bootReport('boot_probe'));
     }
 
     public function testRegistrationFailureNeverReplaysPartialEffectsOrLeaksTheException(): void
@@ -182,6 +296,23 @@ PHP);
         $this->assertSame('failed', $manager->bootState('boot_probe'));
         $this->assertSame([], $manager->bootContributions('boot_probe'));
         $this->assertNull($engine->theme('boot_probe/default'));
+        $report = $manager->bootReport('boot_probe');
+        $this->assertSame('contributions', $report['phase']);
+        $this->assertSame('addon_contributions_failed', $report['reason']);
+        $this->assertSame('unknown', $report['effects']);
+        $this->assertFalse($report['retryable']);
+        $this->assertSame(['id' => '1', 'name' => 'boot_probe', 'namespace' => 'AddOns\\BootProbe',
+            'version' => '0.1.0-alpha'], $report['identity']);
+        $this->assertStringNotContainsString('synthetic-private', json_encode($report));
+        $this->assertStringNotContainsString($this->workspace, json_encode($report, JSON_UNESCAPED_SLASHES));
+        try {
+            $engine->dispatch('OnAppLoaded');
+        } catch (\App\Domain\AddOn\AddOnBootException $failure) {
+            $this->assertSame($report, $failure->report());
+            $this->assertNull($failure->getPrevious());
+            return;
+        }
+        $this->fail('Repeated failures must retain structured package diagnostics.');
     }
 
     public function testReentrantDispatchDoesNotRunTheSameProviderAgain(): void
@@ -267,11 +398,11 @@ PHP);
         }
     }
 
-    private function manager(string $class = AddOnManager::class): AddOnManager
+    private function manager(string $class = AddOnManager::class, ?callable $rows = null): AddOnManager
     {
         $model = $this->getMockBuilder(AddOnModel::class)->disableOriginalConstructor()
             ->onlyMethods(['getActivatedAddOns'])->getMock();
-        $model->method('getActivatedAddOns')->willReturnCallback(fn (): array => $this->active);
+        $model->method('getActivatedAddOns')->willReturnCallback($rows ?? fn (): array => $this->active);
         $manager = (new ReflectionClass($class))->newInstanceWithoutConstructor();
         $property = new ReflectionProperty(AddOnManager::class, '_model');
         $property->setAccessible(true);

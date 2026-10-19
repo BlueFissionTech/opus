@@ -1,5 +1,13 @@
 # Testing Opus Framework
 
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AddOnBootLifecycleTest.php`
+for the canonical boot contract. The real installed `Engine::bootstrap()` loads
+synthetic baseline mappings before add-on routes, themes and service overrides.
+Failure cases preserve package identity and redacted phase/reason/effect reports,
+avoid replay, and keep reports separate across completed and failed packages.
+The active-row query is controlled; these tests do not claim fresh-MySQL lifecycle
+installation proof, which remains a separate readiness requirement.
+
 The [minimal application profiles](docs/application-profiles.md) have real HTTP
 tests in `tests/Feature/ApplicationProfileHttpTest.php`. They start temporary
 loopback PHP servers with isolated sessions and an ephemeral `APP_KEY`, without
