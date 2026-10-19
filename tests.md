@@ -369,3 +369,9 @@ unused directories, migration warnings and unchanged source/mapping/template
 errors. Installed-engine tests register an embedded package exactly once and
 reject metadata that tries to choose its own validation policy. No Composer
 installation, database connection or provider credentials are needed.
+
+Optional boot isolation: `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AddOnBootLifecycleTest.php`.
+Fixtures exercise real Engine bootstrap with an invalid optional package and a
+healthy package, fail-closed partial effects, captured host-only policy, malformed
+policy and no replay after repair. This does not prove database recovery or
+production operator command bindings.

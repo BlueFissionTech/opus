@@ -450,3 +450,28 @@ groups, ordered memberships, tags, and atomic audit storage. Host authorization
 is mandatory. Organization metadata never changes manifest dependencies or
 lifecycle authority. Admin UI, Wise bindings, and lifecycle-impact enforcement
 remain separate delivery gates.
+
+### Optional boot failures before execution
+
+Trusted host composition can call `$manager->useOptionalAddOns(['search_tools'])`
+before loading activated or selected add-ons. The exact canonical names form an
+allowlist; every other package remains required. This is not a permission grant
+or a change to installed/activated lifecycle state. Package metadata cannot opt
+itself out of required boot, and later configuration does not rewrite queued
+policy. Required dependencies must remain required in the host's composition.
+
+For canonical registration, failure before package code runs leaves `effects`
+as `none`. Only an explicitly optional package may then be isolated so host
+startup and other add-ons continue. `bootReport()` retains `state: failed`, the
+sanitized phase/reason, `required: false`, `isolated: true`, and `retryable: false`.
+Contributions remain unavailable. Inspect this report through an authorized host
+surface; continued startup does not mean the package became healthy or inactive.
+
+Once registration code has been entered, effects may be unknown. Optional policy
+never suppresses that failure: boot still throws, because routing, services or
+other state may already have changed. Imperative legacy entrypoints and errors
+before a canonical registration is queued retain their existing failure behavior.
+Repeated boot events never retry failed code. Repair or disable the package through
+reviewed lifecycle operations and start a fresh engine to attempt registration.
+This boundary does not add transport retries, provider recovery, rollback,
+persistent dead letters, or production administration/Wise bindings.
