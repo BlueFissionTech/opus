@@ -391,3 +391,12 @@ Focused syntax/evidence fixtures:
 These verify imports/aliases, namespace boundaries, inert comments/string bodies,
 direct fluent chains, unresolved behavior calls, source hashes and incomplete
 scan errors. This is not runtime type inference, profiling or dependency parity.
+# Shared command result observation
+
+Run `php vendor/bin/phpunit tests/Unit/Business/Services/CommandResultObservationTest.php`
+for actual DevElation delivery, result privacy, ordering, disabled/no-handler
+compatibility, host failures, observer exceptions and cross-host reentry denial.
+Run `php vendor/bin/phpunit tests/Unit/Business/Services/ExtensionPointCatalogTest.php`
+for the published schema/runtime contract. Use `php vendor/bin/phpunit` for the
+full suite before publishing changes to this shared command boundary. These
+tests make no provider calls and do not prove durable audit delivery.

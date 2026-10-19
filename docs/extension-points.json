@@ -1,8 +1,35 @@
 {
   "schema_version": 1,
-  "catalog_version": "1.3.0",
+  "catalog_version": "1.4.0",
   "namespace": "opus",
   "extension_points": [
+    {
+      "name": "opus.command.result",
+      "kind": "action",
+      "area": "command_result",
+      "phase": "after_presentation_outcome",
+      "owner": "CommandHost",
+      "payload": {
+        "type": "object",
+        "required": ["version", "status", "confirmation_required", "host_failure", "phase"],
+        "properties": {
+          "version": "integer", "status": "string", "confirmation_required": "boolean",
+          "host_failure": "boolean", "phase": "string"
+        }
+      },
+      "returns": {"type": "void"},
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "One synchronous observation per admitted CommandHost call, after presentation or a host failure settles; execute, resume and CLI use the same boundary.",
+        "Version is 1. Status is completed, parsed, confirmation_required, invalid, failed or unknown. Phase is presented, processing_failed or presentation_failed.",
+        "No inputs, command objects, output, diagnostics, metadata, identities, provider errors, continuation tokens or other mutable objects enter the payload.",
+        "Observer return values and payload changes cannot alter the settled result. Exceptions stop later handlers but are contained without retry or replay.",
+        "Nested calls to any CommandHost during synchronous observation fail before processor dispatch and do not emit another observation. The process-wide guard always resets.",
+        "Requires enabled DevElation. This is best-effort observation, not durable delivery, permission, effect completion or a sandbox for installed PHP handlers."
+      ]
+    },
     {
       "name": "opus.addon.boot.result",
       "kind": "action",
@@ -298,6 +325,13 @@
     }
   ],
   "boundary_inventory": [
+    {
+      "area": "command_result",
+      "status": "hooked",
+      "owner": "CommandHost",
+      "extension_points": ["opus.command.result"],
+      "rationale": "Observe a bounded summary after presentation while command authority, result contents and continuation consumption remain service-owned."
+    },
     {
       "area": "addon_boot",
       "status": "hooked",

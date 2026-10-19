@@ -17,6 +17,7 @@ privacy, review, and execution invariants after filters where required.
 | Name | Kind | Phase | Failure policy |
 | --- | --- | --- | --- |
 | `opus.addon.boot.result` | action | After a canonical registration outcome settles | Ignore observer failure; preserve boot result |
+| `opus.command.result` | action | After shared command presentation settles | Ignore observer failure; preserve command result |
 | `opus.addon.organization.changed` | action | After persistence | Ignore observer failure |
 | `opus.intake.defaults` | filter | Before session creation | Propagate before persistence |
 | `opus.intake.session.transitioned` | action | After persistence | Propagate without rolling back the completed write |
@@ -129,3 +130,33 @@ this data boundary is not a PHP sandbox.
 
 This additive catalog release changes no existing hook name or payload. See
 [Add-on conventions](../ADDONS.md) for boot policy and report interpretation.
+# Shared command results (catalog 1.4.0)
+
+`opus.command.result` receives a version 1 array after `CommandHost` has settled
+the presentation returned to the caller. It applies equally to execute, resume
+and CLI calls using that host. The fields are `version`, `status`,
+`confirmation_required`, `host_failure` and `phase`. Known statuses are
+`completed`, `parsed`, `confirmation_required`, `invalid` and `failed`; any other
+processor status becomes `unknown` in the observation only. The caller's result
+is unchanged. Phases are `presented`, `processing_failed` and
+`presentation_failed`; the latter two use private-safe host failures.
+
+The summary omits command names/arguments, output, metadata, tenant/actor data,
+diagnostics and continuation tokens. It supports aggregate operation-state
+observation, not per-tenant reporting or billing attribution. Use authorized
+service interfaces when richer scoped data is required. A completed status is
+the processor's report, not an independent proof that external effects settled.
+
+Handlers run in ascending priority and registration order. Their return values
+are ignored; exceptions stop later handlers for that delivery but cannot replace
+the result or trigger retry. There is no durable delivery/replay guarantee.
+While synchronous observation is running, calls through any `CommandHost` fail
+before processor dispatch or continuation consumption, report
+`command_result_observer_reentry_denied` and emit no recursive observation.
+The process-wide guard resets even if a handler throws. Handlers should remain
+short and synchronous; a yielding handler retains the guard until it returns.
+This guard does not sandbox arbitrary installed PHP or other service APIs.
+
+With DevElation disabled or no handlers, ordinary commands retain their existing
+results. No new installation or activation setting is required. Existing hooks
+retain their names and schemas; the catalog minor version adds this new action.

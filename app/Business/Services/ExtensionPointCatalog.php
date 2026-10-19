@@ -13,6 +13,7 @@ use RuntimeException;
 
 final class ExtensionPointCatalog extends Service
 {
+    public const COMMAND_RESULT = 'opus.command.result';
     public const ADDON_BOOT_RESULT = 'opus.addon.boot.result';
     public const ADDON_ORGANIZATION_CHANGED = 'opus.addon.organization.changed';
     public const INTAKE_DEFAULTS = 'opus.intake.defaults';
@@ -25,6 +26,7 @@ final class ExtensionPointCatalog extends Service
     public const FRONTEND_MARKUP_DIRECTORY = 'opus.frontend.markup_directory';
 
     public const NAMES = [
+        self::COMMAND_RESULT,
         self::ADDON_BOOT_RESULT,
         self::ADDON_ORGANIZATION_CHANGED,
         self::INTAKE_DEFAULTS,
@@ -38,6 +40,23 @@ final class ExtensionPointCatalog extends Service
     ];
 
     private const RUNTIME_CONTRACTS = [
+        self::COMMAND_RESULT => [
+            'kind' => 'action',
+            'area' => 'command_result',
+            'phase' => 'after_presentation_outcome',
+            'owner' => 'CommandHost',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'payload_required' => ['version', 'status', 'confirmation_required', 'host_failure', 'phase'],
+            'payload_properties' => [
+                'version' => 'integer', 'status' => 'string', 'confirmation_required' => 'boolean',
+                'host_failure' => 'boolean', 'phase' => 'string',
+            ],
+            'return_type' => 'void',
+            'return_required' => [],
+            'return_properties' => [],
+        ],
         self::ADDON_BOOT_RESULT => [
             'kind' => 'action',
             'area' => 'addon_boot',

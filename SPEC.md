@@ -579,3 +579,13 @@ behavior and hook references. Keep declarations, static fluent chains and
 unresolved behavior candidates distinct. Never execute inspected source or infer
 runtime compatibility from lexical counts. Missing/unreadable or unparsable input
 must yield an incomplete report and a nonzero process result.
+# Command result observation
+
+The shared CommandHost publishes one observe-only DevElation action after a
+presentation or a private-safe host failure settles. Its versioned scalar
+summary contains a normalized status, confirmation flag, host-failure marker
+and phase, never input, output, metadata, tenant identity or continuation proof.
+Observers cannot replace the result or replay it through a nested CommandHost
+call. Observer exceptions do not convert success to failure or retry execution.
+The action is synchronous, best-effort and requires DevElation to be enabled;
+it is not durable audit storage, a permission grant or a sandbox for PHP code.
