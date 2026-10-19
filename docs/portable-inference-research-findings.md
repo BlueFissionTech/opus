@@ -34,8 +34,8 @@ adoption packet; no dependency update is proposed here.
 | Opus PR #172, `06a6d0801f3916692f892c348a83bf005e4e7f41` | Native strategy runtime and tests | Host injection connects composition to native routing without activating a default provider. Local proof: 13 focused tests/77 assertions; full 710 tests/3,780 assertions, 12 skips. This is deterministic routing and host-boundary evidence, not hosted-model or asynchronous cancellation evidence. |
 
 Source locations are relative to each package's `src/` directory unless an
-explicit `resources/` path is given. The Opus change remains a PR at this
-research checkpoint. Interface inventory is not full implementation review:
+explicit `resources/` path is given. The Opus change was subsequently verified
+merged at the same reviewed head. Interface inventory is not full implementation review:
 normalization fidelity, continuation-store atomicity, complete Annex validation
 and model-specific licenses remain open before R1 acceptance.
 
@@ -48,6 +48,30 @@ measured fidelity or the six capability dispositions in the plan. Request the
 protocol owner's mapping or extension decision rather than adding arbitrary
 fields and declaring interoperability. A signature also needs verifier/trust
 policy evidence; the presence of a signature field is insufficient.
+
+### Continuation implementation review
+
+The installed Wise `StorageContinuationStore` reads its storage in the
+constructor. `consume()` checks the in-memory consumed and pending arrays,
+checks expiry and scope, removes the pending entry, appends the replay marker,
+calls `write()`, and returns an accepted claim. The inspected method does not
+acquire a lock, reload state, perform a compare-and-swap, or inspect the write
+result. This does not establish an atomic single-consumer contract across two
+store instances. A concrete storage adapter may supply additional semantics;
+those semantics and failure behavior need evidence before distributed use.
+
+`CommandProcessor::resume()` consumes the claim, restores the saved command and
+passes approval into its normal command handling. The inspected resume method
+does not itself invoke a fresh authorization callback. Authorization may exist
+at the application command boundary; inspect and exercise that boundary rather
+than treating successful scope matching as permission to execute.
+
+Add two offline acceptance cases to the owner packet: two independently loaded
+stores racing for one token must dispatch at most once, and failed persistence
+must not produce an executable accepted claim. Also exercise revocation between
+issuance and approval through the real command boundary. These are proposed
+tests, not reproduced failures or proof that every storage backend is unsafe.
+No vendor source was modified during this review.
 
 ### Primary documentation assessment
 
