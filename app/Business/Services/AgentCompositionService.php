@@ -23,6 +23,7 @@ final class AgentCompositionService extends Service
     private const CLAIM_LEASE_SECONDS = 300;
 
     public const REGISTERED = 'registered';
+    public const UNREGISTERED = 'unregistered';
     public const RUNNING = 'running';
     public const SUSPENDED = 'suspended';
     public const STOPPED = 'stopped';
@@ -31,6 +32,7 @@ final class AgentCompositionService extends Service
 
     private Arr $descriptors;
     private Arr $runtimes;
+    private Arr $runtimeRegistrations;
     private ?AgentApplicationScope $applicationScope;
 
     public function __construct(
@@ -42,6 +44,7 @@ final class AgentCompositionService extends Service
         parent::__construct();
         $this->descriptors = Arr::make([]);
         $this->runtimes = Arr::make([]);
+        $this->runtimeRegistrations = Arr::make([]);
         $this->applicationScope = $states instanceof IApplicationScopedAgentRuntimeStateStore
             ? $states->applicationScope()
             : null;
@@ -49,15 +52,23 @@ final class AgentCompositionService extends Service
 
     public function registerMap(AgentCapabilityMap $map): AgentRuntimeResult
     {
+        foreach ($map->agents() as $descriptor) {
+            if (!$descriptor instanceof AgentDescriptor) {
+                continue;
+            }
+            $existing = $this->descriptors->get($descriptor->id());
+            if ($existing instanceof AgentDescriptor
+                && $this->descriptorContract($existing) !== $this->descriptorContract($descriptor)
+                && $this->hasCachedRuntime($descriptor->id())
+            ) {
+                return AgentRuntimeResult::denied(
+                    'register', $map->owner(), null, self::UNKNOWN, 'agent_runtime_unregistration_required'
+                );
+            }
+        }
         $registered = 0;
         Arr::make($map->agents())->each(function ($descriptor) use (&$registered): void {
             if ($descriptor instanceof AgentDescriptor) {
-                $existing = $this->descriptors->get($descriptor->id());
-                if ($existing instanceof AgentDescriptor
-                    && $this->descriptorContract($existing) !== $this->descriptorContract($descriptor)
-                ) {
-                    $this->evictRuntimes($descriptor->id());
-                }
                 $this->descriptors->set($descriptor->id(), $descriptor);
                 $registered++;
             }
@@ -88,14 +99,12 @@ final class AgentCompositionService extends Service
         ];
     }
 
-    private function evictRuntimes(string $agentId): void
+    private function hasCachedRuntime(string $agentId): bool
     {
         $suffix = '::' . $agentId;
-        $this->runtimes->keys()->each(function ($key) use ($suffix): void {
-            if (Str::make((string) $key)->endsWith($suffix)) {
-                $this->runtimes->delete((string) $key);
-            }
-        });
+        return $this->runtimes->keys()
+            ->filter(fn ($key): bool => Str::make((string) $key)->endsWith($suffix))
+            ->count() > 0;
     }
 
     public function inspect(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
@@ -128,6 +137,11 @@ final class AgentCompositionService extends Service
         }
 
         $current = $this->state($agentId, $context);
+        if ($current === self::UNREGISTERED) {
+            return $this->correlate(AgentRuntimeResult::denied(
+                'start', $agentId, $context->tenantId(), $current, 'agent_registration_required'
+            ), $context);
+        }
         if ($current === self::RUNNING) {
             return $this->correlate($this->stableIdempotent('start', $agentId, $context, self::RUNNING), $context);
         }
@@ -163,6 +177,31 @@ final class AgentCompositionService extends Service
             $context,
             [self::RUNNING, self::SUSPENDED, self::FAILED],
             self::STOPPED
+        ), $context);
+    }
+
+    public function registerRuntime(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
+    {
+        $authorized = $this->authorize('registerRuntime', $agentId, $context);
+        if ($authorized !== null) {
+            return $this->correlate($authorized, $context);
+        }
+        if ($this->states->get($agentId, $context->tenantId()) === null) {
+            return $this->correlate($this->invokeLifecycle(
+                'registerRuntime', $agentId, $context, self::REGISTERED, self::REGISTERED
+            ), $context);
+        }
+        return $this->correlate($this->transition(
+            'registerRuntime', $agentId, $context, [self::UNREGISTERED], self::REGISTERED
+        ), $context);
+    }
+
+    public function unregister(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
+    {
+        return $this->correlate($this->transition(
+            'unregister', $agentId, $context,
+            [self::REGISTERED, self::RUNNING, self::SUSPENDED, self::STOPPED, self::FAILED],
+            self::UNREGISTERED
         ), $context);
     }
 
@@ -411,6 +450,7 @@ final class AgentCompositionService extends Service
             $executionId = $this->operationId();
             $accepted = $this->states->compareAndPut($agentId, $context->tenantId(), [
                 'state' => self::RUNNING,
+                'registration_id' => Arr::getPath($persisted, 'registration_id'),
                 'transition_id' => $transitionId,
                 'cancellation_id' => $cancellationId,
                 'active_execution_id' => $activeExecutionId,
@@ -638,7 +678,13 @@ final class AgentCompositionService extends Service
                 'agent_transition_in_progress'
             );
         }
-        $result = $this->invoke($action, $agentId, $context)->forScope(
+        $metadataOnly = $action === 'registerRuntime'
+            || ($action === 'unregister'
+                && Arr::make([self::REGISTERED, self::STOPPED])->contains($source)
+                && !Str::isNotEmpty((string) $activeExecutionId));
+        $result = ($metadataOnly
+            ? AgentRuntimeResult::completed($action, $agentId, $context->tenantId(), $target)
+            : $this->invoke($action === 'unregister' ? 'stop' : $action, $agentId, $context))->forScope(
             $action,
             $agentId,
             $context->tenantId(),
@@ -657,6 +703,9 @@ final class AgentCompositionService extends Service
             'transition_correlation_id' => null,
             'transition_expires_at' => null,
         ];
+        if ($result->ok() && Arr::make(['registerRuntime', 'unregister'])->contains($action)) {
+            $completion['registration_id'] = $transitionId;
+        }
         $updated = $this->states->compareAndPut(
             $agentId,
             $context->tenantId(),
@@ -668,7 +717,7 @@ final class AgentCompositionService extends Service
                 ->withMetadata(['transition_superseded' => true])
                 ->forScope($action, $agentId, $context->tenantId(), $this->state($agentId, $context));
         }
-        if ($action === 'stop'
+        if (Arr::make(['stop', 'unregister'])->contains($action)
             && $result->ok()
             && Str::isNotEmpty((string) $activeExecutionId)
         ) {
@@ -678,6 +727,11 @@ final class AgentCompositionService extends Service
                 ['active_execution_id' => $activeExecutionId],
                 ['active_execution_id' => null]
             );
+        }
+
+        if ($action === 'unregister' && $result->ok()) {
+            $this->runtimes->delete($this->key($agentId, $context->tenantId()));
+            $this->runtimeRegistrations->delete($this->key($agentId, $context->tenantId()));
         }
 
         return $result->forScope($action, $agentId, $context->tenantId(), $state);
@@ -736,6 +790,9 @@ final class AgentCompositionService extends Service
     private function runtime(string $agentId, AgentRuntimeContext $context): IAgentRuntime
     {
         $key = $this->key($agentId, $context->tenantId());
+        if ($this->cachedRegistrationStale($agentId, $context)) {
+            throw new \RuntimeException('agent_runtime_registration_stale');
+        }
         $runtime = $this->runtimes->get($key);
         if ($runtime instanceof IAgentRuntime) {
             return $runtime;
@@ -746,8 +803,10 @@ final class AgentCompositionService extends Service
             throw new \RuntimeException('agent_runtime_unavailable');
         }
 
+        $registration = Arr::getPath($this->states->get($agentId, $context->tenantId()) ?? [], 'registration_id');
         $runtime = $this->factory->create($descriptor, $context);
         $this->runtimes->set($key, $runtime);
+        $this->runtimeRegistrations->set($key, $registration);
 
         return $runtime;
     }
@@ -757,6 +816,9 @@ final class AgentCompositionService extends Service
         AgentRuntimeContext $context,
         bool $cleanup = false
     ): ?string {
+        if ($this->cachedRegistrationStale($agentId, $context)) {
+            return 'agent_runtime_registration_stale';
+        }
         if ($cleanup && $this->runtimes->get($this->key($agentId, $context->tenantId())) instanceof IAgentRuntime) {
             return null;
         }
@@ -778,6 +840,16 @@ final class AgentCompositionService extends Service
     public function matchesApplicationScope(AgentRuntimeContext $context): bool
     {
         return $this->applicationScope?->id() === $context->applicationId();
+    }
+
+    private function cachedRegistrationStale(string $agentId, AgentRuntimeContext $context): bool
+    {
+        $key = $this->key($agentId, $context->tenantId());
+        if (!$this->runtimes->get($key) instanceof IAgentRuntime) {
+            return false;
+        }
+        $current = Arr::getPath($this->states->get($agentId, $context->tenantId()) ?? [], 'registration_id');
+        return $this->runtimeRegistrations->get($key) !== $current;
     }
 
     private function authorize(
@@ -836,6 +908,12 @@ final class AgentCompositionService extends Service
                 $context->tenantId(),
                 $state,
                 (string) $reason
+            );
+        }
+
+        if ($this->cachedRegistrationStale($agentId, $context)) {
+            return AgentRuntimeResult::denied(
+                $action, $agentId, $context->tenantId(), $state, 'agent_runtime_registration_stale'
             );
         }
 

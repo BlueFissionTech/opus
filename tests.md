@@ -426,3 +426,11 @@ tree classes, with host authorization and persistence fixtures. They cover
 tenant binding, revocation, task/policy separation, budget rejection, redacted
 errors and composition lifecycle. See `docs/native-strategy-runtime.md` for
 configuration and the limits of synchronous cancellation and deployment proof.
+## Runtime enrollment regression
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentCompositionServiceTest|ApplicationAgentRuntimeScopeTest|AutomataStrategyRuntimeTest|AgentDelegationServiceTest'`.
+The enrollment cases exercise stop/retry, provider-free metadata transitions,
+durable tombstones, tenant isolation, stale host caches, and registration changes
+during runtime construction. Synthetic synchronization does not qualify live
+multi-process database locking or remote agent-module teardown. See
+`docs/agent-runtime-enrollment.md` for the host drain contract.

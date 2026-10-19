@@ -76,7 +76,7 @@ final class ApplicationAgentRuntimeScopeTest extends TestCase
         $service->registerMap($map);
         foreach ([null, new AgentApplicationScope('app-b')] as $scope) {
             $context = new AgentRuntimeContext('same-tenant', applicationScope: $scope);
-            foreach (['inspect', 'start', 'suspend', 'resume', 'stop', 'cancel', 'execute'] as $action) {
+            foreach (['inspect', 'start', 'suspend', 'resume', 'stop', 'cancel', 'execute', 'registerRuntime', 'unregister'] as $action) {
                 $result = $action === 'execute'
                     ? $service->execute('opus.central', [], $context)
                     : $service->{$action}('opus.central', $context);
