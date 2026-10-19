@@ -550,3 +550,14 @@ staging and public source/package archives. Forced staging must fail a dependenc
 free CI audit with redacted structured reasons. Synthetic fixtures must retain
 public fallback templates while excluding private sentinels. Private injection
 and container-layer proof remain separate deployment acceptance requirements.
+
+### Optional add-on boot isolation (#125)
+
+Host composition may mark exact canonical package names optional before queueing.
+That policy is captured with the package identity, cannot be supplied by package
+metadata, and does not alter activation or authorization. Required failures stop
+boot. Optional failures may continue only while no package code has run; the
+failed diagnostic remains inspectable with required/isolated flags. Partial or
+unknown effects still stop boot. Later policy changes and file repair must not
+replay failed registration inside the same engine. Real Engine bootstrap proof
+must preserve an unaffected host route and separately registered healthy package.

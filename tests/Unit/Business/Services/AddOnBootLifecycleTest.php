@@ -95,6 +95,116 @@ PHP);
         $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
     }
 
+    public function testOptionalPreExecutionFailureLeavesRealHostAndOtherPackageOperational(): void
+    {
+        $result = (new AddOnScaffoldService($this->workspace))->generate('healthy_probe', 'healthy_probe');
+        $this->assertTrue($result['created']);
+        $this->active[] = [
+            'addon_id' => 2, 'name' => 'healthy_probe', 'namespace' => 'AddOns\\HealthyProbe',
+            'path' => $this->workspace . '/healthy_probe', 'primary_file' => 'main.php', 'is_active' => 1,
+            'version' => '0.1.0-alpha',
+        ];
+        $lifecycle = $this->workspace . '/boot_probe/logic/Lifecycle.php';
+        $source = file_get_contents($lifecycle);
+        unlink($lifecycle);
+        $this->prependRegistration('$GLOBALS["optional_executed"] = true;');
+        define('APP_ROOT', $this->workspace);
+        define('PROJECT_ROOT', $this->workspace);
+        mkdir($this->workspace . '/common/config', 0700, true);
+        mkdir($this->workspace . '/mapping');
+        file_put_contents($this->workspace . '/common/config/app.php',
+            '<?php return ["aliases" => [], "extensions" => [], "gateways" => []];');
+        file_put_contents($this->workspace . '/mapping/baseline.php', <<<'PHP'
+<?php
+\BlueFission\Services\Mapping::add('/host/health', static fn (): string => 'healthy', 'host.health', 'get');
+PHP);
+        $previousKey = getenv('APP_KEY');
+        putenv('APP_KEY=synthetic-optional-boot-key');
+        try {
+            \BlueFission\Utils\Loader::instance()->addPath($this->workspace);
+            $engine = Engine::instance();
+            $engine->delegate('session', new \stdClass());
+            $manager = $this->manager()->useOptionalAddOns(['boot_probe']);
+            $engine->behavior('OnAppInitialized', fn () => $manager->loadActivatedAddOns());
+            $engine->bootstrap();
+            $report = $manager->bootReport('boot_probe');
+            $this->assertSame('failed', $report['state']);
+            $this->assertSame('addon_contract_invalid', $report['reason']);
+            $this->assertSame('none', $report['effects']);
+            $this->assertTrue($report['isolated']);
+            $this->assertFalse($report['required']);
+            $this->assertFalse($report['retryable']);
+            $this->assertSame([], $manager->bootContributions('boot_probe'));
+            $this->assertArrayNotHasKey('optional_executed', $GLOBALS);
+            $this->assertSame('registered', $manager->bootState('healthy_probe'));
+            $this->assertNotNull($engine->theme('healthy_probe/default'));
+            $this->assertSame('healthy', ($engine->maps()['get']['host/health']->callable)());
+            $this->assertTrue($manager->bootReport('healthy_probe')['required']);
+            // Repair and changed host policy do not replay a failed package in this engine.
+            file_put_contents($lifecycle, $source);
+            $manager->useOptionalAddOns([])->loadActivatedAddOns();
+            $engine->dispatch('OnAppLoaded');
+            $this->assertSame($report, $manager->bootReport('boot_probe'));
+            $this->assertArrayNotHasKey('optional_executed', $GLOBALS);
+            $this->assertSame(1, $this->active[0]['is_active']);
+        } finally {
+            putenv($previousKey === false ? 'APP_KEY' : 'APP_KEY=' . $previousKey);
+        }
+    }
+
+    public function testOptionalPolicyCannotSuppressFailureAfterPackageCodeHasRun(): void
+    {
+        $this->prependRegistration(<<<'PHP'
+$GLOBALS['boot_attempts'] = ($GLOBALS['boot_attempts'] ?? 0) + 1;
+require dirname(__DIR__, 2) . '/mapping/api.php';
+throw new \RuntimeException('synthetic-private-payload');
+PHP);
+        $engine = Engine::instance();
+        $manager = $this->manager()->useOptionalAddOns(['boot_probe']);
+        $manager->loadActivatedAddOns();
+        $this->assertBootFailure($engine);
+        $this->assertBootFailure($engine);
+        $report = $manager->bootReport('boot_probe');
+        $this->assertFalse($report['required']);
+        $this->assertFalse($report['isolated']);
+        $this->assertSame('unknown', $report['effects']);
+        $this->assertSame(1, $GLOBALS['boot_attempts']);
+        $this->assertStringNotContainsString('synthetic-private', json_encode($report));
+    }
+
+    public function testPackageMetadataAndLateConfigurationCannotWeakenQueuedRequiredPolicy(): void
+    {
+        $file = $this->workspace . '/boot_probe/definition.json';
+        $definition = json_decode(file_get_contents($file), true);
+        $definition['optional'] = true;
+        $definition['required'] = false;
+        file_put_contents($file, json_encode($definition));
+        unlink($this->workspace . '/boot_probe/logic/Lifecycle.php');
+        $manager = $this->manager();
+        $manager->loadActivatedAddOns();
+        $manager->useOptionalAddOns(['boot_probe']);
+        $this->assertBootFailure(Engine::instance());
+        $this->assertTrue($manager->bootReport('boot_probe')['required']);
+        $this->assertFalse($manager->bootReport('boot_probe')['isolated']);
+    }
+
+    public function testMalformedOptionalPolicyFailsBeforeChangingHostConfiguration(): void
+    {
+        $manager = $this->manager()->useOptionalAddOns(['boot_probe']);
+        foreach ([['*'], ['../boot_probe'], [false], ['boot_probe' => true]] as $names) {
+            try {
+                $manager->useOptionalAddOns($names);
+                $this->fail('Invalid optional policy must be rejected.');
+            } catch (\InvalidArgumentException $error) {
+                $this->assertSame('addon_optional_policy_invalid', $error->getMessage());
+            }
+        }
+        unlink($this->workspace . '/boot_probe/logic/Lifecycle.php');
+        $manager->loadActivatedAddOns();
+        Engine::instance()->dispatch('OnAppLoaded');
+        $this->assertTrue($manager->bootReport('boot_probe')['isolated']);
+    }
+
     public function testRealBootstrapLetsContributionsOverrideBaselineMappings(): void
     {
         define('APP_ROOT', $this->workspace);

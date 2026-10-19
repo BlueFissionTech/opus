@@ -13,6 +13,7 @@ use BlueFission\BlueCore\Engine;
 use BlueFission\Data\FileSystem;
 use BlueFission\Net\HTTP;
 use BlueFission\Str;
+use InvalidArgumentException;
 use ReflectionClass;
 use RuntimeException;
 use Throwable;
@@ -24,6 +25,22 @@ class BootAddOnManager extends AddOnManager
     private static ?WeakMap $boots = null;
     private string $validationProfile = 'package';
     private ?string $validationHostRoot = null;
+    private array $optionalAddOns = [];
+
+    /** Host-owned policy, captured per package when queued; required by default. */
+    public function useOptionalAddOns(array $names): static
+    {
+        if (!array_is_list($names)) {
+            throw new InvalidArgumentException('addon_optional_policy_invalid');
+        }
+        foreach ($names as $name) {
+            if (!Str::is($name) || preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
+                throw new InvalidArgumentException('addon_optional_policy_invalid');
+            }
+        }
+        $this->optionalAddOns = $names;
+        return $this;
+    }
 
     /** Configure from trusted host composition before queuing add-ons. */
     public function useValidationProfile(string $profile, ?string $hostRoot = null): static
@@ -69,11 +86,15 @@ class BootAddOnManager extends AddOnManager
             'contributions' => [],
             'validation_profile' => $this->validationProfile,
             'validation_host' => $this->validationHostRoot,
+            'required' => !Arr::has($this->optionalAddOns, $name, true),
         ]);
         $records->set($name, $record);
         $engine->behavior('OnAppLoaded', function () use ($engine, $record, $root, $name): void {
             $state = $record->get('state');
             if ($state === 'failed') {
+                if ($this->isolated($record)) {
+                    return;
+                }
                 throw new AddOnBootException($this->report($record));
             }
             if ($state !== 'pending') {
@@ -96,6 +117,9 @@ class BootAddOnManager extends AddOnManager
             } catch (Throwable) {
                 $record->set('state', 'failed');
                 $record->set('contributions', []);
+                if ($this->isolated($record)) {
+                    return;
+                }
                 // Package exceptions may contain credentials or private payloads.
                 throw new AddOnBootException($this->report($record));
             }
@@ -140,7 +164,16 @@ class BootAddOnManager extends AddOnManager
                 ? $record->get('reason') : null,
             'effects' => $record->get('effects'),
             'retryable' => false,
+            'required' => $record->get('required'),
+            'isolated' => $this->isolated($record),
         ];
+    }
+
+    private function isolated(Arr $record): bool
+    {
+        return $record->get('state') === 'failed'
+            && $record->get('required') === false
+            && $record->get('effects') === 'none';
     }
 
     private function stage(Arr $record, string $phase, string $reason): void
