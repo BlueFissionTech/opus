@@ -9,8 +9,10 @@ use App\Domain\Onboarding\IApplicationIntakeRepository;
 use App\Domain\Onboarding\Models\ApplicationIntakeModel;
 use BlueFission\Arr;
 use BlueFission\Net\HTTP;
+use BlueFission\Str;
 use BlueFission\Val;
 use RuntimeException;
+use Throwable;
 
 final class ApplicationIntakeRepositorySql implements IApplicationIntakeRepository
 {
@@ -35,10 +37,10 @@ final class ApplicationIntakeRepositorySql implements IApplicationIntakeReposito
             'application_slug' => $session->applicationSlug(),
             'prompt_version' => $data['prompt_version'],
             'status' => $session->status(),
-            'answers' => HTTP::jsonEncode($session->answers()),
-            'defaults' => HTTP::jsonEncode($session->defaults()),
-            'skipped' => HTTP::jsonEncode($session->skipped()),
-            'actor' => HTTP::jsonEncode($data['actor']),
+            'answers' => $this->encode($session->answers()),
+            'defaults' => $this->encode($session->defaults()),
+            'skipped' => $this->encode($session->skipped()),
+            'actor' => $this->encode($data['actor']),
             'correlation_id' => $data['correlation_id'],
             'revision' => $session->revision(),
             'session_created_at' => $data['created_at'],
@@ -84,15 +86,40 @@ final class ApplicationIntakeRepositorySql implements IApplicationIntakeReposito
             'application_slug' => $data['application_slug'],
             'prompt_version' => $data['prompt_version'],
             'status' => $data['status'],
-            'answers' => HTTP::jsonDecode((string) $data['answers'], true, []),
-            'defaults' => HTTP::jsonDecode((string) $data['defaults'], true, []),
-            'skipped' => HTTP::jsonDecode((string) $data['skipped'], true, []),
-            'actor' => HTTP::jsonDecode((string) $data['actor'], true, []),
+            'answers' => $this->decode($data['answers'] ?? null),
+            'defaults' => $this->decode($data['defaults'] ?? null),
+            'skipped' => $this->decode($data['skipped'] ?? null),
+            'actor' => $this->decode($data['actor'] ?? null),
             'correlation_id' => $data['correlation_id'] ?? null,
             'revision' => (int) $data['revision'],
             'created_at' => $data['session_created_at'],
             'updated_at' => $data['session_updated_at'],
             'completed_at' => $data['completed_at'] ?? null,
         ]);
+    }
+
+    private function encode(array $value): string
+    {
+        try {
+            $encoded = HTTP::jsonEncode($value);
+        } catch (Throwable) {
+            throw new RuntimeException('intake_session_encoding_failed');
+        }
+        if (!Str::is($encoded)) {
+            throw new RuntimeException('intake_session_encoding_failed');
+        }
+        return $encoded;
+    }
+
+    private function decode(mixed $value): array
+    {
+        if (!Str::is($value)) {
+            throw new RuntimeException('intake_session_corrupt');
+        }
+        $decoded = HTTP::jsonDecode($value, true);
+        if (!Arr::is($decoded)) {
+            throw new RuntimeException('intake_session_corrupt');
+        }
+        return Arr::toArray($decoded, true);
     }
 }

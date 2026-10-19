@@ -452,6 +452,17 @@ Runtime exceptions retain their bounded diagnostic even if claim cleanup also
 fails. Failure records never copy exception text or task/provider payloads.
 
 
+### Resumable intake persistence integrity (#95)
+
+All four structured intake columns (answers, defaults, skipped fields, actor)
+must serialize successfully before any storage mutation. Invalid encoding must
+return a stable failure without exposing content or replacing a saved revision.
+Stored structured columns must decode to arrays; invalid JSON, scalar roots and
+non-string storage values fail explicitly rather than silently substituting empty
+data. Valid Unicode and normalized nested values retain round-trip behavior.
+This boundary does not certify live database deployment or add command, provider,
+planning, code-generation or execution authority.
+
 ### Add-on organization persistence (#120)
 
 The organization service owns application/tenant-scoped feature groups, ordered

@@ -13,6 +13,91 @@ use PHPUnit\Framework\TestCase;
 
 final class ApplicationIntakeRepositorySqlTest extends TestCase
 {
+    public static function unencodableColumns(): array
+    {
+        $cases = [];
+        foreach (['answers', 'defaults', 'skipped', 'actor'] as $column) {
+            $cases[$column . '-utf8'] = [$column, "\xB1\x31"];
+            $cases[$column . '-infinity'] = [$column, INF];
+        }
+        return $cases;
+    }
+
+    /** @dataProvider unencodableColumns */
+    public function testUnencodableColumnsFailBeforeAnyStorageMutation(string $column, mixed $value): void
+    {
+        $model = new InMemoryApplicationIntakeModel();
+        $repository = new ApplicationIntakeRepositorySql($model);
+        $data = ApplicationIntakeSession::start('Operations Studio')->toArray();
+        $data[$column] = $column === 'answers'
+            ? ['project_name' => 'Operations Studio', 'description' => $value]
+            : [$value];
+        $session = ApplicationIntakeSession::fromArray($data);
+        try {
+            $repository->save($session);
+            $this->fail('An unencodable structured column must not be stored.');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('intake_session_encoding_failed', $error->getMessage());
+        }
+        $this->assertSame(0, $model->writes);
+        $this->assertNull($repository->find($session->sessionId()));
+    }
+
+    public static function corruptColumns(): array
+    {
+        $cases = [];
+        foreach (['answers', 'defaults', 'skipped', 'actor'] as $column) {
+            foreach (['{"unterminated":', 'null', 'false', '42', '"synthetic-private"', '', []] as $index => $value) {
+                $cases[$column . '-' . $index] = [$column, $value];
+            }
+        }
+        return $cases;
+    }
+
+    /** @dataProvider corruptColumns */
+    public function testCorruptStoredColumnsFailInsteadOfResumingEmptyData(string $column, mixed $value): void
+    {
+        $model = new InMemoryApplicationIntakeModel();
+        $repository = new ApplicationIntakeRepositorySql($model);
+        $session = ApplicationIntakeSession::start('Operations Studio');
+        $repository->save($session);
+        $model->replaceColumn($column, $value);
+        try {
+            $repository->find($session->sessionId());
+            $this->fail('Corrupt stored intake data must not silently resume.');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('intake_session_corrupt', $error->getMessage());
+        }
+        $this->assertSame(1, $model->writes);
+    }
+
+    public function testFailedEncodingPreservesThePreviouslySavedRevision(): void
+    {
+        $model = new InMemoryApplicationIntakeModel();
+        $repository = new ApplicationIntakeRepositorySql($model);
+        $session = ApplicationIntakeSession::start('Operations Studio');
+        $repository->save($session);
+        try {
+            $repository->save($session->answer('description', "\xB1\x31"));
+            $this->fail('Invalid UTF-8 must not replace the persisted answer.');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('intake_session_encoding_failed', $error->getMessage());
+        }
+        $this->assertSame($session->toArray(), $repository->find($session->sessionId())->toArray());
+        $this->assertSame(1, $model->writes);
+    }
+
+    public function testUnicodeAndNestedNormalizedAnswersRoundTrip(): void
+    {
+        $repository = new ApplicationIntakeRepositorySql(new InMemoryApplicationIntakeModel());
+        $session = ApplicationIntakeSession::start('Café 協力')->answer('specification', [
+            'description' => 'Accès partagé', 'enabled' => false, 'limit' => 0,
+            'optional' => null, 'items' => ['α', 'β'],
+        ]);
+        $repository->save($session);
+        $this->assertSame($session->toArray(), $repository->find($session->sessionId())->toArray());
+    }
+
     public function testItPersistsAndHydratesAResumableSession(): void
     {
         $model = new InMemoryApplicationIntakeModel();
@@ -138,6 +223,11 @@ final class InMemoryApplicationIntakeModel extends ApplicationIntakeModel
 
     public function __construct()
     {
+    }
+
+    public function replaceColumn(string $column, mixed $value): void
+    {
+        $this->record[$column] = $value;
     }
 
     public function clear(): Obj

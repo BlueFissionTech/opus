@@ -299,6 +299,22 @@ with this credential. Review external changes before running an authorized branc
 in the trusted repository. Public acquisition remains a separate release gate.
 
 
+### Intake persistence integrity
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "ApplicationIntake|DevElationHelperUsageTest"`.
+The repository tests exercise actual serialization against a recording in-memory
+model: invalid UTF-8 and non-finite numbers in every structured column fail before
+a write, corrupt/scalar/non-string stored JSON fails explicitly, failed updates
+preserve saved revisions, and Unicode/nested values round-trip. These tests do not
+claim live database isolation or deployment proof.
+
+No schema migration is needed. Valid stored rows retain their representation.
+Previously corrupt structured columns now raise `intake_session_corrupt`; inspect
+and repair such records through an authorized data-recovery process rather than
+silently resuming them with empty answers or defaults. Encoding failures raise
+`intake_session_encoding_failed` without persisting or including content in the
+error message.
+
 ### Add-on organization persistence
 
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AddOnOrganizationTest.php`.
