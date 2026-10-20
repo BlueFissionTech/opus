@@ -16,6 +16,7 @@ privacy, review, and execution invariants after filters where required.
 
 | Name | Kind | Phase | Failure policy |
 | --- | --- | --- | --- |
+| `opus.agent.runtime.result` | action | After a correlated composition result | Ignore observer failure; preserve runtime result |
 | `opus.addon.boot.result` | action | After a canonical registration outcome settles | Ignore observer failure; preserve boot result |
 | `opus.command.result` | action | After shared command presentation settles | Ignore observer failure; preserve command result |
 | `opus.addon.organization.changed` | action | After persistence | Ignore observer failure |
@@ -35,6 +36,26 @@ follow the deterministic fallback or fail-closed behavior documented in the
 JSON catalog.
 
 ## Compatibility
+
+Catalog 1.5.0 adds `opus.agent.runtime.result`. Its version-1 payload contains
+only `version`, `operation`, `status`, and `ok`. Operation is one of `inspect`,
+`start`, `suspend`, `resume`, `stop`, `cancel`, `execute`, `registerRuntime`,
+`unregister`, or `unknown`. Status is `completed`, `denied`, `failed`,
+`unavailable`, or `unknown`; only `completed` with a true runtime outcome reports
+`ok=true`, without changing the original result. State, identities, tasks, outputs, diagnostics,
+trace, correlation tokens and metadata are excluded.
+
+Delivery occurs after the public operation constructs its correlated result.
+It does not assert that remote effects completed, that a superseded transition
+was persisted, or that an unavailable operation can be replayed. Idempotent
+requests can generate another observation. Descriptor discovery is separate
+and does not emit this runtime action. Handlers require enabled DevElation.
+Their return values are ignored; an exception stops later handlers in that
+delivery but cannot replace the result. During delivery, nested composition
+operations and descriptor registration across service instances are denied
+before state access or runtime construction, without recursive notification.
+The guard resets even after failure. Installed PHP handlers remain trusted
+code; this boundary is not a general execution sandbox or durable audit stream.
 
 - Additive optional payload fields may be introduced in a compatible catalog
   release.

@@ -101,6 +101,11 @@ final class AgentRuntimeResult
         return $this->status->val();
     }
 
+    public function action(): string
+    {
+        return $this->action->val();
+    }
+
     public function state(): string
     {
         return $this->state->val();

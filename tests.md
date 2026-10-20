@@ -1,5 +1,11 @@
 # Testing Opus Framework
 
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentRuntimeObservationTest|AgentCompositionServiceTest|ExtensionPointCatalogTest'`
+for runtime-result hook delivery, redaction, ordering, observer failure,
+cross-instance reentry denial, unknown-status bounding and catalog parity.
+These fixtures use actual DevElation actions and host storage with synthetic
+synchronization; they do not qualify remote effects or durable event delivery.
+
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'ApplicationAgentRuntimeScopeTest|AutomataStrategyRuntimeTest|AgentCompositionServiceTest|AgentDelegationServiceTest'`
 for [application-bound runtime isolation](docs/agent-application-scope.md).
 Fixtures share a real host `Storage` object with synthetic synchronization and

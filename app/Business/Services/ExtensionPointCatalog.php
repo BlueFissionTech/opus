@@ -13,6 +13,7 @@ use RuntimeException;
 
 final class ExtensionPointCatalog extends Service
 {
+    public const AGENT_RUNTIME_RESULT = 'opus.agent.runtime.result';
     public const COMMAND_RESULT = 'opus.command.result';
     public const ADDON_BOOT_RESULT = 'opus.addon.boot.result';
     public const ADDON_ORGANIZATION_CHANGED = 'opus.addon.organization.changed';
@@ -26,6 +27,7 @@ final class ExtensionPointCatalog extends Service
     public const FRONTEND_MARKUP_DIRECTORY = 'opus.frontend.markup_directory';
 
     public const NAMES = [
+        self::AGENT_RUNTIME_RESULT,
         self::COMMAND_RESULT,
         self::ADDON_BOOT_RESULT,
         self::ADDON_ORGANIZATION_CHANGED,
@@ -40,6 +42,20 @@ final class ExtensionPointCatalog extends Service
     ];
 
     private const RUNTIME_CONTRACTS = [
+        self::AGENT_RUNTIME_RESULT => [
+            'kind' => 'action',
+            'area' => 'agent_runtime_result',
+            'phase' => 'after_correlated_result',
+            'owner' => 'AgentCompositionService',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'payload_required' => ['version', 'operation', 'status', 'ok'],
+            'payload_properties' => ['version' => 'integer', 'operation' => 'string', 'status' => 'string', 'ok' => 'boolean'],
+            'return_type' => 'void',
+            'return_required' => [],
+            'return_properties' => [],
+        ],
         self::COMMAND_RESULT => [
             'kind' => 'action',
             'area' => 'command_result',
