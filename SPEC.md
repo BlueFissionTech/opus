@@ -512,6 +512,17 @@ subsequent integration work and are not claimed by this persistence increment.
 
 
 
+### Agent runtime result observation (#110)
+
+Publish `opus.agent.runtime.result` after a public composition operation returns
+its correlated result. Only bounded operation/status values and an outcome
+boolean enter the versioned payload; identities, task/output data, diagnostics,
+state, correlation tokens and runtime metadata remain private. Observer return
+values and exceptions cannot change the result or replay the operation. Nested
+composition operations and descriptor registration during synchronous delivery
+are denied before inspecting state or constructing a runtime. This action is
+best-effort observation, not authority, durable audit or proof of remote effects.
+
 ### Scoped runtime unregistration (#29)
 
 Descriptor discovery and runtime enrollment are separate. An authorized operator

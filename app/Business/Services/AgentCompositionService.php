@@ -14,6 +14,7 @@ use App\Domain\Agents\IAgentRuntimeFactory;
 use App\Domain\Agents\IAgentRuntimeStateStore;
 use App\Domain\Agents\IApplicationScopedAgentRuntimeStateStore;
 use BlueFission\Arr;
+use BlueFission\DevElation;
 use BlueFission\Services\Service;
 use BlueFission\Str;
 use Throwable;
@@ -21,6 +22,7 @@ use Throwable;
 final class AgentCompositionService extends Service
 {
     private const CLAIM_LEASE_SECONDS = 300;
+    private static bool $observingResult = false;
 
     public const REGISTERED = 'registered';
     public const UNREGISTERED = 'unregistered';
@@ -52,6 +54,11 @@ final class AgentCompositionService extends Service
 
     public function registerMap(AgentCapabilityMap $map): AgentRuntimeResult
     {
+        if (self::$observingResult) {
+            return AgentRuntimeResult::denied(
+                'register', $map->owner(), null, self::UNKNOWN, 'agent_result_observer_reentry_denied'
+            );
+        }
         foreach ($map->agents() as $descriptor) {
             if (!$descriptor instanceof AgentDescriptor) {
                 continue;
@@ -857,6 +864,11 @@ final class AgentCompositionService extends Service
         string $agentId,
         AgentRuntimeContext $context
     ): ?AgentRuntimeResult {
+        if (self::$observingResult) {
+            return AgentRuntimeResult::denied(
+                $action, $agentId, $context->tenantId(), self::UNKNOWN, 'agent_result_observer_reentry_denied'
+            );
+        }
         if (!$this->matchesApplicationScope($context)) {
             return AgentRuntimeResult::denied(
                 $action, $agentId, $context->tenantId(), self::UNKNOWN, 'agent_application_scope_mismatch'
@@ -1075,7 +1087,31 @@ final class AgentCompositionService extends Service
         if ($this->applicationScope !== null && $this->applicationScope->id() === $context->applicationId()) {
             $result = $result->withMetadata(['application_id' => $this->applicationScope->id()]);
         }
-        return $result->withMetadata(['correlation_id' => $context->correlationId()]);
+        $result = $result->withMetadata(['correlation_id' => $context->correlationId()]);
+        if (self::$observingResult) {
+            return $result;
+        }
+        self::$observingResult = true;
+        try {
+            $status = $result->status();
+            $knownStatus = Arr::has(['completed', 'denied', 'failed', 'unavailable'], $status, true);
+            $operation = $result->action();
+            $summary = [
+                'version' => 1,
+                'operation' => Arr::has([
+                    'inspect', 'start', 'suspend', 'resume', 'stop', 'cancel',
+                    'execute', 'registerRuntime', 'unregister',
+                ], $operation, true) ? $operation : 'unknown',
+                'status' => $knownStatus ? $status : 'unknown',
+                'ok' => $status === AgentRuntimeResult::COMPLETED && $result->ok(),
+            ];
+            DevElation::do(ExtensionPointCatalog::AGENT_RUNTIME_RESULT, [$summary]);
+        } catch (Throwable) {
+            // Observation cannot change a returned outcome or replay its effects.
+        } finally {
+            self::$observingResult = false;
+        }
+        return $result;
     }
 
     private function operationId(): string

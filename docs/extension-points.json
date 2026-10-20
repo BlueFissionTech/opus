@@ -1,8 +1,32 @@
 {
   "schema_version": 1,
-  "catalog_version": "1.4.0",
+  "catalog_version": "1.5.0",
   "namespace": "opus",
   "extension_points": [
+    {
+      "name": "opus.agent.runtime.result",
+      "kind": "action",
+      "area": "agent_runtime_result",
+      "phase": "after_correlated_result",
+      "owner": "AgentCompositionService",
+      "payload": {
+        "type": "object",
+        "required": ["version", "operation", "status", "ok"],
+        "properties": {"version": "integer", "operation": "string", "status": "string", "ok": "boolean"}
+      },
+      "returns": {"type": "void"},
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "One synchronous observation after a correlated public runtime result; descriptor registration is not runtime execution and is excluded.",
+        "Version is 1. Operation is inspect, start, suspend, resume, stop, cancel, execute, registerRuntime, unregister or unknown. Status is completed, denied, failed, unavailable or unknown; only completed with a true runtime outcome has ok=true.",
+        "No identities, state, tasks, outputs, diagnostics, trace, correlation tokens or runtime metadata enter the payload.",
+        "Observer return values and payload mutation cannot alter the original result. Exceptions stop later handlers but are contained without replay.",
+        "Nested composition operations and descriptor registration across instances are denied before state access or runtime construction and do not emit another observation. The process-wide guard always resets.",
+        "Requires enabled DevElation. Idempotent requests may be observed again; delivery is best-effort, not durable audit, approval, remote-effect proof or a sandbox for installed PHP handlers."
+      ]
+    },
     {
       "name": "opus.command.result",
       "kind": "action",
@@ -325,6 +349,13 @@
     }
   ],
   "boundary_inventory": [
+    {
+      "area": "agent_runtime_result",
+      "status": "hooked",
+      "owner": "AgentCompositionService",
+      "extension_points": ["opus.agent.runtime.result"],
+      "rationale": "Observe bounded operation outcomes while runtime state, identity, effects, authorization and recovery remain service-owned."
+    },
     {
       "area": "command_result",
       "status": "hooked",
