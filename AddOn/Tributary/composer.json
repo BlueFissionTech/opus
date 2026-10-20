@@ -15,12 +15,12 @@
   },
   "autoload": {
     "psr-4": {
-      "AddOns\\Tributary\\": "logic/"
+      "AddOn\\Tributary\\": "logic/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "AddOns\\Tributary\\Tests\\": "tests/"
+      "AddOn\\Tributary\\Tests\\": "tests/"
     }
   },
   "extra": {

@@ -25,7 +25,8 @@ Keep these responsibilities separate:
 ## Package layout
 
 Use a conventional Composer package with the PSR-4 namespace
-`AddOns\\<PackageName>\\` mapped to `logic/`. An installed package currently
+`AddOn\\<AddOnName>\\` mapped to `logic/`. First-party source add-ons live in
+`AddOn/<AddOnName>/`; for example, `AddOn/Tributary/`. An installed package currently
 occupies `addons/<directory>/`, where `<directory>` is the manager's discovery
 key. Generate and validate the canonical structure with:
 
@@ -99,7 +100,7 @@ php bin/opus-addon.php validate addons/sample_tools embedded .
 The service equivalent is `validate($root, 'embedded', $hostRoot)`. The resolved
 host must contain the add-on. Each inherited file must exist inside that host;
 existing local files always take precedence and malformed local metadata fails.
-An inherited Composer manifest must map the exact `AddOns\\SampleTools\\`
+An inherited Composer manifest must map the exact `AddOn\\SampleTools\\`
 PSR-4 prefix to `addons/sample_tools/logic/` (a Composer path list is supported).
 It describes the host, so its package type/name need not describe the add-on.
 The definition, registration factory, mappings, source namespaces and Vibe
@@ -222,7 +223,7 @@ remain separate from the server template contract.
 
 Named classes, interfaces, traits and enums under `logic/` must match their
 PSR-4 namespace and filename exactly, including case. For example,
-`logic/Domain/Values/Status.php` declares `AddOns\Example\Domain\Values\Status`.
+`logic/Domain/Values/Status.php` declares `AddOn\Example\Domain\Values\Status`.
 Move additional named declarations into their own matching files when migrating
 an existing package. Function-only lifecycle files and anonymous classes remain
 supported. The validator reports `class_file_mismatch` without executing source
@@ -250,9 +251,11 @@ migrate the mapping to `logic/` while correcting file namespaces. Run
 change. Keep compatibility shims explicit and temporary; the scaffold does not
 generate aliases for historical namespaces.
 
-Canonical namespace casing is `AddOns\\`. Packages using historical `Addons\\`
-casing must update Composer PSR-4 metadata, declarations, and references in the
-same compatibility release; do not maintain permanent case-only aliases.
+New scaffolds use the canonical `AddOn\\` namespace. Existing `AddOns\\`
+namespaces remain accepted by the validator and by explicit scaffold requests;
+they are not renamed or aliased automatically. When migrating a published add-on,
+update Composer PSR-4 metadata, declarations, manifests, and references together
+in a compatibility release. Historical `Addons\\` casing is not accepted.
 Domain value objects belong in `logic/Domain/Values`. Packages using
 `Domain/Value` or `Domain/ValueObjects` should move the files and update their
 namespaces together, with a temporary explicit forwarding class only when a

@@ -31,7 +31,7 @@ final class AddOnBootLifecycleTest extends TestCase
         $result = (new AddOnScaffoldService($this->workspace))->generate('boot_probe', 'boot_probe');
         $this->assertTrue($result['created'], json_encode($result['errors']));
         $this->active = [[
-            'addon_id' => 1, 'name' => 'boot_probe', 'namespace' => 'AddOns\\BootProbe',
+            'addon_id' => 1, 'name' => 'boot_probe', 'namespace' => 'AddOn\\BootProbe',
             'path' => $this->workspace . '/boot_probe', 'primary_file' => 'main.php', 'is_active' => 1,
             'version' => '0.1.0-alpha',
         ]];
@@ -187,7 +187,7 @@ PHP);
         $this->assertNull($report['reason']);
         $report['identity']['name'] = 'changed';
         $this->assertSame('boot_probe', $manager->bootReport('boot_probe')['identity']['name']);
-        $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
+        $this->assertFalse(function_exists('AddOn\\BootProbe\\boot_probe_install'));
     }
 
     public function testOptionalPreExecutionFailureLeavesRealHostAndOtherPackageOperational(): void
@@ -195,7 +195,7 @@ PHP);
         $result = (new AddOnScaffoldService($this->workspace))->generate('healthy_probe', 'healthy_probe');
         $this->assertTrue($result['created']);
         $this->active[] = [
-            'addon_id' => 2, 'name' => 'healthy_probe', 'namespace' => 'AddOns\\HealthyProbe',
+            'addon_id' => 2, 'name' => 'healthy_probe', 'namespace' => 'AddOn\\HealthyProbe',
             'path' => $this->workspace . '/healthy_probe', 'primary_file' => 'main.php', 'is_active' => 1,
             'version' => '0.1.0-alpha',
         ];
@@ -367,7 +367,7 @@ PHP);
         $manager = $this->manager();
         $manager->loadActivatedAddOns();
         $this->assertBootFailure(Engine::instance());
-        $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
+        $this->assertFalse(function_exists('AddOn\\BootProbe\\boot_probe_install'));
         $this->assertSame('failed', $manager->bootState('boot_probe'));
     }
 
@@ -379,7 +379,7 @@ PHP);
         mkdir($this->workspace . '/tests');
         file_put_contents($this->workspace . '/composer.json', json_encode([
             'name' => 'example/host', 'type' => 'project',
-            'autoload' => ['psr-4' => ['AddOns\\BootProbe\\' => 'boot_probe/logic/']],
+            'autoload' => ['psr-4' => ['AddOn\\BootProbe\\' => 'boot_probe/logic/']],
         ]));
         file_put_contents($this->workspace . '/phpunit.xml', '<phpunit bootstrap="tests/bootstrap.php"/>');
         file_put_contents($this->workspace . '/tests/bootstrap.php', '<?php throw new RuntimeException("not executed");');
@@ -393,7 +393,7 @@ PHP);
         $manager->loadActivatedAddOns();
         $engine->dispatch('OnAppLoaded');
         $this->assertSame('unloaded', $manager->bootState('boot_probe'));
-        $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
+        $this->assertFalse(function_exists('AddOn\\BootProbe\\boot_probe_install'));
         $this->assertSame([], $engine->maps());
     }
 
@@ -407,7 +407,7 @@ PHP);
         $engine->dispatch('OnAppLoaded');
         $this->assertSame('skipped', $manager->bootState('boot_probe'));
         $this->assertSame('addon_not_active_or_identity_changed', $manager->bootReport('boot_probe')['reason']);
-        $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
+        $this->assertFalse(function_exists('AddOn\\BootProbe\\boot_probe_install'));
         $this->assertSame([], $engine->maps());
         $this->assertNull($engine->theme('boot_probe/default'));
     }
@@ -420,7 +420,7 @@ PHP);
         unlink($this->workspace . '/boot_probe/main.php');
         $this->assertBootFailure($engine);
         $this->assertSame('failed', $manager->bootState('boot_probe'));
-        $this->assertFalse(function_exists('AddOns\\BootProbe\\boot_probe_install'));
+        $this->assertFalse(function_exists('AddOn\\BootProbe\\boot_probe_install'));
         $this->assertSame([], $engine->maps());
         $this->assertSame('validation', $manager->bootReport('boot_probe')['phase']);
         $this->assertSame('addon_contract_invalid', $manager->bootReport('boot_probe')['reason']);
@@ -454,7 +454,7 @@ PHP);
         $generated = (new AddOnScaffoldService($this->workspace))->generate('second_probe', 'second_probe');
         $this->assertTrue($generated['created']);
         $this->active[] = [
-            'addon_id' => 2, 'name' => 'second_probe', 'namespace' => 'AddOns\\SecondProbe',
+            'addon_id' => 2, 'name' => 'second_probe', 'namespace' => 'AddOn\\SecondProbe',
             'path' => $this->workspace . '/second_probe', 'primary_file' => 'main.php', 'is_active' => 1,
             'version' => '0.1.0-alpha',
         ];
@@ -506,7 +506,7 @@ PHP);
         $this->assertSame('addon_contributions_failed', $report['reason']);
         $this->assertSame('unknown', $report['effects']);
         $this->assertFalse($report['retryable']);
-        $this->assertSame(['id' => '1', 'name' => 'boot_probe', 'namespace' => 'AddOns\\BootProbe',
+        $this->assertSame(['id' => '1', 'name' => 'boot_probe', 'namespace' => 'AddOn\\BootProbe',
             'version' => '0.1.0-alpha'], $report['identity']);
         $this->assertStringNotContainsString('synthetic-private', json_encode($report));
         $this->assertStringNotContainsString($this->workspace, json_encode($report, JSON_UNESCAPED_SLASHES));
@@ -584,7 +584,7 @@ PHP);
     public function testRegistrationClassFromAnotherFileFailsWithoutRedeclaration(): void
     {
         file_put_contents($this->workspace . '/foreign.php',
-            '<?php namespace AddOns\\BootProbe\\Registration; final class AddOnRegistration {}');
+            '<?php namespace AddOn\\BootProbe\\Registration; final class AddOnRegistration {}');
         require $this->workspace . '/foreign.php';
         $engine = Engine::instance();
         $manager = $this->manager();

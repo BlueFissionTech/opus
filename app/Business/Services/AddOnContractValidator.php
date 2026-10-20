@@ -152,8 +152,8 @@ final class AddOnContractValidator extends Service
         if (!Str::is($name) || !Str::make($name)->matches('/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/')) {
             $errors->push($this->problem('definition_name', 'definition.json', 'Definition name must be a lowercase lifecycle-safe key.'));
         }
-        if (!Str::is($namespace) || !Str::make($namespace)->matches('/^AddOns\\\\[A-Z][A-Za-z0-9]*$/')) {
-            $errors->push($this->problem('definition_namespace', 'definition.json', 'Namespace must use AddOns\\PackageName.'));
+        if (!Str::is($namespace) || !Str::make($namespace)->matches('/^AddOns?\\\\[A-Z][A-Za-z0-9]*$/')) {
+            $errors->push($this->problem('definition_namespace', 'definition.json', 'Namespace must use AddOn\\Name or legacy AddOns\\Name.'));
             $namespace = '';
         }
         if ($definition->get('primary_file') !== 'main.php') {

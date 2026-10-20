@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AddOns\Tributary;
+namespace AddOn\Tributary;
 
 function tributary_install(): void
 {

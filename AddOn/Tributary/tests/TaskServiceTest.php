@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace AddOns\Tributary\Tests;
+namespace AddOn\Tributary\Tests;
 
-use AddOns\Tributary\Business\TaskCommandProcessor;
-use AddOns\Tributary\Business\TaskService;
-use AddOns\Tributary\Domain\Project;
+use AddOn\Tributary\Business\TaskCommandProcessor;
+use AddOn\Tributary\Business\TaskService;
+use AddOn\Tributary\Domain\Project;
 use App\Business\Services\AddOnContractValidator;
 use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCompositionService;

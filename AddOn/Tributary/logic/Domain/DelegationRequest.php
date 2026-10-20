@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AddOns\Tributary\Domain;
+namespace AddOn\Tributary\Domain;
 
 /** A service-produced receipt of authority, never accepted as execution authority. */
 final readonly class DelegationRequest

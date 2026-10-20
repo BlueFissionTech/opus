@@ -7,4 +7,4 @@ if (!is_file($host . '/vendor/autoload.php') || !is_file($host . '/app/Business/
     throw new RuntimeException('Run package tests within a compatible Opus source checkout.');
 }
 $loader = require $host . '/vendor/autoload.php';
-$loader->addPsr4('AddOns\\Tributary\\', dirname(__DIR__) . '/logic/');
+$loader->addPsr4('AddOn\\Tributary\\', dirname(__DIR__) . '/logic/');

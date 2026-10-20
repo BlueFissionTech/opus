@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AddOns\Tributary\Business;
+namespace AddOn\Tributary\Business;
 
 use App\Domain\Agents\AgentRuntimeContext;
 use BlueFission\Arr;

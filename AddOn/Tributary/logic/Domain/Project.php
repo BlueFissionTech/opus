@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AddOns\Tributary\Domain;
+namespace AddOn\Tributary\Domain;
 
 use BlueFission\Arr;
 use BlueFission\Str;

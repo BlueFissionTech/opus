@@ -46,7 +46,7 @@ final class AddOnScaffoldServiceTest extends TestCase
         $this->assertSame('bluefission/opus-addon-sample-tools', $composer->get('name'));
         $this->assertSame('sample_tools', Arr::make($composer->get('extra'))->get('installer-name'));
         $this->assertSame(
-            'AddOns\\SampleTools\\Registration\\AddOnRegistration',
+            'AddOn\\SampleTools\\Registration\\AddOnRegistration',
             Arr::make($definition->get('registration'))->get('class')
         );
         $this->assertSame(
@@ -69,7 +69,7 @@ final class AddOnScaffoldServiceTest extends TestCase
         $registration = $factory();
         $this->assertCount(6, $registration->contributions());
         $this->assertInstanceOf($registration::class, $secondFactory());
-        $this->assertTrue(function_exists('AddOns\\SampleTools\\sample_tools_install'));
+        $this->assertTrue(function_exists('AddOn\\SampleTools\\sample_tools_install'));
         $this->assertFalse(function_exists('sample_tools_install'));
     }
 
@@ -135,6 +135,29 @@ final class AddOnScaffoldServiceTest extends TestCase
 
         $this->assertFalse($result['created']);
         $this->assertSame('destination_exists', $result['errors'][0]['code']);
+    }
+
+    public function testExplicitSingularNamespaceIsAccepted(): void
+    {
+        $result = (new AddOnScaffoldService($this->workspace))->generate(
+            'custom_tools', 'custom_tools', 'AddOn\\CustomTools'
+        );
+        $this->assertTrue($result['created'], Arr::make($result['errors'])->toJson());
+        $definition = $this->readJson($this->workspace . '/custom_tools/definition.json');
+        $this->assertSame('AddOn\\CustomTools', $definition['namespace']);
+        $this->assertTrue((new AddOnContractValidator())->validate($this->workspace . '/custom_tools')['valid']);
+    }
+
+    public function testLegacyPluralNamespaceRemainsValidWithoutAliases(): void
+    {
+        $result = (new AddOnScaffoldService($this->workspace))->generate(
+            'legacy_tools', 'legacy_tools', 'AddOns\\LegacyTools'
+        );
+        $this->assertTrue($result['created'], Arr::make($result['errors'])->toJson());
+        $definition = $this->readJson($this->workspace . '/legacy_tools/definition.json');
+        $this->assertSame('AddOns\\LegacyTools', $definition['namespace']);
+        $this->assertSame('AddOns\\LegacyTools\\Registration\\AddOnRegistration', $definition['registration']['class']);
+        $this->assertTrue((new AddOnContractValidator())->validate($this->workspace . '/legacy_tools')['valid']);
     }
 
     public function testInstalledDirectoryMustMatchTheLifecycleName(): void
@@ -594,7 +617,7 @@ PHP
 
 declare(strict_types=1);
 
-namespace AddOns\SplitNamespace\Registration {
+namespace AddOn\SplitNamespace\Registration {
 }
 
 namespace Other {
@@ -742,8 +765,8 @@ PHP
             $main,
             Str::make((string) FileSystem::fileContents($main))
                 ->replace(
-                    'use AddOns\\FactoryAlias\\Registration\\AddOnRegistration;',
-                    'use AddOns\\FactoryAlias\\Registration\\AddOnRegistration as RenamedRegistration;'
+                    'use AddOn\\FactoryAlias\\Registration\\AddOnRegistration;',
+                    'use AddOn\\FactoryAlias\\Registration\\AddOnRegistration as RenamedRegistration;'
                 )
                 ->val()
         );
@@ -763,9 +786,9 @@ PHP
         $lifecycle = $this->workspace . '/hook_interpolation/logic/Lifecycle.php';
         $source = Str::make((string) FileSystem::fileContents($lifecycle))
             ->replace(
-                'namespace AddOns\\HookInterpolation;',
+                'namespace AddOn\\HookInterpolation;',
                 <<<'PHP'
-namespace AddOns\HookInterpolation;
+namespace AddOn\HookInterpolation;
 
 use function Vendor\Package\prepare;
 use const Vendor\Package\STATUS;
@@ -920,7 +943,7 @@ PHP
         file_put_contents(
             $root . '/logic/Bootstrap/PackageRegistration.php',
             Str::make((string) FileSystem::fileContents($root . '/logic/Bootstrap/PackageRegistration.php'))
-                ->replace('namespace AddOns\\Declared\\Registration;', 'namespace AddOns\\Declared\\Bootstrap;')
+                ->replace('namespace AddOn\\Declared\\Registration;', 'namespace AddOn\\Declared\\Bootstrap;')
                 ->replace('class AddOnRegistration', 'class PackageRegistration')
                 ->val()
         );
@@ -928,8 +951,8 @@ PHP
             $root . '/main.php',
             Str::make((string) FileSystem::fileContents($root . '/main.php'))
                 ->replace(
-                    'AddOns\\Declared\\Registration\\AddOnRegistration',
-                    'AddOns\\Declared\\Bootstrap\\PackageRegistration'
+                    'AddOn\\Declared\\Registration\\AddOnRegistration',
+                    'AddOn\\Declared\\Bootstrap\\PackageRegistration'
                 )
                 ->replace('AddOnRegistration', 'PackageRegistration')
                 ->val()
@@ -942,7 +965,7 @@ PHP
 
         $definition = Arr::make($this->readJson($root . '/definition.json'));
         $definition->set('registration', [
-            'class' => 'AddOns\\Declared\\Bootstrap\\PackageRegistration',
+            'class' => 'AddOn\\Declared\\Bootstrap\\PackageRegistration',
             'factory' => 'main.php',
         ]);
         $definition->set('themes', [

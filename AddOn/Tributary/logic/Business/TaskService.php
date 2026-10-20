@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace AddOns\Tributary\Business;
+namespace AddOn\Tributary\Business;
 
-use AddOns\Tributary\Domain\DelegationRequest;
-use AddOns\Tributary\Domain\Project;
+use AddOn\Tributary\Domain\DelegationRequest;
+use AddOn\Tributary\Domain\Project;
 use App\Business\Services\AgentCompositionService;
 use App\Business\Services\AgentDelegationService;
 use App\Domain\Agents\AgentApplicationScope;
