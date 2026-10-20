@@ -537,6 +537,18 @@ execution authority. Revocation, foreign scope, disablement, reentry and retirem
 must deny evaluation. Existing strategy routing remains independently available;
 this optional runtime does not activate an inference provider or install modules.
 
+### Shared runtime administration commands (#125)
+
+Runtime inspection and explicit lifecycle/cleanup operations must use the same
+Wise parser and CommandHost as other commands. Text and structured input must
+produce equivalent authorized operations. Host-resolved current identity,
+application, tenant and per-operation grants must precede runtime inspection or
+construction; command payload/context cannot mint those grants. Parsing is
+passive. Unsupported verbs, arguments and replay/continuation attempts must not
+fall through to a second runtime executor. Existing non-runtime commands retain
+their processor behavior. This command boundary does not install an HTTP
+authentication policy or implement retries, dead-letter replay or provider health.
+
 ### Scoped runtime unregistration (#29)
 
 Stale owners must be able to retire only their retained local runtime through
