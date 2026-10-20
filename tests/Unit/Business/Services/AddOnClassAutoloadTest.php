@@ -39,7 +39,7 @@ final class AddOnClassAutoloadTest extends TestCase
     {
         $root = $this->workspace . '/class_probe';
         $path = $root . '/logic/Domain/Values/Probe.php';
-        file_put_contents($path, "<?php\nnamespace AddOn\\ClassProbe\\Domain\\Values;\n" . $declaration);
+        file_put_contents($path, "<?php\nnamespace AddOns\\ClassProbe\\Domain\\Values;\n" . $declaration);
         $result = (new AddOnContractValidator())->validate($root);
         $this->assertSame($valid, $result['valid'], json_encode($result['errors']));
         if (!$valid) {
@@ -51,7 +51,7 @@ final class AddOnClassAutoloadTest extends TestCase
             $this->assertSame('logic/Domain/Values/Probe.php', $problem['path']);
         }
         $this->assertFileDoesNotExist(dirname($path) . '/executed.txt');
-        $this->assertFalse(class_exists('AddOn\\ClassProbe\\Domain\\Values\\Probe', false));
+        $this->assertFalse(class_exists('AddOns\\ClassProbe\\Domain\\Values\\Probe', false));
     }
 
     public static function declarations(): array
@@ -89,15 +89,15 @@ final class AddOnClassAutoloadTest extends TestCase
         $path = $root . '/logic/Domain/Values/Available.php';
         file_put_contents(
             $path,
-            '<?php namespace AddOn\\ClassProbe\\Domain\\Values; final class Available {}'
+            '<?php namespace AddOns\\ClassProbe\\Domain\\Values; final class Available {}'
         );
         $result = (new AddOnContractValidator())->validate($root);
         $this->assertTrue($result['valid'], json_encode($result['errors']));
-        $class = 'AddOn\\ClassProbe\\Domain\\Values\\Available';
+        $class = 'AddOns\\ClassProbe\\Domain\\Values\\Available';
         $this->assertFalse(class_exists($class, false));
 
         $loader = new \Composer\Autoload\ClassLoader();
-        $loader->addPsr4('AddOn\\ClassProbe\\', $root . '/logic');
+        $loader->addPsr4('AddOns\\ClassProbe\\', $root . '/logic');
         $this->assertTrue($loader->loadClass($class));
         $this->assertTrue(class_exists($class, false));
         $this->assertSame(realpath($path), (new \ReflectionClass($class))->getFileName());

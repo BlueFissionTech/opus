@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AddOn\Tributary\Registration\AddOnRegistration;
+use AddOns\Tributary\Registration\AddOnRegistration;
 
 require_once __DIR__ . '/logic/Lifecycle.php';
 

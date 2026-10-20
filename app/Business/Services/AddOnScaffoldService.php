@@ -46,9 +46,9 @@ final class AddOnScaffoldService extends Service
             }
 
             $className = $this->className($name);
-            $namespace = $namespace === null ? "AddOn\\{$className}" : Str::make($namespace)->trim('\\')->val();
-            if (!Str::make($namespace)->matches('/^AddOns?\\\\[A-Z][A-Za-z0-9]*$/')) {
-                return $this->failure('namespace_invalid', 'Namespace must use AddOn\\Name or legacy AddOns\\Name.');
+            $namespace = $namespace === null ? "AddOns\\{$className}" : Str::make($namespace)->trim('\\')->val();
+            if (!Str::make($namespace)->matches('/^AddOns\\\\[A-Z][A-Za-z0-9]*$/')) {
+                return $this->failure('namespace_invalid', 'Namespace must use AddOns\\PackageName.');
             }
 
             $destination = $this->destination($target);

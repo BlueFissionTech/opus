@@ -5,6 +5,8 @@
 /.env
 .DS_Store
 addons/*
+!addons/tributary/
+!addons/tributary/**
 *.zip
 *.pem
 storage/logs/*

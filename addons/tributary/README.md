@@ -6,12 +6,13 @@ interfaces, hook contracts and isolation limits.
 
 ## Use with Opus
 
-The source is maintained in `AddOn/Tributary` with the `AddOn\Tributary`
+The source is maintained in `addons/tributary` with the `AddOns\Tributary`
 namespace. Its definition and passive
 registration factory follow the canonical add-on contract. Package installation
 and activation are explicit host operations; merely loading main.php grants no
-permissions and creates no runtime. Copying this directory into a discovered
-add-on directory is not a substitute for dependency resolution and review.
+permissions and creates no runtime. Source presence in `addons/` makes the
+definition discoverable; it does not install dependencies, register Composer
+autoloading, enroll governors, or activate the add-on.
 
 The package requires a compatible Opus host plus Wise. The source is tested
 against this repository's composer.lock; its dev-main requirement is not an
@@ -23,9 +24,9 @@ After the host has validated its catalog, enrolled its runtimes and resolved
 trusted identity, compose the same processor into CommandHost for UI and CLI:
 
 ```php
-use AddOn\Tributary\Business\TaskCommandProcessor;
-use AddOn\Tributary\Business\TaskService;
-use AddOn\Tributary\Domain\Project;
+use AddOns\Tributary\Business\TaskCommandProcessor;
+use AddOns\Tributary\Business\TaskService;
+use AddOns\Tributary\Domain\Project;
 
 $project = new Project('operations', 'app-id', 'tenant-id',
     [
@@ -71,7 +72,7 @@ live multi-tenant deployment or full Synthetiq profile loading.
 ## Validation from the Opus source root
 
 ```text
-php bin/opus-addon.php validate AddOn/Tributary
+php bin/opus-addon.php validate addons/tributary
 php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter TaskServiceTest
 php vendor/phpunit/phpunit/phpunit --do-not-cache-result
 ```

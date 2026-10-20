@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AddOn\Tributary\Registration;
+namespace AddOns\Tributary\Registration;
 
 final class AddOnRegistration
 {

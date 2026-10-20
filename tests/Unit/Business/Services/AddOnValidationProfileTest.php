@@ -206,7 +206,7 @@ final class AddOnValidationProfileTest extends TestCase
     {
         file_put_contents($this->host . '/composer.json', json_encode([
             'name' => 'example/host', 'type' => 'project',
-            'autoload' => ['psr-4' => ['AddOn\\ProfileProbe\\' => $paths]],
+            'autoload' => ['psr-4' => ['AddOns\\ProfileProbe\\' => $paths]],
         ]));
     }
 
