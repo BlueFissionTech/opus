@@ -523,6 +523,20 @@ composition operations and descriptor registration during synchronous delivery
 are denied before inspecting state or constructing a runtime. This action is
 best-effort observation, not authority, durable audit or proof of remote effects.
 
+### Principal advisory module admission (#29)
+
+An opt-in principal runtime factory must admit only application-owned central
+descriptors with explicit application scope and configured profiles. Readiness
+and lifecycle startup must not construct an Agent or cognitive module. Each
+evaluation requires fresh typed authorization bound to the host subject and
+capability before lazy construction and real Automata `Agent::runModule` use.
+Task data cannot select factories, profiles or identity. Advisory modules receive
+isolated state; proposed writes, decisions or state mutation are rejected before
+they reach the retained Agent. Outputs remain advice requiring review, never
+execution authority. Revocation, foreign scope, disablement, reentry and retirement
+must deny evaluation. Existing strategy routing remains independently available;
+this optional runtime does not activate an inference provider or install modules.
+
 ### Scoped runtime unregistration (#29)
 
 Stale owners must be able to retire only their retained local runtime through

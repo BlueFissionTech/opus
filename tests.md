@@ -1,5 +1,14 @@
 # Testing Opus Framework
 
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'PrincipalModuleRuntimeTest|AgentRuntimeRetirementTest|AutomataStrategyRuntimeTest|AgentCompositionServiceTest|ApplicationAgentRuntimeScopeTest'`
+for [principal advisory admission](docs/principal-advisory-runtime.md), current
+authorization, disabled/specialist rejection, trusted scope/input mapping,
+retained Agent state integrity, cross-application isolation, restart, cleanup
+reentry and uncertain retirement. These fixtures use the installed Automata
+Agent with local callable modules and synthetic synchronization. They do not
+qualify an optional cognitive package or prove absence of external effects by
+arbitrary PHP modules. No provider credentials or services are required.
+
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentRuntimeRetirementTest|AutomataStrategyRuntimeTest|AgentRuntimeObservationTest|AgentCompositionServiceTest|ApplicationAgentRuntimeScopeTest|ExtensionPointCatalogTest'`
 for stale-owner retirement, current authority checks, failed/uncertain cleanup,
 reentry denial, preserved newer registrations and permanent native-object
