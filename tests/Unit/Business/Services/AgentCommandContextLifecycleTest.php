@@ -8,6 +8,7 @@ use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCommandContextProvider;
 use App\Business\Services\ExtensionPointCatalog;
 use App\Domain\Agents\AgentCapabilityMap;
+use BlueFission\Arr;
 use BlueFission\BlueCore\Domain\AddOn\Queries\IActivatedAddOnsQuery;
 use BlueFission\DevElation;
 use PHPUnit\Framework\TestCase;
@@ -72,6 +73,40 @@ final class AgentCommandContextLifecycleTest extends TestCase
         $this->assertSame(['reports'], $context['active_addons']);
         $this->assertSame(['reports' => 'active'], $context['addon_states']);
         $this->assertSame('kept', $context['correlation_id']);
+    }
+
+    /** @dataProvider unscopedActors */
+    public function testFilterCannotCreateTenantScopeForAnUnscopedActor(string $actor, bool $continuation): void
+    {
+        DevElation::filter(ExtensionPointCatalog::AGENT_COMMAND_CONTEXT, static function (array $context): array {
+            $context['tenant_id'] = 'foreign-tenant';
+            if (Arr::hasKey($context, 'wise_profile')) {
+                $context['wise_profile']['tenant_id'] = 'foreign-tenant';
+            }
+            return $context;
+        });
+        $provider = new AgentCommandContextProvider($this->query([]));
+        $context = $continuation
+            ? $provider->forContinuation(['actor' => ['id' => $actor], 'tenant_id' => null])
+            : $provider->forActor($actor, null);
+        $this->assertArrayNotHasKey('tenant_id', $context);
+        if ($actor !== '') {
+            $profiles = (new \App\Business\Services\WiseProfileContextResolver())->resolve('opus.central', $context);
+            $this->assertNull($profiles['actor']->tenantId());
+            $this->assertNull($profiles['target']->tenantId());
+        } else {
+            $this->assertArrayNotHasKey('wise_profile', $context);
+        }
+    }
+
+    public static function unscopedActors(): array
+    {
+        return [
+            'human request' => ['user-a', false],
+            'human continuation' => ['user-a', true],
+            'anonymous request' => ['', false],
+            'anonymous continuation' => ['', true],
+        ];
     }
 
     public function testContinuationCannotResurrectARevokedAddOn(): void

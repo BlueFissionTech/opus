@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "catalog_version": "2.0.0",
+  "catalog_version": "2.0.1",
   "namespace": "opus",
   "extension_points": [
     {
@@ -213,7 +213,7 @@
       "exception_policy": "propagate_before_execution",
       "ordering": "priority_ascending_then_registration_order",
       "invariants": [
-        "Caller identity and an explicit tenant cannot be changed.",
+        "Caller identity and host tenant scope, including null or omitted tenant, cannot be changed.",
         "Agent identity and host capabilities are restored from the authoritative context after filtering.",
         "Profile roles and profile policy are host-owned and cannot be granted by the filter.",
         "Activated add-ons and lifecycle states are restored from the authoritative query after filtering, including continuation refresh and query failure.",
