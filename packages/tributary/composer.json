@@ -1,0 +1,35 @@
+{
+  "name": "bluefission/opus-addon-tributary",
+  "description": "Tributary capability add-on for Opus.",
+  "type": "opus-addon",
+  "license": "Apache-2.0",
+  "require": {
+    "php": "^8.2",
+    "bluefission/bluecore": "^0.1.1@alpha",
+    "bluefission/develation": "^1.3.41",
+    "bluefission/opus": "dev-main",
+    "bluefission/wise": "0.1.0-alpha.2"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "AddOns\\Tributary\\": "logic/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "AddOns\\Tributary\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "installer-name": "tributary",
+    "opus-addon": true
+  },
+  "scripts": {
+    "test": "phpunit --do-not-cache-result"
+  },
+  "minimum-stability": "alpha",
+  "prefer-stable": true
+}

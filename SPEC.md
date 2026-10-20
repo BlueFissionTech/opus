@@ -703,3 +703,11 @@ than silently widening or partially accepting the plan. An omitted workers field
 retains the existing host-participant default; valid duplicate IDs execute once
 in requested order. Use the installed Automata orchestration implementation and
 preserve host authorization on every actual runtime execution.
+
+## Tributary source package
+
+The optional packages/tributary package provides host-configured project, role,
+profile and task-assignment records with a shared Wise command adapter. Execution
+requires current host identity and intersected grants before native Opus/Automata
+delegation. Package PRD.md and ARCHITECTURE.md define the first-slice scope and
+remaining persistence, cancellation, profile-loading and deployment gates.
