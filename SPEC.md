@@ -709,3 +709,16 @@ than silently widening or partially accepting the plan. An omitted workers field
 retains the existing host-participant default; valid duplicate IDs execute once
 in requested order. Use the installed Automata orchestration implementation and
 preserve host authorization on every actual runtime execution.
+
+# Delegation evidence
+
+Delegation must retain provider-neutral per-execution usage and trace evidence
+from the principal and each executed specialist. Execution identity and request
+scope remain host-owned. Missing or invalid measurements stay unknown, rather
+than becoming zero; no monetary or energy total is inferred across unspecified
+units. Successful execution does not imply confidence. A supplied finite score
+in [0, 1] is retained; otherwise confidence is null. Aggregate confidence is
+unknown if any executed participant has unknown confidence. Evidence must not
+change selection, authorization, retry or execution count. The added usage,
+trace and request-scope fields must stay outside global observation payloads.
+See `docs/delegation-evidence.md`.
