@@ -12,6 +12,8 @@ use RuntimeException;
 
 final class ApplicationIntakeService
 {
+    private static bool $observingTransition = false;
+
     public function __construct(private IApplicationIntakeRepository $repository)
     {
     }
@@ -24,6 +26,7 @@ final class ApplicationIntakeService
         array $actor = [],
         ?string $correlationId = null
     ): ApplicationIntakeSession {
+        $this->assertMutationAllowed();
         $filtered = DevElation::apply(ExtensionPointCatalog::INTAKE_DEFAULTS, [
             'defaults' => ApplicationIntakeSession::defaultValues(),
             'context' => [
@@ -146,6 +149,7 @@ final class ApplicationIntakeService
 
     private function requireSession(string $sessionId): ApplicationIntakeSession
     {
+        $this->assertMutationAllowed();
         $session = $this->repository->find($sessionId);
         if ($session === null) {
             throw new RuntimeException('intake_session_not_found');
@@ -169,9 +173,22 @@ final class ApplicationIntakeService
         string $transition,
         ApplicationIntakeSession $saved
     ): void {
-        DevElation::do(ExtensionPointCatalog::INTAKE_SESSION_TRANSITIONED, [[
-            'transition' => $transition,
-            'session' => $saved->toArray(),
-        ]]);
+        self::$observingTransition = true;
+        try {
+            DevElation::do(ExtensionPointCatalog::INTAKE_SESSION_TRANSITIONED, [[
+                'version' => 2,
+                'transition' => $transition,
+                'session' => ['status' => $saved->status(), 'revision' => $saved->revision()],
+            ]]);
+        } finally {
+            self::$observingTransition = false;
+        }
+    }
+
+    private function assertMutationAllowed(): void
+    {
+        if (self::$observingTransition) {
+            throw new RuntimeException('intake_observer_reentry_denied');
+        }
     }
 }

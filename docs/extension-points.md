@@ -37,6 +37,35 @@ JSON catalog.
 
 ## Compatibility
 
+Catalog **2.0.0** changes the payload of `opus.intake.session.transitioned`.
+The name and post-persistence phase are unchanged; the payload is now:
+
+```json
+{"version":2,"transition":"answered","session":{"status":"in_progress","revision":2}}
+```
+
+This deliberately breaks consumers that read the former full session object.
+Update aggregate observers to use only `transition`, `session.status` and
+`session.revision`, and reject unsupported payload versions. Session IDs, tenant
+and actor identity, application names, answers, defaults, prompt versions,
+correlation tokens and timestamps are no longer broadcast. No legacy full-session
+alias is provided because it would retain the disclosure. Operations requiring
+session contents must use an independently authorized application service; the
+global observation does not provide an identity or lookup token.
+
+While the action is being delivered, all `ApplicationIntakeService` mutations
+across instances throw `intake_observer_reentry_denied` before reading or writing
+the repository. The process-wide guard resets in `finally`, including when an
+observer throws. Read-only `find` retains its existing behavior. Installed PHP
+can still access other services or captured objects; this is not a PHP sandbox.
+The guard covers synchronous delivery and stays active if a handler yields.
+
+The existing exception policy remains: a throwing observer stops later handlers
+and propagates after the original write has committed. It does not roll that
+write back or authorize replay. A repeated `start` for the existing session does
+not publish another transition. Observers remain ordered by ascending priority
+and registration order. No-handler behavior and other hook schemas are unchanged.
+
 Catalog 1.5.0 adds `opus.agent.runtime.result`. Its version-1 payload contains
 only `version`, `operation`, `status`, and `ok`. Operation is one of `inspect`,
 `start`, `suspend`, `resume`, `stop`, `cancel`, `execute`, `registerRuntime`,

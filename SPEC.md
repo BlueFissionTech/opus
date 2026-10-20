@@ -664,3 +664,12 @@ Observers cannot replace the result or replay it through a nested CommandHost
 call. Observer exceptions do not convert success to failure or retry execution.
 The action is synchronous, best-effort and requires DevElation to be enabled;
 it is not durable audit storage, a permission grant or a sandbox for PHP code.
+
+# Intake observation privacy
+
+The persisted intake transition action must publish only a versioned transition
+and status summary. Answers, defaults, actor and tenant identity, correlation
+tokens, timestamps and application names must not enter the global observation
+payload. Nested intake mutations during observation must fail before repository
+access, across service instances. The existing post-commit exception contract
+remains unchanged; guard state must reset even when an observer throws.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "catalog_version": "1.6.0",
+  "catalog_version": "2.0.0",
   "namespace": "opus",
   "extension_points": [
     {
@@ -170,8 +170,9 @@
       "owner": "ApplicationIntakeService",
       "payload": {
         "type": "object",
-        "required": ["transition", "session"],
+        "required": ["version", "transition", "session"],
         "properties": {
+          "version": "integer",
           "transition": "string",
           "session": "object"
         }
@@ -184,7 +185,9 @@
       "ordering": "priority_ascending_then_registration_order",
       "invariants": [
         "The session is persisted before observers run.",
-        "Observer failure does not roll back the completed write."
+        "Observer failure does not roll back the completed write.",
+        "Version 2 session contains only status and revision; answers, identity, correlation and timestamps are excluded.",
+        "Nested intake mutations across service instances are denied before repository access during synchronous observation."
       ]
     },
     {
