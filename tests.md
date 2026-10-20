@@ -9,6 +9,14 @@ Agent with local callable modules and synthetic synchronization. They do not
 qualify an optional cognitive package or prove absence of external effects by
 arbitrary PHP modules. No provider credentials or services are required.
 
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentRuntimeCommandProcessorTest|AgentCompositionServiceTest|CommandHostTest|AgentScopedCommandProcessorTest'`
+for the [shared runtime administration commands](docs/runtime-commands.md).
+The fixture uses the actual installed Wise parser and processor, composition
+service and Storage with synthetic synchronization/runtime implementations.
+It covers text/structured/CLI parity, passive parsing, fresh operation grants,
+payload forgery denial, lifecycle routing and private failures. It does not
+establish deployed HTTP authentication or live provider/recovery readiness.
+
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentRuntimeRetirementTest|AutomataStrategyRuntimeTest|AgentRuntimeObservationTest|AgentCompositionServiceTest|ApplicationAgentRuntimeScopeTest|ExtensionPointCatalogTest'`
 for stale-owner retirement, current authority checks, failed/uncertain cleanup,
 reentry denial, preserved newer registrations and permanent native-object
