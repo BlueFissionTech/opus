@@ -50,6 +50,11 @@ final class AppRegistrationTest extends TestCase
             {
                 $this->delegates[$name] = $reference;
             }
+
+            public function resolve(string $class): object
+            {
+                return new $class();
+            }
         };
         $reflection = new ReflectionClass(AppRegistration::class);
         $registration = $reflection->newInstanceWithoutConstructor();
@@ -58,7 +63,7 @@ final class AppRegistrationTest extends TestCase
 
         $registration->registrations();
 
-        $this->assertSame(ConsultingGuidanceService::class, $app->delegates['guidance']);
+        $this->assertInstanceOf(ConsultingGuidanceService::class, $app->delegates['guidance']);
 
         $this->assertInstanceOf(VibeThemeRenderer::class, $app->delegates['template']);
         $this->assertSame($app->delegates['template'], $app->delegates['vibe.theme']);

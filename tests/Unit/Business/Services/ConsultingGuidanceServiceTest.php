@@ -8,12 +8,87 @@ use App\Business\Services\ConsultingGuidanceService;
 use App\Domain\Guidance\ConsultingGuidanceInterface;
 use App\Domain\Guidance\GuidanceRequest;
 use App\Domain\Guidance\GuidanceOutcome;
+use App\Registration\AppRegistration;
+use BlueFission\Behavioral\Behaviors\Action;
+use BlueFission\Behavioral\Behaviors\Behavior;
+use BlueFission\Services\Application;
+use BlueFission\Services\Service;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use ReflectionProperty;
 use RuntimeException;
 
 final class ConsultingGuidanceServiceTest extends TestCase
 {
+    public function testApplicationRegistrationUsesTheBoundGuidanceProvider(): void
+    {
+        $this->withRegistration(function (Application $application, AppRegistration $registration): void {
+            $request = $this->request();
+            $application->bind(ConsultingGuidanceInterface::class, RegisteredGuidanceProvider::class);
+            $application->bindArgs(['outcome' => $this->outcome($request)], RegisteredGuidanceProvider::class);
+            $registration->registrations();
+
+            $service = $application->service('guidance');
+            $result = $service->advise($request, 100)->toArray();
+            self::assertSame('accessibility', $result['recommended']);
+            self::assertSame(0.75, $result['confidence']);
+            self::assertSame('review_required', $result['status']);
+            self::assertSame('none', $result['authority']);
+        });
+    }
+
+    public function testGuidanceParticipatesInNativeApplicationBehaviorRouting(): void
+    {
+        $this->withRegistration(function (Application $application, AppRegistration $registration): void {
+            $request = $this->request();
+            $application->bind(ConsultingGuidanceInterface::class, RegisteredGuidanceProvider::class);
+            $application->bindArgs(['outcome' => $this->outcome($request)], RegisteredGuidanceProvider::class);
+            $registration->registrations();
+            $service = $application->service('guidance');
+            self::assertInstanceOf(Service::class, $service);
+            self::assertInstanceOf(Service::class, $service->parent());
+            self::assertSame($application, $service->parent()->parent());
+
+            $observed = null;
+            $application->register('guidance', new Action('DoConsult'), function (Behavior $behavior, array $args) use (&$observed): void {
+                $observed = $this->advise($args[0], $args[1])->toArray();
+            });
+            self::assertTrue($service->can('DoConsult'));
+            $application->perform('DoConsult', $request, 100);
+            self::assertSame('accessibility', $observed['recommended']);
+            self::assertSame(['host_policy'], $observed['required_approvals']);
+            self::assertSame('none', $observed['authority']);
+        });
+    }
+
+    public function testRegisteredDefaultProviderRemainsUnavailableAndNonAuthoritative(): void
+    {
+        $this->withRegistration(function (Application $application, AppRegistration $registration): void {
+            $registration->registrations();
+            $result = $application->service('guidance')->advise($this->request(), 100)->toArray();
+            self::assertSame('unavailable', $result['status']);
+            self::assertNull($result['confidence']);
+            self::assertNull($result['recommended']);
+            self::assertSame('none', $result['authority']);
+        });
+    }
+
+    private function withRegistration(callable $check): void
+    {
+        $instances = new ReflectionProperty(Application::class, '_instances');
+        $before = $instances->getValue();
+        try {
+            $application = new GuidanceRegistrationApplication(['name' => 'guidance-registration-test']);
+            $registration = (new ReflectionClass(AppRegistration::class))->newInstanceWithoutConstructor();
+            (new ReflectionProperty(AppRegistration::class, '_app'))->setValue($registration, $application);
+            $registration->bindings();
+            $check($application, $registration);
+        } finally {
+            $instances->setValue(null, $before);
+        }
+    }
+
     private function request(array $changes = []): GuidanceRequest
     {
         return new GuidanceRequest(array_replace([
@@ -225,5 +300,20 @@ final class ConsultingGuidanceServiceTest extends TestCase
             try { $this->request($changes); self::fail('Invalid request accepted.'); }
             catch (InvalidArgumentException) { self::assertTrue(true); }
         }
+    }
+}
+
+final class RegisteredGuidanceProvider implements ConsultingGuidanceInterface
+{
+    public function __construct(private GuidanceOutcome $outcome) {}
+    public function advise(GuidanceRequest $request): GuidanceOutcome { return $this->outcome; }
+}
+
+final class GuidanceRegistrationApplication extends Application
+{
+    public function delegate($name, $reference = null, $args = null)
+    {
+        // Exercise real guidance registration without booting unrelated database services.
+        return $name === 'guidance' ? parent::delegate($name, $reference, $args) : $this;
     }
 }
