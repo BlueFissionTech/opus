@@ -1,0 +1,20 @@
+{
+    "name": "bluefission/opus-addon-repos",
+    "description": "Document records and transactional small-file storage for Opus.",
+    "type": "opus-addon",
+    "license": "Apache-2.0",
+    "require": {
+        "php": "^8.2",
+        "ext-sqlite3": "*",
+        "bluefission/develation": "^1.3.43"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6"
+    },
+    "autoload": {"psr-4": {"AddOns\\Repos\\": "logic/"}},
+    "autoload-dev": {"psr-4": {"AddOns\\Repos\\Tests\\": "tests/"}},
+    "extra": {"installer-name": "repos", "opus-addon": true},
+    "scripts": {"test": "phpunit --do-not-cache-result"},
+    "minimum-stability": "alpha",
+    "prefer-stable": true
+}
