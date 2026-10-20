@@ -98,7 +98,7 @@ final class AgentRuntimeObservationTest extends TestCase
         DevElation::action(ExtensionPointCatalog::AGENT_RUNTIME_RESULT, function () use ($service, $other, $context, $map, &$calls): void {
             ++$calls;
             foreach ([$service, $other] as $host) {
-                foreach (['inspect', 'start', 'suspend', 'resume', 'stop', 'cancel', 'unregister', 'registerRuntime', 'execute'] as $action) {
+                foreach (['inspect', 'start', 'suspend', 'resume', 'stop', 'cancel', 'unregister', 'registerRuntime', 'retire', 'execute'] as $action) {
                     $result = $action === 'execute'
                         ? $host->execute('private-principal', [], $context)
                         : $host->{$action}('private-principal', $context);
@@ -120,6 +120,17 @@ final class AgentRuntimeObservationTest extends TestCase
         DevElation::down();
         $this->assertTrue($service->start('private-principal', $context)->ok());
         $this->assertFalse($called);
+    }
+
+    public function testRetirementObservationContainsOnlyBoundedOutcome(): void
+    {
+        [$service, , $context, $factory] = $this->fixture();
+        $factory->expects($this->never())->method('available');
+        $factory->expects($this->never())->method('create');
+        $summaries = [];
+        DevElation::action(ExtensionPointCatalog::AGENT_RUNTIME_RESULT, function (array $summary) use (&$summaries): void { $summaries[] = $summary; });
+        $this->assertTrue($service->retire('private-principal', $context)->ok());
+        $this->assertSame([['version' => 1, 'operation' => 'retire', 'status' => 'completed', 'ok' => true]], $summaries);
     }
 
     public static function nonSuccessStatuses(): array

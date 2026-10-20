@@ -525,6 +525,14 @@ best-effort observation, not authority, durable audit or proof of remote effects
 
 ### Scoped runtime unregistration (#29)
 
+Stale owners must be able to retire only their retained local runtime through
+an explicit idempotent instance-local contract. Fresh application, tenant,
+capability and add-on authorization still applies. Retirement must not construct
+a runtime, admit work, or alter the newer persisted registration. Unsupported,
+failed or uncertain cleanup retains the handle. Successful retirement permanently
+fences the old object and evicts only that local cache entry. Reentrant cleanup
+is denied; distributed drain and remote shutdown remain host responsibilities.
+
 Descriptor discovery and runtime enrollment are separate. An authorized operator
 may unregister one application/tenant/agent runtime after its stop operation
 succeeds. Persist an unregistered tombstone and evict only that local cache entry;

@@ -7,7 +7,7 @@ namespace App\Business\Services;
 use App\Domain\Agents\AgentDescriptor;
 use App\Domain\Agents\AgentRuntimeContext;
 use App\Domain\Agents\AgentRuntimeResult;
-use App\Domain\Agents\IAgentRuntime;
+use App\Domain\Agents\IRetirableAgentRuntime;
 use BlueFission\Arr;
 use BlueFission\Automata\LLM\Agent\Capability\AutonomyDecision;
 use BlueFission\Automata\Strategy\Routing\StrategyRouteRequest;
@@ -18,20 +18,27 @@ use Closure;
 use Throwable;
 
 /** Synchronous, side-effect-free routing; persisted lifecycle belongs to composition. */
-final class AutomataStrategyRuntime implements IAgentRuntime
+final class AutomataStrategyRuntime implements IRetirableAgentRuntime
 {
     private Arr $policy;
     private bool $executing = false;
+    private bool $retired = false;
+    private bool $retiring = false;
+    private bool $retirementUncertain = false;
+    private ?StrategyRouter $router;
+    private ?Closure $authorize;
 
     public function __construct(
         private AgentDescriptor $descriptor,
         private ?string $tenantId,
         array $policy,
-        private StrategyRouter $router,
-        private Closure $authorize,
+        StrategyRouter $router,
+        Closure $authorize,
         private ?string $applicationId = null
     ) {
         $this->policy = Arr::make($policy);
+        $this->router = $router;
+        $this->authorize = $authorize;
     }
 
     public function start(AgentRuntimeContext $context): AgentRuntimeResult
@@ -52,6 +59,39 @@ final class AutomataStrategyRuntime implements IAgentRuntime
     public function stop(AgentRuntimeContext $context): AgentRuntimeResult
     {
         return $this->lifecycle('stop', 'stopped', $context);
+    }
+
+    public function retire(AgentRuntimeContext $context): AgentRuntimeResult
+    {
+        $denied = $this->scopeMismatch('retire', $context);
+        if ($denied !== null) {
+            return $denied;
+        }
+        if ($this->retiring) {
+            return AgentRuntimeResult::denied('retire', $this->descriptor->id(), $this->tenantId,
+                'retired', 'agent_runtime_retirement_in_progress');
+        }
+        if ($this->retirementUncertain) {
+            return AgentRuntimeResult::unavailable('retire', $this->descriptor->id(), $this->tenantId,
+                'retired', 'agent_runtime_retirement_uncertain');
+        }
+        if ($this->executing) {
+            return AgentRuntimeResult::denied('retire', $this->descriptor->id(), $this->tenantId,
+                'running', 'agent_execution_in_progress');
+        }
+        $this->retiring = true;
+        $this->retired = true;
+        try {
+            $this->router = null;
+            $this->authorize = null;
+            $this->policy = Arr::make([]);
+            return AgentRuntimeResult::completed('retire', $this->descriptor->id(), $this->tenantId, 'retired');
+        } catch (Throwable $exception) {
+            $this->retirementUncertain = true;
+            throw $exception;
+        } finally {
+            $this->retiring = false;
+        }
     }
 
     public function cancel(?string $executionId, AgentRuntimeContext $context): AgentRuntimeResult
@@ -143,6 +183,13 @@ final class AutomataStrategyRuntime implements IAgentRuntime
     }
 
     private function scopeDenial(string $action, AgentRuntimeContext $context): ?AgentRuntimeResult
+    {
+        return $this->scopeMismatch($action, $context) ?? ($this->retired
+            ? AgentRuntimeResult::denied($action, $this->descriptor->id(), $this->tenantId,
+                'retired', 'agent_runtime_retired') : null);
+    }
+
+    private function scopeMismatch(string $action, AgentRuntimeContext $context): ?AgentRuntimeResult
     {
         return $context->tenantId() === $this->tenantId && $context->applicationId() === $this->applicationId
             ? null : AgentRuntimeResult::denied(

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "catalog_version": "1.5.0",
+  "catalog_version": "1.6.0",
   "namespace": "opus",
   "extension_points": [
     {
@@ -20,7 +20,7 @@
       "ordering": "priority_ascending_then_registration_order",
       "invariants": [
         "One synchronous observation after a correlated public runtime result; descriptor registration is not runtime execution and is excluded.",
-        "Version is 1. Operation is inspect, start, suspend, resume, stop, cancel, execute, registerRuntime, unregister or unknown. Status is completed, denied, failed, unavailable or unknown; only completed with a true runtime outcome has ok=true.",
+        "Version is 1. Operation is inspect, start, suspend, resume, stop, cancel, execute, registerRuntime, unregister, retire or unknown. Status is completed, denied, failed, unavailable or unknown; only completed with a true runtime outcome has ok=true.",
         "No identities, state, tasks, outputs, diagnostics, trace, correlation tokens or runtime metadata enter the payload.",
         "Observer return values and payload mutation cannot alter the original result. Exceptions stop later handlers but are contained without replay.",
         "Nested composition operations and descriptor registration across instances are denied before state access or runtime construction and do not emit another observation. The process-wide guard always resets.",
