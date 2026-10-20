@@ -314,6 +314,113 @@ final class AutomataStrategyRuntimeTest extends TestCase
         $this->assertArrayNotHasKey('application_id', (new AgentRuntimeContext())->toArray());
     }
 
+    public function testRetirementPermanentlyFencesNativeObjectAndIsScopeBoundAndIdempotent(): void
+    {
+        $context = new AgentRuntimeContext('a');
+        $runtime = $this->factory()->create($this->descriptor(), $context);
+        $this->assertSame('denied', $runtime->retire(new AgentRuntimeContext('b'))->status());
+        $this->assertTrue($runtime->execute('before', [], $context)->ok());
+        $evaluations = $this->evaluations;
+        $this->assertTrue($runtime->retire($context)->ok());
+        $this->assertTrue($runtime->retire($context)->ok());
+        foreach (['start', 'suspend', 'resume', 'stop'] as $action) {
+            $this->assertSame(['agent_runtime_retired'], $runtime->{$action}($context)->diagnostics());
+        }
+        $this->assertSame(['agent_runtime_retired'], $runtime->cancel(null, $context)->diagnostics());
+        $this->assertSame(['agent_runtime_retired'], $runtime->execute('after', [], $context)->diagnostics());
+        $this->assertSame($evaluations, $this->evaluations);
+        $this->assertSame(1, $this->authorizations);
+        $this->assertSame(1, $this->builds);
+    }
+
+    public function testRetirementCannotInterruptNativeEvaluation(): void
+    {
+        $runtime = null;
+        $context = new AgentRuntimeContext('a');
+        $factory = $this->factory(function ($descriptor, $trusted, $request) use (&$runtime, $context): AutonomyDecision {
+            $this->assertSame(['agent_execution_in_progress'], $runtime->retire($context)->diagnostics());
+            return new AutonomyDecision(['allowed' => true, 'subject_id' => $request->subject_id,
+                'capability_id' => $request->capability_id, 'capability_version' => $request->capability_version]);
+        });
+        $runtime = $factory->create($this->descriptor(), $context);
+        $this->assertTrue($runtime->execute('active', [], $context)->ok());
+        $this->assertTrue($runtime->retire($context)->ok());
+    }
+
+    public function testRealHostRetiresOldNativeInstanceAfterAnotherOwnerReenrolls(): void
+    {
+        $map = new AgentCapabilityMap(1, 'application', ['principal' => [
+            'mode' => 'central', 'profile' => 'review', 'permissions' => ['operate'], 'tools' => [],
+        ]]);
+        $factory = new class($this->factory()) implements \App\Domain\Agents\IAgentRuntimeFactory {
+            public array $created = [];
+            public function __construct(private AutomataStrategyRuntimeFactory $native) {}
+            public function available(AgentDescriptor $descriptor, AgentRuntimeContext $context): bool {
+                return $this->native->available($descriptor, $context);
+            }
+            public function create(AgentDescriptor $descriptor, AgentRuntimeContext $context): \App\Domain\Agents\IAgentRuntime {
+                return $this->created[] = $this->native->create($descriptor, $context);
+            }
+        };
+        $lock = $this->createMock(IAgentRuntimeStateSynchronizer::class);
+        $lock->method('synchronized')->willReturnCallback(fn ($scope, $operation) => $operation());
+        $scope = new AgentApplicationScope('app');
+        $states = new ApplicationAgentRuntimeStateStore($scope, new AgentRuntimeStateStore(new Storage(), $lock));
+        $a = new AgentCompositionService(new AgentCapabilityMapResolver($map), $factory, $states);
+        $b = new AgentCompositionService(new AgentCapabilityMapResolver($map), $factory, $states);
+        $a->registerMap($map);
+        $b->registerMap($map);
+        $context = new AgentRuntimeContext('tenant', capabilities: ['operate'], applicationScope: $scope);
+        $this->assertTrue($a->start('principal', $context)->ok());
+        $old = $factory->created[0];
+        $this->assertTrue($b->unregister('principal', $context)->ok());
+        $this->assertTrue($b->registerRuntime('principal', $context)->ok());
+        $this->assertTrue($b->start('principal', $context)->ok());
+        $this->assertSame(['agent_runtime_registration_stale'], $a->execute('principal', [], $context)->diagnostics());
+        $before = $states->get('principal', 'tenant');
+        $built = $this->builds;
+        $this->assertTrue($a->retire('principal', $context)->ok());
+        $this->assertSame($before, $states->get('principal', 'tenant'));
+        $this->assertSame($built, $this->builds);
+        $this->assertSame(0, $this->authorizations);
+        $this->assertSame(0, $this->evaluations);
+        $this->assertSame(['agent_runtime_retired'], $old->execute('old', [], $context)->diagnostics());
+        $this->assertTrue($b->execute('principal', [], $context)->ok());
+    }
+
+    public static function referenceReleaseOutcomes(): array { return [[false], [true]]; }
+
+    /** @dataProvider referenceReleaseOutcomes */
+    public function testNativeReferenceReleaseRejectsReentrantRetirement(bool $throws): void
+    {
+        $runtime = null;
+        $context = new AgentRuntimeContext('a');
+        $nested = [];
+        $resource = new class(function () use (&$runtime, $context, &$nested, $throws): void {
+            $nested[] = $runtime->retire($context)->diagnostics();
+            $nested[] = $runtime->execute('nested', [], $context)->diagnostics();
+            if ($throws) { throw new \RuntimeException('cleanup uncertain'); }
+        }) {
+            public function __construct(private \Closure $release) {}
+            public function __destruct() { ($this->release)(); }
+        };
+        $factory = $this->factory(function () use ($resource): AutonomyDecision { return new AutonomyDecision(); });
+        $runtime = $factory->create($this->descriptor(), $context);
+        unset($factory, $resource);
+        try {
+            $this->assertTrue($runtime->retire($context)->ok());
+            $this->assertFalse($throws);
+        } catch (\RuntimeException $exception) {
+            $this->assertTrue($throws);
+            $this->assertSame('cleanup uncertain', $exception->getMessage());
+        }
+        $this->assertSame([['agent_runtime_retirement_in_progress'], ['agent_runtime_retired']], $nested);
+        $retry = $runtime->retire($context);
+        $this->assertSame(!$throws, $retry->ok());
+        if ($throws) { $this->assertSame(['agent_runtime_retirement_uncertain'], $retry->diagnostics()); }
+        $this->assertCount(2, $nested);
+    }
+
     private function descriptor(string $profile = 'review'): AgentDescriptor
     {
         return new AgentDescriptor('review.specialist', 'review', [

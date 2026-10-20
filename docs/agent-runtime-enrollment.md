@@ -54,6 +54,43 @@ Generation checks prevent stale local reuse; they do not send remote shutdowns,
 discard another host's resource handles, or prove distributed quiescence. A stale
 host must reconcile its owned resources before rebuilding its composition.
 
+## Retiring a stale local runtime
+
+`retire($agentId, $trustedContext)` releases a cached stale instance only when it
+implements `IRetirableAgentRuntime`. It uses current application, tenant,
+capability and add-on authorization. Current-generation instances must use the
+ordinary stop/unregister lifecycle. An absent local cache returns an idempotent
+success with `local_runtime_present=false`; this does not prove another owner
+has released resources.
+
+Retirement neither constructs nor probes a runtime and never changes the current
+persisted registration, lifecycle or execution record. It invokes the retained
+instance's explicit retirement method, not its generic `stop()` method. Only an
+`ok=true`, `status=completed` result releases the local cache. Failure, exception,
+uncertain state reads or contradictory outcomes retain the handle. A retry is an
+explicit authorized call, never automatic replay. Implementing this optional
+interface requires safe idempotent reconciliation after partial cleanup or an
+exception, without repeating irreversible effects. Runtimes unable to provide
+that contract remain unsupported and require host-specific reconciliation.
+
+During cleanup, the same owner rejects recursive retirement and ordinary
+operations for that scope, and descriptor registration is held. Other owners'
+newer registrations are unaffected. Success permanently fences the retired
+object even when a caller retains another reference. A future authorized operation
+may create a fresh instance against the current registration; retirement itself
+does not enroll or admit it.
+
+The native `AutomataStrategyRuntime` implements this contract by refusing
+retirement during synchronous evaluation, permanently denying further operations
+afterward, and releasing its router/authorizer references and routing policy.
+It does not call provider shutdown APIs, dispose objects still retained elsewhere,
+or establish distributed quiescence. Scope checks still apply to repeated calls.
+If releasing an injected reference throws, the native object stays permanently
+fenced and latches an uncertain outcome. Later retirement calls report unavailable
+without replaying release; the host retains the runtime for manual reconciliation.
+The absence of a reference after a throwing destructor is not cleanup proof.
+No module teardown API is inferred from this runtime capability.
+
 Descriptors remain configured after scoped unregistration so other tenants and
 future authorized enrollment continue working. Package removal and global
 descriptor/catalog removal are separate host lifecycle responsibilities.

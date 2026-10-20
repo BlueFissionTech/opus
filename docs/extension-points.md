@@ -40,7 +40,7 @@ JSON catalog.
 Catalog 1.5.0 adds `opus.agent.runtime.result`. Its version-1 payload contains
 only `version`, `operation`, `status`, and `ok`. Operation is one of `inspect`,
 `start`, `suspend`, `resume`, `stop`, `cancel`, `execute`, `registerRuntime`,
-`unregister`, or `unknown`. Status is `completed`, `denied`, `failed`,
+`unregister`, `retire` (added in catalog 1.6.0), or `unknown`. Status is `completed`, `denied`, `failed`,
 `unavailable`, or `unknown`; only `completed` with a true runtime outcome reports
 `ok=true`, without changing the original result. State, identities, tasks, outputs, diagnostics,
 trace, correlation tokens and metadata are excluded.

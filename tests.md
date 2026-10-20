@@ -1,5 +1,12 @@
 # Testing Opus Framework
 
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentRuntimeRetirementTest|AutomataStrategyRuntimeTest|AgentRuntimeObservationTest|AgentCompositionServiceTest|ApplicationAgentRuntimeScopeTest|ExtensionPointCatalogTest'`
+for stale-owner retirement, current authority checks, failed/uncertain cleanup,
+reentry denial, preserved newer registrations and permanent native-object
+retirement. The actual native router and host enrollment path are exercised
+offline with synthetic synchronization. These tests do not prove distributed
+drain, provider shutdown or installation of an optional cognitive module.
+
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentRuntimeObservationTest|AgentCompositionServiceTest|ExtensionPointCatalogTest'`
 for runtime-result hook delivery, redaction, ordering, observer failure,
 cross-instance reentry denial, unknown-status bounding and catalog parity.

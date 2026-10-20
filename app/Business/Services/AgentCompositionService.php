@@ -10,6 +10,7 @@ use App\Domain\Agents\AgentDescriptor;
 use App\Domain\Agents\AgentRuntimeContext;
 use App\Domain\Agents\AgentRuntimeResult;
 use App\Domain\Agents\IAgentRuntime;
+use App\Domain\Agents\IRetirableAgentRuntime;
 use App\Domain\Agents\IAgentRuntimeFactory;
 use App\Domain\Agents\IAgentRuntimeStateStore;
 use App\Domain\Agents\IApplicationScopedAgentRuntimeStateStore;
@@ -35,6 +36,7 @@ final class AgentCompositionService extends Service
     private Arr $descriptors;
     private Arr $runtimes;
     private Arr $runtimeRegistrations;
+    private Arr $retiring;
     private ?AgentApplicationScope $applicationScope;
 
     public function __construct(
@@ -47,6 +49,7 @@ final class AgentCompositionService extends Service
         $this->descriptors = Arr::make([]);
         $this->runtimes = Arr::make([]);
         $this->runtimeRegistrations = Arr::make([]);
+        $this->retiring = Arr::make([]);
         $this->applicationScope = $states instanceof IApplicationScopedAgentRuntimeStateStore
             ? $states->applicationScope()
             : null;
@@ -54,6 +57,11 @@ final class AgentCompositionService extends Service
 
     public function registerMap(AgentCapabilityMap $map): AgentRuntimeResult
     {
+        if ($this->retiring->isNotEmpty()) {
+            return AgentRuntimeResult::denied(
+                'register', $map->owner(), null, self::UNKNOWN, 'agent_runtime_retirement_in_progress'
+            );
+        }
         if (self::$observingResult) {
             return AgentRuntimeResult::denied(
                 'register', $map->owner(), null, self::UNKNOWN, 'agent_result_observer_reentry_denied'
@@ -210,6 +218,54 @@ final class AgentCompositionService extends Service
             [self::REGISTERED, self::RUNNING, self::SUSPENDED, self::STOPPED, self::FAILED],
             self::UNREGISTERED
         ), $context);
+    }
+
+    public function retire(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
+    {
+        $authorized = $this->authorize('retire', $agentId, $context, allowStaleRetirement: true);
+        if ($authorized !== null) {
+            return $this->correlate($authorized, $context);
+        }
+        $key = $this->key($agentId, $context->tenantId());
+        $runtime = $this->runtimes->get($key);
+        $state = $this->state($agentId, $context);
+        if (!$runtime instanceof IAgentRuntime) {
+            return $this->correlate(AgentRuntimeResult::completed(
+                'retire', $agentId, $context->tenantId(), $state,
+                metadata: ['local_runtime_present' => false]
+            ), $context);
+        }
+        if (!$this->cachedRegistrationStale($agentId, $context)) {
+            return $this->correlate(AgentRuntimeResult::denied(
+                'retire', $agentId, $context->tenantId(), $state, 'agent_runtime_not_stale'
+            ), $context);
+        }
+        if (!$runtime instanceof IRetirableAgentRuntime) {
+            return $this->correlate(AgentRuntimeResult::unavailable(
+                'retire', $agentId, $context->tenantId(), $state, 'agent_runtime_retirement_unsupported'
+            ), $context);
+        }
+
+        $this->retiring->set($key, true);
+        try {
+            $cleanup = $runtime->retire($context);
+            $state = $this->state($agentId, $context);
+            if ($cleanup->ok() && $cleanup->status() === AgentRuntimeResult::COMPLETED) {
+                $this->runtimes->delete($key);
+                $this->runtimeRegistrations->delete($key);
+                $result = AgentRuntimeResult::completed('retire', $agentId, $context->tenantId(), $state,
+                    metadata: ['local_runtime_present' => true]);
+            } else {
+                $result = AgentRuntimeResult::failed('retire', $agentId, $context->tenantId(), $state,
+                    'agent_runtime_retirement_incomplete');
+            }
+        } catch (Throwable) {
+            $result = AgentRuntimeResult::failed('retire', $agentId, $context->tenantId(), self::UNKNOWN,
+                'agent_runtime_retirement_uncertain');
+        } finally {
+            $this->retiring->delete($key);
+        }
+        return $this->correlate($result, $context);
     }
 
     public function cancel(string $agentId, AgentRuntimeContext $context): AgentRuntimeResult
@@ -862,7 +918,8 @@ final class AgentCompositionService extends Service
     private function authorize(
         string $action,
         string $agentId,
-        AgentRuntimeContext $context
+        AgentRuntimeContext $context,
+        bool $allowStaleRetirement = false
     ): ?AgentRuntimeResult {
         if (self::$observingResult) {
             return AgentRuntimeResult::denied(
@@ -872,6 +929,11 @@ final class AgentCompositionService extends Service
         if (!$this->matchesApplicationScope($context)) {
             return AgentRuntimeResult::denied(
                 $action, $agentId, $context->tenantId(), self::UNKNOWN, 'agent_application_scope_mismatch'
+            );
+        }
+        if ($this->retiring->get($this->key($agentId, $context->tenantId())) === true) {
+            return AgentRuntimeResult::denied(
+                $action, $agentId, $context->tenantId(), self::UNKNOWN, 'agent_runtime_retirement_in_progress'
             );
         }
         $descriptor = $this->descriptorFor($agentId);
@@ -923,7 +985,7 @@ final class AgentCompositionService extends Service
             );
         }
 
-        if ($this->cachedRegistrationStale($agentId, $context)) {
+        if (!$allowStaleRetirement && $this->cachedRegistrationStale($agentId, $context)) {
             return AgentRuntimeResult::denied(
                 $action, $agentId, $context->tenantId(), $state, 'agent_runtime_registration_stale'
             );
@@ -1100,7 +1162,7 @@ final class AgentCompositionService extends Service
                 'version' => 1,
                 'operation' => Arr::has([
                     'inspect', 'start', 'suspend', 'resume', 'stop', 'cancel',
-                    'execute', 'registerRuntime', 'unregister',
+                    'execute', 'registerRuntime', 'unregister', 'retire',
                 ], $operation, true) ? $operation : 'unknown',
                 'status' => $knownStatus ? $status : 'unknown',
                 'ok' => $status === AgentRuntimeResult::COMPLETED && $result->ok(),
