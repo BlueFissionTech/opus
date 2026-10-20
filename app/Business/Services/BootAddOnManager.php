@@ -54,14 +54,13 @@ class BootAddOnManager extends AddOnManager
         return $this;
     }
 
-    protected function loadAddOn(AddOn $addOn)
+    protected function loadAddOn(AddOn $addOn): array
     {
         $root = (string) $addOn->path;
         $definition = $this->definition($root);
         if (!Arr::hasKey($definition, 'registration')) {
             // Historical imperative entrypoints retain their existing contract.
-            parent::loadAddOn($addOn);
-            return;
+            return parent::loadAddOn($addOn);
         }
 
         $engine = Engine::instance();
@@ -75,7 +74,7 @@ class BootAddOnManager extends AddOnManager
             if ($records->get($name)->get('identity') !== $identity) {
                 throw new RuntimeException('addon_boot_identity_conflict');
             }
-            return;
+            return [];
         }
 
         $record = Arr::make([
@@ -127,6 +126,8 @@ class BootAddOnManager extends AddOnManager
                 $this->publishBootResult($record);
             }
         });
+
+        return [];
     }
 
     private function publishBootResult(Arr $record): void
