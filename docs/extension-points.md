@@ -108,6 +108,20 @@ comes from `OPUS_HOST_MARKUP_DIRECTORY` in global settings.
 
 ## Lifecycle authority in command context (catalog 1.0.1)
 
+Catalog 2.0.1 tightens the command-context tenant invariant without changing
+hook names or payload types. The host's tenant selection is authoritative, including an omitted or null
+tenant. `opus.agent.command_context` cannot derive a tenant for an unscoped
+request, even if it also changes the profile tenant to match. A changed tenant
+discards the filtered context and retains the host snapshot. This applies to
+initial requests and continuation refreshes, including anonymous contexts.
+
+This removes the legacy filter-based tenant-derivation behavior. Applications
+using it must resolve and authorize tenant membership in their trusted host
+session/routing layer before calling `forActor(actorId, tenantId)`. Filters may
+still enrich non-authoritative metadata within that resolved scope. A repository
+name, remembered context or model suggestion is not tenant membership proof.
+This boundary does not itself authenticate the caller or determine membership.
+
 `opus.agent.command_context` may enrich context within the documented actor and
 tenant constraints. Its `active_addons` and `addon_states` fields are read-only
 snapshots: the host restores them from its activated-add-on query after the

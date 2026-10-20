@@ -685,3 +685,12 @@ tokens, timestamps and application names must not enter the global observation
 payload. Nested intake mutations during observation must fail before repository
 access, across service instances. The existing post-commit exception contract
 remains unchanged; guard state must reset even when an observer throws.
+
+# Host-owned command tenant scope
+
+Command-context filters cannot select a tenant when the host provided no tenant.
+Null is an authoritative scope, not permission to derive membership. Discard
+scope-changing filter output before profile resolution on both initial commands
+and continuation refreshes. Resolve and authorize tenant membership at the host
+boundary before constructing command context; preserve safe metadata enrichment
+within an unchanged scope.

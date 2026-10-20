@@ -473,3 +473,11 @@ assert the version-2 payload allowlist, deny all six nested mutations before
 repository reads/writes, and verify guard recovery after successful and throwing
 observers. Run the complete PHPUnit suite before release. No provider, database
 service, credentials or dependency changes are required for this contract.
+
+# Command tenant-scope regressions
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentCommandContextLifecycleTest|AgentScopedProfileTest|AgentCapabilityMapTest|AgentScopedCommandProcessorTest'`.
+The tests attempt coordinated tenant/profile changes for unscoped human and
+anonymous requests and continuation refreshes. Actual Wise profile resolution
+must retain null scope. Existing explicit tenant and metadata behavior remains
+covered. No provider calls, credentials or installations are required.

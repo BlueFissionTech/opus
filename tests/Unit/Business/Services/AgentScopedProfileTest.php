@@ -30,7 +30,7 @@ final class AgentScopedProfileTest extends TestCase
         $this->assertSame(['user'], $context['wise_profile']['roles']);
     }
 
-    public function testCommandContextHookCanDeriveAnOmittedTenant(): void
+    public function testCommandContextHookCannotDeriveAnOmittedTenant(): void
     {
         $reflection = new \ReflectionClass(DevElation::class);
         $active = $reflection->getProperty('_isActive');
@@ -50,8 +50,8 @@ final class AgentScopedProfileTest extends TestCase
 
             $context = (new AgentCommandContextProvider())->forActor('user-a');
 
-            $this->assertSame('tenant-a', $context['tenant_id']);
-            $this->assertSame('tenant-a', $context['wise_profile']['tenant_id']);
+            $this->assertArrayNotHasKey('tenant_id', $context);
+            $this->assertNull($context['wise_profile']['tenant_id']);
             $this->assertSame(['user'], $context['wise_profile']['roles']);
         } finally {
             $active->setValue(null, $originalActive);
