@@ -437,6 +437,12 @@ never grants execution authority. Unavailable/failed providers return structured
 results without exception payloads. Caller overrides create new advisory records;
 no task, budget, goal, agent, command, deployment or workflow is mutated.
 
+The registered guidance service resolves the configured provider binding and
+participates in DevElation's native service parent and behavior routing. A host
+may register an advisory action that calls the same validated `advise()` method;
+such routing does not grant execution authority or make direct method calls
+automatically observable. The default provider remains unavailable.
+
 ## Canonical add-on boot registration (#40)
 
 The platform and selected application profiles consume canonical registration

@@ -95,7 +95,7 @@ class AppRegistration implements IExtension {
 		$this->delegate('vibe.theme', $templateRenderer);
 		$this->delegate('wise.profile.policy', $profilePolicies);
 		$this->delegate('conversation.catalog', $conversationCatalog);
-		$this->delegate('guidance', ConsultingGuidanceService::class);
+		$this->delegate('guidance', $this->_app->resolve(ConsultingGuidanceService::class));
 
 		$this->delegate('mysql', MysqlConnector::class);
 	}
