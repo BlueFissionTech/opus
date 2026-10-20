@@ -199,9 +199,66 @@ final class ApplicationIntakeServiceTest extends TestCase
                 ['started', 'answered', 'skipped', 'paused', 'resumed', 'completed'],
                 array_column($transitions, 'transition')
             );
-            $this->assertSame('tenant-a', $transitions[0]['session']['tenant_id']);
-            $this->assertSame('workflow-studio', $transitions[5]['session']['application_slug']);
+            $this->assertSame(2, $transitions[0]['version']);
+            $this->assertSame(['version', 'transition', 'session'], array_keys($transitions[0]));
+            $this->assertSame(['status', 'revision'], array_keys($transitions[0]['session']));
             $this->assertSame(ApplicationIntakeSession::COMPLETED, $transitions[5]['session']['status']);
+        });
+    }
+
+    public function testObservationExcludesPrivateSessionContent(): void
+    {
+        $this->withDevElationHooks(function (): void {
+            $observed = [];
+            DevElation::action('opus.intake.session.transitioned', static function (array $payload) use (&$observed): void {
+                $observed[] = $payload;
+            });
+            $service = new ApplicationIntakeService($this->repository());
+            $session = $service->start('Private Company', 'private-tenant', actor: ['id' => 'private-actor', 'token' => 'secret'], correlationId: 'private-correlation');
+            $saved = $service->answer($session->sessionId(), 'audience', 'Confidential business plan');
+            $this->assertSame('Confidential business plan', $saved->answers()['audience']);
+            foreach ($observed as $payload) {
+                $this->assertSame(['version', 'transition', 'session'], array_keys($payload));
+                $this->assertSame(['status', 'revision'], array_keys($payload['session']));
+                $this->assertSame(2, $payload['version']);
+            }
+            $this->assertSame($saved->revision(), $observed[1]['session']['revision']);
+        });
+    }
+
+    public function testObserverCannotMutateThroughAnotherServiceAndGuardResets(): void
+    {
+        $this->withDevElationHooks(function (): void {
+            $repository = $this->repository();
+            $service = new ApplicationIntakeService($repository);
+            $other = new ApplicationIntakeService($repository);
+            $session = $service->start('Workflow Studio');
+            $denied = [];
+            $readsDuringObservation = null;
+            $attempt = true;
+            DevElation::action('opus.intake.session.transitioned', static function () use ($other, $session, $repository, &$denied, &$attempt, &$readsDuringObservation): void {
+                if (!$attempt) { return; }
+                $attempt = false;
+                $readsBefore = $repository->reads;
+                $operations = [
+                    fn () => $other->start('Nested Company'),
+                    fn () => $other->answer($session->sessionId(), 'audience', 'Injected'),
+                    fn () => $other->skip($session->sessionId(), 'timeline'),
+                    fn () => $other->pause($session->sessionId()),
+                    fn () => $other->resume($session->sessionId()),
+                    fn () => $other->complete($session->sessionId()),
+                ];
+                foreach ($operations as $operation) {
+                    try { $operation(); } catch (RuntimeException $e) { $denied[] = $e->getMessage(); }
+                }
+                $readsDuringObservation = $repository->reads - $readsBefore;
+            });
+            $saved = $service->pause($session->sessionId());
+            $this->assertSame(array_fill(0, 6, 'intake_observer_reentry_denied'), $denied);
+            $this->assertSame(2, $repository->writes);
+            $this->assertSame(0, $readsDuringObservation);
+            $this->assertSame($saved, $repository->find($session->sessionId()));
+            $this->assertSame(ApplicationIntakeSession::IN_PROGRESS, $service->resume($session->sessionId())->status());
         });
     }
 
@@ -209,10 +266,11 @@ final class ApplicationIntakeServiceTest extends TestCase
     {
         $this->withDevElationHooks(function (): void {
             $repository = $this->repository();
+            $throw = true;
             DevElation::action(
                 'opus.intake.session.transitioned',
-                static function (): void {
-                    throw new RuntimeException('intake_session_already_exists');
+                static function () use (&$throw): void {
+                    if ($throw) { throw new RuntimeException('intake_session_already_exists'); }
                 }
             );
 
@@ -224,6 +282,12 @@ final class ApplicationIntakeServiceTest extends TestCase
             }
 
             $this->assertSame(1, $repository->writes);
+            $throw = false;
+            $service = new ApplicationIntakeService($repository);
+            $session = $service->start('Workflow Studio');
+            $this->assertSame(1, $repository->writes);
+            $this->assertSame(ApplicationIntakeSession::PAUSED, $service->pause($session->sessionId())->status());
+            $this->assertSame(2, $repository->writes);
         });
     }
 
@@ -242,9 +306,11 @@ final class ApplicationIntakeServiceTest extends TestCase
             /** @var array<string, ApplicationIntakeSession> */
             public array $sessions = [];
             public int $writes = 0;
+            public int $reads = 0;
 
             public function find(string $sessionId): ?ApplicationIntakeSession
             {
+                $this->reads++;
                 return $this->sessions[$sessionId] ?? null;
             }
 

@@ -464,3 +464,12 @@ durable tombstones, tenant isolation, stale host caches, and registration change
 during runtime construction. Synthetic synchronization does not qualify live
 multi-process database locking or remote agent-module teardown. See
 `docs/agent-runtime-enrollment.md` for the host drain contract.
+
+# Intake observation privacy
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'ApplicationIntakeServiceTest|ExtensionPointCatalogTest'`.
+These tests use persisted session fixtures with private answers and actor data,
+assert the version-2 payload allowlist, deny all six nested mutations before
+repository reads/writes, and verify guard recovery after successful and throwing
+observers. Run the complete PHPUnit suite before release. No provider, database
+service, credentials or dependency changes are required for this contract.
