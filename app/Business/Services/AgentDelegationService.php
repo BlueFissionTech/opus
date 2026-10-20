@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Business\Services;
 
 use App\Domain\Agents\AgentDelegationResult;
+use App\Domain\Agents\AgentDelegationPattern;
 use App\Domain\Agents\AgentDescriptor;
 use App\Domain\Agents\AgentRuntimeContext;
 use App\Domain\Agents\AgentRuntimeResult;
@@ -35,7 +36,7 @@ final class AgentDelegationService extends Service
         $participants = Arr::make($specialistIds)
             ->map(fn ($id): string => Str::make((string) $id)->trim()->val())
             ->filter(fn (string $id): bool => Str::isNotEmpty($id))
-            ->unique();
+            ->unique()->values();
         $coordinator = $this->agents->descriptorFor($coordinatorId);
 
         if (!$this->isCoordinator($coordinator)) {
@@ -45,7 +46,7 @@ final class AgentDelegationService extends Service
                 'central_agent_required'
             );
         }
-        if ($participants->isEmpty()) {
+        if ($participants->count() === 0) {
             return AgentDelegationResult::denied($coordinatorId, [], 'specialist_agent_required');
         }
 
@@ -54,7 +55,7 @@ final class AgentDelegationService extends Service
 
             return !$this->isSpecialist($descriptor);
         });
-        if ($invalid->isNotEmpty()) {
+        if ($invalid->count() > 0) {
             return AgentDelegationResult::denied(
                 $coordinatorId,
                 $participants->toArray(),
@@ -62,12 +63,14 @@ final class AgentDelegationService extends Service
             );
         }
 
+        $evidence = Arr::make([]);
         try {
             $orchestration = $this->orchestrator(
                 $coordinatorId,
                 $participants->toArray(),
                 $task,
-                $context
+                $context,
+                $evidence
             )->run([
                 'task' => $task,
                 'context' => $context->toArray(),
@@ -79,7 +82,8 @@ final class AgentDelegationService extends Service
                 $coordinatorId,
                 $participants->toArray(),
                 $orchestration,
-                $context
+                $context,
+                $evidence
             );
         } catch (Throwable) {
             return new AgentDelegationResult(
@@ -91,6 +95,8 @@ final class AgentDelegationService extends Service
                 metadata: [
                     'tenant_id' => $context->tenantId(),
                     'correlation_id' => $context->correlationId(),
+                    'application_id' => $context->applicationId(),
+                    'execution_evidence' => $evidence->values()->toArray(),
                 ]
             );
         }
@@ -100,7 +106,8 @@ final class AgentDelegationService extends Service
         string $coordinatorId,
         array $participants,
         array $task,
-        AgentRuntimeContext $context
+        AgentRuntimeContext $context,
+        Arr $evidence
     ): Orchestrator {
         $workers = Arr::make([]);
         Arr::make($participants)->each(function (string $agentId) use (
@@ -108,7 +115,8 @@ final class AgentDelegationService extends Service
             $coordinatorId,
             $participants,
             $task,
-            $context
+            $context,
+            $evidence
         ): void {
             $workers->set($agentId, [
                 'handler' => fn (array $_input, array $_priorResults): array => $this->workerResult(
@@ -120,7 +128,9 @@ final class AgentDelegationService extends Service
                             'coordinator_id' => $coordinatorId,
                             'participants' => $participants,
                         ],
-                    ], $context)
+                    ], $context),
+                    $context,
+                    $evidence
                 ),
                 'metadata' => [
                     'agent_id' => $agentId,
@@ -135,17 +145,19 @@ final class AgentDelegationService extends Service
                 $coordinatorId,
                 $participants,
                 $task,
-                $context
+                $context,
+                $evidence
             ),
             'workers' => $workers->toArray(),
-        ]));
+        ]), [new AgentDelegationPattern()]);
     }
 
     private function supervisorResult(
         string $coordinatorId,
         array $participants,
         array $task,
-        AgentRuntimeContext $context
+        AgentRuntimeContext $context,
+        Arr $evidence
     ): array {
         $result = $this->agents->execute($coordinatorId, [
             'operation' => 'plan_delegation',
@@ -153,7 +165,7 @@ final class AgentDelegationService extends Service
             'available_specialists' => $participants,
         ], $context);
         $selected = Arr::make($participants);
-        $normalized = $this->workerResult($coordinatorId, $result);
+        $normalized = $this->workerResult($coordinatorId, $result, $context, $evidence);
         if ($result->ok() && Arr::is($result->output()) && Arr::hasKey($result->output(), 'workers')) {
             $value = Arr::getPath($result->output(), 'workers');
             $requested = Arr::is($value) ? Arr::toArray($value, true) : null;
@@ -168,7 +180,7 @@ final class AgentDelegationService extends Service
             $selected = Arr::make($valid ? $requested : [])->unique();
             if (!$valid) {
                 $normalized['status'] = AgentRuntimeResult::FAILED;
-                $normalized['confidence'] = 0.0;
+                $normalized['confidence'] = null;
                 $normalized['metadata']['diagnostics'][] = 'agent_delegation_selection_invalid';
             }
         }
@@ -184,27 +196,116 @@ final class AgentDelegationService extends Service
         return $normalized;
     }
 
-    private function workerResult(string $agentId, AgentRuntimeResult $result): array
-    {
+    private function workerResult(
+        string $agentId,
+        AgentRuntimeResult $result,
+        AgentRuntimeContext $context,
+        Arr $evidence
+    ): array {
+        $source = Arr::make($result->toArray());
+        $metadata = Arr::make((array) $source->get('metadata'));
+        $diagnostics = Arr::make($result->diagnostics());
+        $confidence = $metadata->get('confidence');
+        $confidence = $this->finiteNumber($confidence) && $confidence >= 0 && $confidence <= 1
+            ? (float) $confidence : null;
+        // Keep scoped evidence outside Automata's global completion-hook payload.
+        $evidence->set($agentId, [
+            'agent_id' => $agentId,
+            'application_id' => $context->applicationId(),
+            'tenant_id' => $context->tenantId(),
+            'correlation_id' => $context->correlationId(),
+            'execution_id' => $metadata->get('execution_id'),
+            'status' => $result->status(),
+            'usage' => $this->usageEvidence($metadata->get('usage'), $diagnostics),
+            'trace' => $this->traceEvidence((array) $source->get('trace'), $diagnostics),
+        ]);
         return [
             'status' => $result->status(),
             'output' => $result->output(),
-            'confidence' => $result->ok() ? 1.0 : 0.0,
+            'confidence' => $confidence,
             'metadata' => [
                 'agent_id' => $agentId,
-                'diagnostics' => $result->diagnostics(),
+                'diagnostics' => $diagnostics->unique()->toArray(),
             ],
         ];
+    }
+
+    private function usageEvidence(mixed $reported, Arr $diagnostics): ?array
+    {
+        if ($reported === null) {
+            return null;
+        }
+        if (!Arr::is($reported)) {
+            $diagnostics->push('agent_delegation_usage_invalid');
+            return null;
+        }
+        $reported = Arr::make($reported);
+        $usage = Arr::make([]);
+        foreach (['cost', 'latency_ms', 'energy', 'invocations'] as $field) {
+            if (!$reported->hasKey($field)) {
+                continue;
+            }
+            $value = $reported->get($field);
+            $integer = Arr::has(['latency_ms', 'invocations'], $field, true);
+            if (!$this->finiteNumber($value) || $value < 0 || ($integer && !is_int($value))) {
+                $diagnostics->push('agent_delegation_usage_invalid');
+                continue;
+            }
+            $usage->set($field, $value);
+        }
+        return $usage->count() === 0 ? null : $usage->toArray();
+    }
+
+    private function traceEvidence(array $reported, Arr $diagnostics): array
+    {
+        $trace = Arr::make([]);
+        foreach ($reported as $event) {
+            $entry = Arr::is($event) ? Arr::make($event) : Arr::make([]);
+            $operation = $entry->get('operation');
+            $status = $entry->get('status');
+            $attempts = $entry->get('attempt_count');
+            if (!Str::is($operation)
+                || !Str::make($operation)->matches('/^[a-z][a-z0-9_.:-]{0,95}$/i')
+                || !Arr::has(['completed', 'denied', 'failed', 'unavailable'], $status, true)
+                || ($entry->hasKey('attempt_count') && (!is_int($attempts) || $attempts < 0))
+            ) {
+                $diagnostics->push('agent_delegation_trace_invalid');
+                continue;
+            }
+            $projected = Arr::make(['operation' => $operation, 'status' => $status]);
+            if ($entry->hasKey('attempt_count')) {
+                $projected->set('attempt_count', $attempts);
+            }
+            $trace->push($projected->toArray());
+        }
+        return $trace->toArray();
+    }
+
+    private function finiteNumber(mixed $value): bool
+    {
+        // The installed Num has no strict native-type/finite predicate.
+        return (is_int($value) || is_float($value)) && is_finite((float) $value);
     }
 
     private function result(
         string $coordinatorId,
         array $participants,
         OrchestrationResult $orchestration,
-        AgentRuntimeContext $context
+        AgentRuntimeContext $context,
+        Arr $evidence
     ): AgentDelegationResult {
         $data = Arr::make($orchestration->toArray());
-        $workerResults = Arr::make((array) $data->get('worker_results'));
+        $represented = Arr::make([]);
+        $workerResults = Arr::make((array) $data->get('worker_results'))->map(
+            function (array $worker) use ($coordinatorId, $evidence, $represented): array {
+                $agentId = $worker['name'] === 'supervisor' ? $coordinatorId : $worker['name'];
+                if ($evidence->hasKey($agentId)) {
+                    $worker['metadata'] = Arr::merge((array) ($worker['metadata'] ?? []), $evidence->get($agentId));
+                    $represented->set($agentId, true);
+                }
+                return $worker;
+            }
+        );
         $specialists = $workerResults->filter(
             fn ($result): bool => Arr::getPath((array) $result, 'name') !== 'supervisor'
         );
@@ -235,6 +336,19 @@ final class AgentDelegationService extends Service
                 (array) Arr::getPath((array) $result, 'metadata.diagnostics', [])
             );
         });
+        $metadata = Arr::make([
+            'pattern' => $data->get('pattern'),
+            'confidence' => $data->get('confidence'),
+            'application_id' => $context->applicationId(),
+            'tenant_id' => $context->tenantId(),
+            'correlation_id' => $context->correlationId(),
+        ]);
+        $unrepresented = $evidence->filter(
+            fn (array $receipt, string $agentId): bool => !$represented->hasKey($agentId)
+        );
+        if ($unrepresented->count() > 0) {
+            $metadata->set('execution_evidence', $unrepresented->values()->toArray());
+        }
 
         return new AgentDelegationResult(
             $status === AgentDelegationResult::COMPLETED,
@@ -245,12 +359,7 @@ final class AgentDelegationService extends Service
             $workerResults->toArray(),
             (array) $data->get('conflicts'),
             $diagnostics->toArray(),
-            [
-                'pattern' => $data->get('pattern'),
-                'confidence' => $data->get('confidence'),
-                'tenant_id' => $context->tenantId(),
-                'correlation_id' => $context->correlationId(),
-            ]
+            $metadata->toArray()
         );
     }
 
