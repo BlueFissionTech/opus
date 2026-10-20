@@ -67,3 +67,24 @@ multi-process MySQL behavior or a production installation migration.
 This increment does not install Cogito, add module teardown or select an
 installation identity automatically. Principal-only module admission and lifecycle
 acceptance remain required before enabling that integration.
+
+# Coordinator worker selection
+
+`AgentDelegationService` interprets an explicit `workers` list in the
+coordinator's structured output. `[]` is a completed coordinator-only operation:
+no specialist runs, the output is empty, and `worker_results` contains only the
+supervisor. This does not claim that a specialist performed work.
+
+A supplied selection must be a list of IDs from the caller's candidate participant
+set. Null, scalar, associative, nested, non-string or unknown IDs fail the entire
+selection with `agent_delegation_selection_invalid` before specialist dispatch.
+Mixed valid/invalid lists do not partially execute. Duplicate valid IDs execute
+once in first-selected order. Omission of `workers` retains the prior default of
+the caller's participant set; callers requiring an explicit no-op must supply
+the empty list.
+
+The coordinator has already run when selection is validated. Selection failure
+does not roll back its effects or authorize automatic retry. Actual execution
+still revalidates each specialist's scope, lifecycle and permissions through
+composition; selecting an ID grants no new tools or capabilities. Automata owns
+the orchestration algorithm; Opus validates its application-owned selection.
