@@ -1,0 +1,16 @@
+{
+    "name": "repos",
+    "description": "Document records and transactional small-file storage.",
+    "version": "0.1.0-alpha",
+    "namespace": "AddOns\\Repos",
+    "libraries": [],
+    "layers": [],
+    "primary_file": "main.php",
+    "registration": {
+        "class": "AddOns\\Repos\\Registration\\AddOnRegistration",
+        "factory": "main.php"
+    },
+    "themes": {
+        "default": {"directory": "resource/markup", "entrypoint": "default.vibe"}
+    }
+}
