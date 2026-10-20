@@ -494,3 +494,15 @@ Tributary add-on: `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --fi
 The host suite includes these tests through tests/Unit/TributaryAddOnTest.php.
 They use existing locked dependencies, real Wise parsing and Automata orchestration,
 and synthetic governor runtimes. No keys or provider calls are required.
+
+# Delegation evidence regressions
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AgentDelegationServiceTest.php`.
+The real composition and installed Automata path cover known/unknown/invalid
+confidence, usage retained on success and failure, host-owned attribution,
+trace projection, pre-execution denial, sparse participant validation, call-local
+evidence, and completion-observer exceptions without replay. A live DevElation
+observer verifies that the added usage, trace and scope fields stay outside its
+global payload. See `docs/delegation-evidence.md` for nullable confidence and
+unknown-measurement migration semantics. Run the full suite before release.
+These fixtures do not qualify providers, durable accounting or billing totals.

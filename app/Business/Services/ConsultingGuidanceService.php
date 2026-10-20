@@ -9,12 +9,16 @@ use App\Domain\Guidance\GuidanceData;
 use App\Domain\Guidance\GuidanceRequest;
 use App\Domain\Guidance\GuidanceOutcome;
 use BlueFission\Arr;
+use BlueFission\Services\Service;
 use InvalidArgumentException;
 use Throwable;
 
-final class ConsultingGuidanceService
+class ConsultingGuidanceService extends Service
 {
-    public function __construct(private ?ConsultingGuidanceInterface $provider = null) {}
+    public function __construct(private ?ConsultingGuidanceInterface $provider = null)
+    {
+        parent::__construct();
+    }
 
     public function advise(GuidanceRequest $request, int $now): GuidanceOutcome
     {

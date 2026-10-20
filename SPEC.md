@@ -437,6 +437,12 @@ never grants execution authority. Unavailable/failed providers return structured
 results without exception payloads. Caller overrides create new advisory records;
 no task, budget, goal, agent, command, deployment or workflow is mutated.
 
+The registered guidance service resolves the configured provider binding and
+participates in DevElation's native service parent and behavior routing. A host
+may register an advisory action that calls the same validated `advise()` method;
+such routing does not grant execution authority or make direct method calls
+automatically observable. The default provider remains unavailable.
+
 ## Canonical add-on boot registration (#40)
 
 The platform and selected application profiles consume canonical registration
@@ -712,3 +718,16 @@ profile and task-assignment records with a shared Wise command adapter. Executio
 requires current host identity and intersected grants before native Opus/Automata
 delegation. Package PRD.md and ARCHITECTURE.md define the first-slice scope and
 remaining persistence, cancellation, profile-loading and deployment gates.
+
+# Delegation evidence
+
+Delegation must retain provider-neutral per-execution usage and trace evidence
+from the principal and each executed specialist. Execution identity and request
+scope remain host-owned. Missing or invalid measurements stay unknown, rather
+than becoming zero; no monetary or energy total is inferred across unspecified
+units. Successful execution does not imply confidence. A supplied finite score
+in [0, 1] is retained; otherwise confidence is null. Aggregate confidence is
+unknown if any executed participant has unknown confidence. Evidence must not
+change selection, authorization, retry or execution count. The added usage,
+trace and request-scope fields must stay outside global observation payloads.
+See `docs/delegation-evidence.md`.
