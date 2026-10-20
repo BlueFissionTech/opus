@@ -153,19 +153,29 @@ final class AgentDelegationService extends Service
             'available_specialists' => $participants,
         ], $context);
         $selected = Arr::make($participants);
-        if (Arr::is($result->output())) {
-            $requested = Arr::make((array) Arr::getPath((array) $result->output(), 'workers'));
-            if ($requested->isNotEmpty()) {
-                $selected = $requested
-                    ->filter(fn ($agentId): bool => Arr::make($participants)->has((string) $agentId, true))
-                    ->unique();
+        $normalized = $this->workerResult($coordinatorId, $result);
+        if ($result->ok() && Arr::is($result->output()) && Arr::hasKey($result->output(), 'workers')) {
+            $value = Arr::getPath($result->output(), 'workers');
+            $requested = Arr::is($value) ? Arr::toArray($value, true) : null;
+            // The installed Arr has no strict list predicate. This is a schema boundary.
+            $valid = $requested !== null && array_is_list($requested);
+            foreach ($requested ?? [] as $agentId) {
+                if (!Str::is($agentId) || !Arr::has($participants, $agentId, true)) {
+                    $valid = false;
+                    break;
+                }
+            }
+            $selected = Arr::make($valid ? $requested : [])->unique();
+            if (!$valid) {
+                $normalized['status'] = AgentRuntimeResult::FAILED;
+                $normalized['confidence'] = 0.0;
+                $normalized['metadata']['diagnostics'][] = 'agent_delegation_selection_invalid';
             }
         }
         if (!$result->ok()) {
             $selected = Arr::make([]);
         }
 
-        $normalized = $this->workerResult($coordinatorId, $result);
         $normalized['output'] = [
             'workers' => $selected->toArray(),
             'plan' => $result->output(),

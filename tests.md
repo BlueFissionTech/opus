@@ -481,3 +481,11 @@ The tests attempt coordinated tenant/profile changes for unscoped human and
 anonymous requests and continuation refreshes. Actual Wise profile resolution
 must retain null scope. Existing explicit tenant and metadata behavior remains
 covered. No provider calls, credentials or installations are required.
+
+# Delegation selection regressions
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentDelegationServiceTest|AgentCompositionServiceTest'`.
+The installed Automata hierarchical pattern is exercised with explicit empty,
+malformed, mixed valid/unknown, omitted and duplicate worker selections. Invalid
+plans must not execute specialists; the coordinator remains a single completed
+attempt whose effects are not rolled back. No provider or network calls occur.

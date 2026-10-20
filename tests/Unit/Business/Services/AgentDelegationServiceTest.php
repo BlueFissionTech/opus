@@ -24,6 +24,76 @@ use PHPUnit\Framework\TestCase;
 
 final class AgentDelegationServiceTest extends TestCase
 {
+    public function testExplicitEmptySelectionDoesNotExecuteSpecialists(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => []];
+
+        $result = $service->delegate('opus.central', ['addon.search', 'addon.billing'], [], $context);
+
+        $this->assertTrue($result->ok());
+        $this->assertSame([], $result->output());
+        $this->assertCount(1, $factory->executions['opus.central']);
+        $this->assertArrayNotHasKey('addon.search', $factory->executions);
+        $this->assertArrayNotHasKey('addon.billing', $factory->executions);
+        $this->assertCount(1, $result->toArray()['worker_results']);
+    }
+
+    /** @dataProvider invalidSelections */
+    public function testMalformedSelectionFailsBeforeAnySpecialistRuns(mixed $selection): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => $selection];
+
+        $result = $service->delegate('opus.central', ['addon.search', 'addon.billing'], [], $context);
+
+        $this->assertFalse($result->ok());
+        $this->assertSame(AgentDelegationResult::FAILED, $result->status());
+        $this->assertContains('agent_delegation_selection_invalid', $result->diagnostics());
+        $this->assertCount(1, $factory->executions['opus.central']);
+        $this->assertArrayNotHasKey('addon.search', $factory->executions);
+        $this->assertArrayNotHasKey('addon.billing', $factory->executions);
+    }
+
+    public static function invalidSelections(): array
+    {
+        return [
+            'null' => [null], 'scalar' => ['addon.search'], 'boolean' => [false],
+            'unknown' => [['addon.unknown']], 'mixed' => [['addon.search', 'addon.unknown']],
+            'associative' => [['worker' => 'addon.search']], 'non-string' => [[7]],
+            'nested' => [[['id' => 'addon.search']]],
+        ];
+    }
+
+    public function testOmittedSelectionRetainsDefaultParticipants(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['plan' => 'Use the host-provided participants'];
+        $result = $service->delegate('opus.central', ['addon.search', 'addon.billing'], [], $context);
+        $this->assertTrue($result->ok());
+        $this->assertCount(1, $factory->executions['addon.search']);
+        $this->assertCount(1, $factory->executions['addon.billing']);
+    }
+
+    public function testDuplicateSelectionsRunEachSpecialistOnceInRequestedOrder(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.billing', 'addon.search', 'addon.billing']];
+        $result = $service->delegate('opus.central', ['addon.search', 'addon.billing'], [], $context);
+        $this->assertTrue($result->ok());
+        $this->assertSame(['opus.central', 'addon.billing', 'addon.search'], array_keys($factory->executions));
+        $this->assertCount(1, $factory->executions['addon.search']);
+        $this->assertCount(1, $factory->executions['addon.billing']);
+    }
+
     /** @dataProvider orchestrationFailures */
     public function testOrchestrationExceptionsAreRedactedWithoutReplayingEffects(\Throwable $failure): void
     {

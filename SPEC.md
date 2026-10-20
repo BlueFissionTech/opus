@@ -694,3 +694,12 @@ scope-changing filter output before profile resolution on both initial commands
 and continuation refreshes. Resolve and authorize tenant membership at the host
 boundary before constructing command context; preserve safe metadata enrichment
 within an unchanged scope.
+
+# Explicit delegation selection
+
+A coordinator's explicit empty worker list selects no specialists. A malformed
+or unknown worker selection must fail before any specialist executes, rather
+than silently widening or partially accepting the plan. An omitted workers field
+retains the existing host-participant default; valid duplicate IDs execute once
+in requested order. Use the installed Automata orchestration implementation and
+preserve host authorization on every actual runtime execution.
