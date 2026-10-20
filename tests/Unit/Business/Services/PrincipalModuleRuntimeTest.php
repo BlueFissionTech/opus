@@ -233,14 +233,48 @@ final class PrincipalModuleRuntimeTest extends TestCase
         $this->assertNotSame($agent, (new \ReflectionProperty($runtime, 'agent'))->getValue($runtime));
     }
 
-    public function testIncompleteAdviceDoesNotLeakMetadata(): void
+    /** @dataProvider withheldStatuses */
+    public function testIncompleteAdviceDoesNotLeakMetadata(string $status): void
     {
         $runtime = $this->factory(fn () => new AgentModuleResult([
-            'status' => 'unavailable', 'metadata' => ['secret' => 'private-incomplete'],
+            'status' => $status, 'metadata' => ['secret' => 'private-incomplete'],
         ]))->create($this->descriptor(), $this->context());
         $result = $runtime->execute('incomplete', [], $this->context());
         $this->assertSame('unavailable', $result->status());
         $this->assertStringNotContainsString('private-', serialize($result->toArray()));
+    }
+
+    public static function withheldStatuses(): array
+    {
+        return [['unavailable'], ['disabled'], ['out_of_scope'], ['invalid_input'], ['failed'], ['custom']];
+    }
+
+    public function testAdvisoryStatusPreservesAdviceWithoutGrantingAuthority(): void
+    {
+        $runtime = $this->factory(fn () => new AgentModuleResult([
+            'status' => 'advisory', 'metadata' => ['recommendation' => 'review-plan'],
+        ]))->create($this->descriptor(), $this->context());
+        $result = $runtime->execute('advice', [], $this->context());
+        $this->assertTrue($result->ok());
+        $this->assertSame('none', $result->output()['executionAuthority']);
+        $this->assertTrue($result->output()['reviewRequired']);
+        $this->assertSame(['recommendation' => 'review-plan'], $result->output()['advice']);
+    }
+
+    public function testReviewRequiredPreservesEvidenceGapsWithoutInventingRecommendation(): void
+    {
+        $runtime = $this->factory(fn () => new AgentModuleResult([
+            'status' => 'review_required', 'metadata' => [
+                'recommendation' => '', 'gaps' => ['missing_provenance:need'],
+            ],
+        ]))->create($this->descriptor(), $this->context());
+        $result = $runtime->execute('review', [], $this->context());
+        $this->assertTrue($result->ok());
+        $this->assertSame('review_required', $result->output()['advisoryStatus']);
+        $this->assertSame('none', $result->output()['executionAuthority']);
+        $this->assertTrue($result->output()['reviewRequired']);
+        $this->assertSame('', $result->output()['advice']['recommendation']);
+        $this->assertSame(['missing_provenance:need'], $result->output()['advice']['gaps']);
     }
 
     /** @dataProvider cleanupBehaviors */

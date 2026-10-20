@@ -68,10 +68,14 @@ Agent. It then reconstructs a result containing status and advisory metadata
 only. Successful public output is:
 
 ```json
-{"executionAuthority":"none","reviewRequired":true,"advice":{}}
+{"executionAuthority":"none","reviewRequired":true,"advisoryStatus":"advisory","advice":{}}
 ```
 
-Advice is untrusted content and must not authorize tools or effects. Render it
+Only `completed`, `advisory` and `review_required` module statuses yield reports;
+none grants execution authority. `advisoryStatus` preserves this distinction.
+A completed host evaluation can therefore carry a report requiring human review
+with evidence gaps and no recommendation. Advice is untrusted content and must
+not authorize tools or effects. Render it
 with normal escaping and privacy controls. Incomplete evaluations expose no
 module metadata. Exceptions return generic diagnostics and fault the runtime,
 preventing silent replay. Usage is explicitly unknown (`usage_known: false`),

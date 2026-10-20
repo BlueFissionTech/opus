@@ -106,12 +106,13 @@ final class PrincipalModuleRuntime implements IRetirableAgentRuntime
             ];
             $moduleContext[$this->profile->get('input_key') ?? 'input'] = Arr::getPath($task, 'input');
             $result = $this->agent->runModule($this->module, $moduleContext)->toArray();
-            if (Arr::getPath($result, 'status') !== 'completed') {
+            if (!Arr::has(['completed', 'advisory', 'review_required'], Arr::getPath($result, 'status'), true)) {
                 return AgentRuntimeResult::unavailable('execute', $this->descriptor->id(), $this->tenantId,
                     'running', 'agent_module_not_completed');
             }
             return AgentRuntimeResult::completed('execute', $this->descriptor->id(), $this->tenantId, 'running', [
-                'executionAuthority' => 'none', 'reviewRequired' => true, 'advice' => Arr::getPath($result, 'metadata', []),
+                'executionAuthority' => 'none', 'reviewRequired' => true,
+                'advisoryStatus' => Arr::getPath($result, 'status'), 'advice' => Arr::getPath($result, 'metadata', []),
             ], ['execution_id' => $executionId, 'correlation_id' => $context->correlationId(),
                 'usage_known' => false]);
         } catch (AdvisoryModuleViolation) {
