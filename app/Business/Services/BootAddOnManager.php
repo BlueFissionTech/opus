@@ -54,14 +54,13 @@ class BootAddOnManager extends AddOnManager
         return $this;
     }
 
-    protected function loadAddOn(AddOn $addOn)
+    protected function loadAddOn(AddOn $addOn): array
     {
         $root = (string) $addOn->path;
         $definition = $this->definition($root);
         if (!Arr::hasKey($definition, 'registration')) {
             // Historical imperative entrypoints retain their existing contract.
-            parent::loadAddOn($addOn);
-            return;
+            return parent::loadAddOn($addOn);
         }
 
         $engine = Engine::instance();
@@ -75,7 +74,7 @@ class BootAddOnManager extends AddOnManager
             if ($records->get($name)->get('identity') !== $identity) {
                 throw new RuntimeException('addon_boot_identity_conflict');
             }
-            return;
+            return $this->bootLoadResult($records->get($name), false);
         }
 
         $record = Arr::make([
@@ -127,6 +126,24 @@ class BootAddOnManager extends AddOnManager
                 $this->publishBootResult($record);
             }
         });
+
+        return $this->bootLoadResult($record, true);
+    }
+
+    /** Satisfy BlueCore's load contract without offering an immediate factory. */
+    private function bootLoadResult(Arr $record, bool $changed): array
+    {
+        $state = $record->get('state');
+        return Arr::make([
+            // Pending means accepted for deferred boot, not already registered.
+            'ok' => $state !== 'failed',
+            'status' => $state,
+            'stage' => 'boot',
+            'changed' => $changed,
+            'path' => null,
+            'value' => null,
+            'error' => $state === 'failed' ? $record->get('reason') : null,
+        ])->toArray();
     }
 
     private function publishBootResult(Arr $record): void

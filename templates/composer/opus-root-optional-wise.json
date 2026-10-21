@@ -1,11 +1,15 @@
 {
     "name": "bluefission/opus-application",
-    "description": "Root Composer template for an Opus application with optional Wise integration.",
+    "description": "Root Composer template for optional Wise registration; Wise remains a required runtime package.",
     "type": "project",
     "repositories": {
         "bluefission/opus": {
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/opus"
+        },
+        "bluefission/wise": {
+            "type": "vcs",
+            "url": "https://github.com/BlueFissionTech/wise"
         },
         "bluefission/vibrato": {
             "type": "vcs",
@@ -18,10 +22,6 @@
         "bluefission/synematic": {
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/synematic"
-        },
-        "bluefission/annex-php-sdk": {
-            "type": "vcs",
-            "url": "https://github.com/BlueFissionTech/annex-php-sdk"
         },
         "bluefission/jenerator": {
             "type": "vcs",
@@ -38,7 +38,8 @@
     },
     "require": {
         "php": "^8.2",
-        "bluefission/opus": "dev-main"
+        "bluefission/opus": "dev-main",
+        "bluefission/wise": "^0.1.0-alpha.3"
     },
     "config": {
         "use-github-api": false,

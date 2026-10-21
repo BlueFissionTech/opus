@@ -55,6 +55,53 @@ PHP);
         rmdir($this->workspace);
     }
 
+    public function testDeferredBootReturnsStructuredLoadsWithoutExposingAnImmediateFactory(): void
+    {
+        $manager = $this->manager();
+        $engine = Engine::instance();
+        $this->prependRegistration('$GLOBALS["boot_attempts"] = ($GLOBALS["boot_attempts"] ?? 0) + 1;');
+
+        $loads = $manager->loadActivatedAddOns();
+        $this->assertCount(1, $loads);
+        $this->assertTrue($loads[0]['ok']);
+        $this->assertSame('pending', $loads[0]['status']);
+        $this->assertSame('boot', $loads[0]['stage']);
+        $this->assertTrue($loads[0]['changed']);
+        $this->assertNull($loads[0]['value']);
+        $this->assertFalse($loads[0]['registration']['executed']);
+        $this->assertSame(0, $GLOBALS['boot_attempts'] ?? 0);
+
+        $duplicate = $this->manager()->loadActivatedAddOns()[0];
+        $this->assertTrue($duplicate['ok']);
+        $this->assertFalse($duplicate['changed']);
+        $this->assertSame('pending', $duplicate['status']);
+        $this->assertNull($duplicate['value']);
+        $engine->dispatch('OnAppLoaded');
+        $settled = $manager->loadActivatedAddOns()[0];
+        $this->assertTrue($settled['ok']);
+        $this->assertSame('registered', $settled['status']);
+        $this->assertFalse($settled['changed']);
+        $this->assertNull($settled['value']);
+        $this->assertSame(1, $GLOBALS['boot_attempts']);
+    }
+
+    public function testFailedDeferredBootRemainsAFailedLoadWithoutReexecution(): void
+    {
+        $manager = $this->manager()->useOptionalAddOns(['boot_probe']);
+        unlink($this->workspace . '/boot_probe/logic/Lifecycle.php');
+        $manager->loadActivatedAddOns();
+        Engine::instance()->dispatch('OnAppLoaded');
+
+        $load = $manager->loadActivatedAddOns()[0];
+        $this->assertFalse($load['ok']);
+        $this->assertSame('failed', $load['status']);
+        $this->assertFalse($load['changed']);
+        $this->assertNull($load['value']);
+        $this->assertSame('addon_contract_invalid', $load['error']);
+        $this->assertSame('load_failed', $load['registration']['status']);
+        $this->assertFalse($load['registration']['executed']);
+    }
+
     public function testGeneratedFactoryRegistersRoutesAndThemesOnlyAtEngineLoaded(): void
     {
         DevElation::up();
@@ -535,13 +582,28 @@ PHP);
 
     public function testSelectedProfileConsumesFactoryEvenAfterLifecycleHookLoading(): void
     {
+        $this->useInstalledAddOnLayout();
         $engine = Engine::instance();
-        require_once $this->workspace . '/boot_probe/main.php';
+        require_once $this->active[0]['path'] . '/main.php';
         $manager = $this->manager(SelectedAddOnManager::class);
         $manager->loadSelected(['boot_probe', 'boot_probe']);
         $engine->dispatch('OnAppLoaded');
         $this->assertSame('registered', $manager->bootState('boot_probe'));
         $this->assertSame('ready', ($engine->maps()['get']['boot/probe']->callable)());
+    }
+
+    public function testSelectedProfileRejectsAPreviouslyFailedDeferredBoot(): void
+    {
+        $this->useInstalledAddOnLayout();
+        unlink($this->active[0]['path'] . '/logic/Lifecycle.php');
+        $manager = $this->manager(SelectedAddOnManager::class)->useOptionalAddOns(['boot_probe']);
+        $manager->loadSelected(['boot_probe']);
+        Engine::instance()->dispatch('OnAppLoaded');
+        $this->assertSame('failed', $manager->bootState('boot_probe'));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('selected_addon_unavailable');
+        $manager->loadSelected(['boot_probe']);
     }
 
     public function testASeparateEngineBootRegistersThePackageAgain(): void
@@ -551,10 +613,8 @@ PHP);
         $manager = $this->manager();
         $manager->loadActivatedAddOns();
         $first->dispatch('OnAppLoaded');
-        $instances = new ReflectionProperty(\BlueFission\Services\Application::class, '_instances');
-        $instances->setAccessible(true);
-        $instances->setValue(null, []);
-        $second = Engine::instance();
+        // A fresh concrete engine also updates BlueCore's active-instance owner.
+        $second = new Engine();
         $this->assertNotSame($first, $second);
         $manager->loadActivatedAddOns();
         $second->dispatch('OnAppLoaded');
@@ -592,6 +652,15 @@ PHP);
         $this->assertBootFailure($engine);
         $this->assertSame('failed', $manager->bootState('boot_probe'));
         $this->assertSame([], $engine->maps());
+    }
+
+    private function useInstalledAddOnLayout(): void
+    {
+        mkdir($this->workspace . '/addons', 0700);
+        rename($this->workspace . '/boot_probe', $this->workspace . '/addons/boot_probe');
+        $this->active[0]['path'] = $this->workspace . '/addons/boot_probe';
+        define('APP_ROOT', $this->workspace);
+        define('PROJECT_ROOT', $this->workspace);
     }
 
     private function prependRegistration(string $source): void
