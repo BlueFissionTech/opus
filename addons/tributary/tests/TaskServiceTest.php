@@ -92,6 +92,8 @@ final class TaskServiceTest extends TestCase
      */
     public function testNativeApplicationRegistrationKeepsInjectedWorkflowAndFreshCommandAuthority(): void
     {
+        // Host-suite child processes bootstrap Opus, not this optional source package.
+        require_once __DIR__ . '/bootstrap.php';
         [, $composition] = $this->fixture();
         $workflows = 0;
         $application = new Application(['name' => 'tributary-registration']);
