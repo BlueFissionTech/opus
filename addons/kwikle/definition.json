@@ -1,0 +1,1 @@
+{"name":"kwikle","description":"Kwikle capability add-on.","version":"0.1.0-alpha","namespace":"AddOns\\Kwikle","libraries":[],"layers":[],"primary_file":"main.php","registration":{"class":"AddOns\\Kwikle\\Registration\\AddOnRegistration","factory":"main.php"},"agent_mapping":"mapping\/agents.php","themes":{"default":{"directory":"resource\/markup","entrypoint":"default.vibe"}}}
