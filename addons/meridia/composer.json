@@ -1,0 +1,35 @@
+{
+  "name": "bluefission/opus-addon-meridia",
+  "description": "Meridia capability add-on for Opus.",
+  "type": "opus-addon",
+  "license": "Apache-2.0",
+  "require": {
+    "php": "^8.2",
+    "bluefission/bluecore": "^0.1.4-alpha",
+    "bluefission/develation": "^1.3.47",
+    "bluefission/opus": "dev-main",
+    "bluefission/wise": "^0.1.0-alpha.3"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "AddOns\\Meridia\\": "logic/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "AddOns\\Meridia\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "installer-name": "meridia",
+    "opus-addon": true
+  },
+  "scripts": {
+    "test": "phpunit --do-not-cache-result"
+  },
+  "minimum-stability": "alpha",
+  "prefer-stable": true
+}
