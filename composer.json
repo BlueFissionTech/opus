@@ -34,10 +34,6 @@
         },
         {
             "type": "vcs",
-            "url": "https://github.com/bluefissiontech/annex-php-sdk"
-        },
-        {
-            "type": "vcs",
             "url": "https://github.com/bluefissiontech/jenerator"
         },
         {

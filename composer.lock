@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b57d3ede177d620f565ec54a60ba64a9",
+    "content-hash": "fc099d25a22f71eea8d27a85ab69d728",
     "packages": [
         {
             "name": "bluefission/automata",
