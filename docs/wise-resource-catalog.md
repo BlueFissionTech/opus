@@ -1,7 +1,7 @@
 # Wise resource catalog integration
 
 Opus consumes `BlueFission\Wise\Res\ResourceCatalog` from the locked Wise
-`v0.1.0-alpha.2` release. Canonical names, resource classes, aliases and declared
+`v0.1.0-alpha.3` release. Canonical names, resource classes, aliases and declared
 unavailable capabilities come from that package. `mapping/app.php` contains only
 explicit host verb bindings and local application resources, without a second
 inferred Wise type manifest.
@@ -21,6 +21,8 @@ With `WISE_INTEGRATION=required`, a missing catalog or available resource class
 raises the existing actionable missing-type error. With `optional`, either case
 skips the entire Wise mapping. Preflight failure does not leave a partial Wise
 registration. Local `user` and `skill` mappings remain outside this boundary.
+Wise remains a required Composer runtime dependency in both profiles. Optional
+registration does not remove the package from production installations.
 
 ## Migration
 
