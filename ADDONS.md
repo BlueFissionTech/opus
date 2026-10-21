@@ -24,6 +24,11 @@ Keep these responsibilities separate:
 
 ## Package layout
 
+First-party add-on implementations maintained in this repository use this same
+`addons/` directory and `AddOns` namespace. Tributary lives at
+`addons/tributary/`, with `AddOns\\Tributary\\` mapped to its `logic/` directory.
+Source ownership does not establish installation or activation state.
+
 Use a conventional Composer package with the PSR-4 namespace
 `AddOns\\<PackageName>\\` mapped to `logic/`. An installed package currently
 occupies `addons/<directory>/`, where `<directory>` is the manager's discovery

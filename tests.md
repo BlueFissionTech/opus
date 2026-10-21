@@ -490,6 +490,11 @@ malformed, mixed valid/unknown, omitted and duplicate worker selections. Invalid
 plans must not execute specialists; the coordinator remains a single completed
 attempt whose effects are not rolled back. No provider or network calls occur.
 
+Tributary add-on: `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter TaskServiceTest`.
+The host suite includes these tests through tests/Unit/TributaryAddOnTest.php.
+They use existing locked dependencies, real Wise parsing and Automata orchestration,
+and synthetic governor runtimes. No keys or provider calls are required.
+
 # Delegation evidence regressions
 
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AgentDelegationServiceTest.php`.

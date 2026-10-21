@@ -18,6 +18,8 @@
 # Local agent operating policy; repository standards remain tracked.
 .DS_Store
 addons/*
+!addons/tributary/
+!addons/tributary/**
 *.zip
 *.pem
 storage/logs/*
