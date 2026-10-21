@@ -17,6 +17,28 @@ use PHPUnit\Framework\TestCase;
 
 final class CommandHostTest extends TestCase
 {
+    public function testContainerConstructionDoesNotEnableOptionalActivity(): void
+    {
+        $instances = new \ReflectionProperty(\BlueFission\Services\Application::class, '_instances');
+        $prior = $instances->getValue();
+        try {
+            $application = new \BlueFission\Services\Application(['name' => 'command-host-default-test']);
+            $processor = new class implements ICommandProcessor {
+                public function process(CommandRequest|Command|array|string $request): CommandResult
+                {
+                    return CommandResult::completed('available');
+                }
+            };
+            $application->bindArgs(['processor' => $processor], CommandHost::class);
+            $host = $application->getDynamicInstance(CommandHost::class);
+            $result = $host->execute('read');
+            $this->assertSame('available', $result->output());
+            $this->assertNull($result->activityReceipt());
+        } finally {
+            $instances->setValue(null, $prior);
+        }
+    }
+
     public static function exceptionalResults(): array
     {
         return [

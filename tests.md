@@ -1,5 +1,18 @@
 # Testing Opus Framework
 
+The opt-in [command activity store](docs/command-activity.md) is tested with real
+temporary SQLite databases, reopen and lock failures, tenant/actor/application
+isolation, private-payload exclusion, approval linking and uncertain completion.
+It requires the PHP SQLite3 extension and skips that focused class when absent;
+it does not require network services, credentials or a dependency installation.
+
+```bash
+php vendor/bin/phpunit --filter 'CommandActivityTest|CommandHostTest|TerminalSessionsTest' --do-not-cache-result
+```
+
+Full-suite proof is still required for changes to the shared command host. These
+fixtures do not prove production filesystem crash durability, cluster behavior,
+retention policy or a distributed transaction with external command effects.
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'PrincipalModuleRuntimeTest|AgentRuntimeRetirementTest|AutomataStrategyRuntimeTest|AgentCompositionServiceTest|ApplicationAgentRuntimeScopeTest'`
 for [principal advisory admission](docs/principal-advisory-runtime.md), current
 authorization, disabled/specialist rejection, trusted scope/input mapping,
@@ -351,6 +364,10 @@ and frontend checks. Do not use pull_request_target to execute untrusted PR code
 with this credential. Review external changes before running an authorized branch
 in the trusted repository. Public acquisition remains a separate release gate.
 
+The command-activity tests execute the optional BlueCore delta on real temporary
+SQLite databases and check installed delta-class discovery, rollback, failed
+index creation atomicity, Service/Obj behavior dispatch and immutable receipt
+projections. They do not claim a live MySQL migration-ledger integration test.
 
 ### Intake persistence integrity
 

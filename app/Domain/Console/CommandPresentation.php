@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Console;
 
+use App\Domain\Activity\ActivityEvent;
 use BlueFission\Arr;
 use BlueFission\Flag;
 use BlueFission\Num;
@@ -22,6 +23,7 @@ final class CommandPresentation
     private Arr $metadata;
     private ?Str $continuationToken;
     private Flag $hostFailure;
+    private ?Arr $activityReceipt = null;
 
     public function __construct(
         string $status,
@@ -52,7 +54,7 @@ final class CommandPresentation
 
     public static function hostFailure(string $stage): self
     {
-        if (!Arr::has(['processing', 'presentation'], $stage, true)) {
+        if (!Arr::has(['processing', 'presentation', 'activity_start', 'activity_recording'], $stage, true)) {
             throw new \InvalidArgumentException('command_host_failure_stage_invalid');
         }
         $code = 'command_host_' . $stage . '_failed';
@@ -76,6 +78,23 @@ final class CommandPresentation
     public function failedAtHost(): bool
     {
         return $this->hostFailure->isTruthy();
+    }
+
+    /** Host-owned reference; arbitrary processor metadata cannot populate it. */
+    public function withActivityReceipt(ActivityEvent $event): self
+    {
+        $copy = clone $this;
+        $copy->activityReceipt = Arr::make([
+            'event_id' => $event->id,
+            'correlation_id' => $event->correlationId,
+            'recorded_phase' => $event->phase,
+        ]);
+        return $copy;
+    }
+
+    public function activityReceipt(): ?array
+    {
+        return $this->activityReceipt?->toArray();
     }
 
     public function status(): string
@@ -149,6 +168,7 @@ final class CommandPresentation
             'diagnostic_text' => $this->diagnosticText(),
             'metadata' => $this->metadata(),
             'continuation_token' => $this->continuationToken(),
+            'activity_receipt' => $this->activityReceipt(),
         ];
     }
 }
