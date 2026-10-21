@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace AddOns\Tributary\Domain;
 
 use BlueFission\Arr;
+use BlueFission\Num;
 use BlueFission\Str;
+use BlueFission\Val;
 use InvalidArgumentException;
 
 /** Reviewed configuration, not an authentication or executable-code document. */
@@ -80,7 +82,9 @@ final readonly class Project
     public static function identifiers(mixed $values): array
     {
         // Exact PHP list shape is part of the portable record schema.
-        if (!is_array($values) || !array_is_list($values)) { throw new InvalidArgumentException('Expected an identifier list.'); }
+        if (is_object($values) || !Arr::is($values) || !Arr::isList($values)) {
+            throw new InvalidArgumentException('Expected an identifier list.');
+        }
         foreach ($values as $value) { self::identifier($value); }
         return Arr::make($values)->unique()->values()->toArray();
     }
@@ -88,11 +92,13 @@ final readonly class Project
     public static function data(mixed $value, int $depth = 0): void
     {
         if ($depth > 16) { throw new InvalidArgumentException('Record nesting exceeds the limit.'); }
-        if (is_array($value)) {
+        // Predicates unwrap IVal objects; the portable JSON boundary excludes objects.
+        if (is_object($value)) { throw new InvalidArgumentException('Records must contain only data.'); }
+        if (Arr::is($value)) {
             foreach ($value as $item) { self::data($item, $depth + 1); }
-        } elseif ($value !== null && !is_scalar($value)) {
+        } elseif (Val::isNotNull($value) && !Val::scalar($value)) {
             throw new InvalidArgumentException('Records must contain only data.');
-        } elseif (is_float($value) && !is_finite($value)) {
+        } elseif (Num::isFloat($value) && !Num::isFinite($value)) {
             throw new InvalidArgumentException('Record numbers must be finite.');
         }
     }

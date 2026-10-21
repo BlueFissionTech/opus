@@ -5,6 +5,13 @@ profile, role, member and assignment records. `TaskService` resolves an exact
 application/tenant/project key, intersects membership-role grants with current
 host capabilities, then creates an immutable `DelegationRequest` receipt.
 
+Portable records use DevElation `Arr::is` / `Arr::isList`, `Num::isFloat` /
+`Num::isFinite`, and `Val` predicates. This requires DevElation 1.3.47 or newer.
+The JSON interchange boundary still rejects object instances before primitive
+unwrapping; callers supply raw arrays and scalar values there. Strict JSON
+encoding detaches references and rejects invalid UTF-8, while list ordering,
+finite-number validation, and the nesting limit remain explicit contracts.
+
 `TaskCommandProcessor` decorates a Wise `ICommandProcessor`. It uses Wise's native
 parser for text and structured commands, and a no-argument host callback for fresh
 `AgentRuntimeContext`. Request metadata is never supplied to that callback.

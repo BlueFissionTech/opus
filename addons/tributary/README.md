@@ -88,6 +88,7 @@ live multi-tenant deployment or full Synthetiq profile loading.
 ```text
 php bin/opus-addon.php validate addons/tributary
 php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter TaskServiceTest
+php vendor/phpunit/phpunit/phpunit -c addons/tributary/phpunit.xml --do-not-cache-result
 php vendor/phpunit/phpunit/phpunit --do-not-cache-result
 ```
 
