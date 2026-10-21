@@ -582,13 +582,28 @@ PHP);
 
     public function testSelectedProfileConsumesFactoryEvenAfterLifecycleHookLoading(): void
     {
+        $this->useInstalledAddOnLayout();
         $engine = Engine::instance();
-        require_once $this->workspace . '/boot_probe/main.php';
+        require_once $this->active[0]['path'] . '/main.php';
         $manager = $this->manager(SelectedAddOnManager::class);
         $manager->loadSelected(['boot_probe', 'boot_probe']);
         $engine->dispatch('OnAppLoaded');
         $this->assertSame('registered', $manager->bootState('boot_probe'));
         $this->assertSame('ready', ($engine->maps()['get']['boot/probe']->callable)());
+    }
+
+    public function testSelectedProfileRejectsAPreviouslyFailedDeferredBoot(): void
+    {
+        $this->useInstalledAddOnLayout();
+        unlink($this->active[0]['path'] . '/logic/Lifecycle.php');
+        $manager = $this->manager(SelectedAddOnManager::class)->useOptionalAddOns(['boot_probe']);
+        $manager->loadSelected(['boot_probe']);
+        Engine::instance()->dispatch('OnAppLoaded');
+        $this->assertSame('failed', $manager->bootState('boot_probe'));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('selected_addon_unavailable');
+        $manager->loadSelected(['boot_probe']);
     }
 
     public function testASeparateEngineBootRegistersThePackageAgain(): void
@@ -637,6 +652,15 @@ PHP);
         $this->assertBootFailure($engine);
         $this->assertSame('failed', $manager->bootState('boot_probe'));
         $this->assertSame([], $engine->maps());
+    }
+
+    private function useInstalledAddOnLayout(): void
+    {
+        mkdir($this->workspace . '/addons', 0700);
+        rename($this->workspace . '/boot_probe', $this->workspace . '/addons/boot_probe');
+        $this->active[0]['path'] = $this->workspace . '/addons/boot_probe';
+        define('APP_ROOT', $this->workspace);
+        define('PROJECT_ROOT', $this->workspace);
     }
 
     private function prependRegistration(string $source): void
