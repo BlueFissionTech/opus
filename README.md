@@ -75,13 +75,15 @@ running package scripts:
 composer update --no-install --no-scripts
 ```
 
-The default application profile requires Wise explicitly and uses
-`WISE_INTEGRATION=required`. Applications that do not expose the Wise command
-environment or resources can start from
+Wise is a required runtime dependency, including production installs with
+`--no-dev`. The default application profile uses `WISE_INTEGRATION=required`.
+Applications that need tolerant resource registration can start from
 [`templates/composer/opus-root-optional-wise.json`](templates/composer/opus-root-optional-wise.json)
 and set `WISE_INTEGRATION=optional`. Optional mode skips the complete Wise
 resource mapping when its runtime types are unavailable. Required mode fails
-with the missing types and installation guidance.
+with the missing types and installation guidance. Both templates install Wise;
+`optional` controls registration failure handling, not dependency installation
+or an unconditional feature-disable switch.
 
 Keep `config.use-github-api` set to `false` from the template. Composer then
 uses the declared Git repositories directly when GitHub API metadata is

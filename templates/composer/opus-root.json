@@ -39,7 +39,7 @@
     "require": {
         "php": "^8.2",
         "bluefission/opus": "dev-main",
-        "bluefission/wise": "0.1.0-alpha.2"
+        "bluefission/wise": "^0.1.0-alpha.3"
     },
     "config": {
         "use-github-api": false,
