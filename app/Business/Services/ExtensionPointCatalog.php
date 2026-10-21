@@ -13,6 +13,9 @@ use RuntimeException;
 
 final class ExtensionPointCatalog extends Service
 {
+    public const AGENT_RUNTIME_RESULT = 'opus.agent.runtime.result';
+    public const COMMAND_RESULT = 'opus.command.result';
+    public const ADDON_BOOT_RESULT = 'opus.addon.boot.result';
     public const ADDON_ORGANIZATION_CHANGED = 'opus.addon.organization.changed';
     public const INTAKE_DEFAULTS = 'opus.intake.defaults';
     public const INTAKE_SESSION_TRANSITIONED = 'opus.intake.session.transitioned';
@@ -24,6 +27,9 @@ final class ExtensionPointCatalog extends Service
     public const FRONTEND_MARKUP_DIRECTORY = 'opus.frontend.markup_directory';
 
     public const NAMES = [
+        self::AGENT_RUNTIME_RESULT,
+        self::COMMAND_RESULT,
+        self::ADDON_BOOT_RESULT,
         self::ADDON_ORGANIZATION_CHANGED,
         self::INTAKE_DEFAULTS,
         self::INTAKE_SESSION_TRANSITIONED,
@@ -36,6 +42,55 @@ final class ExtensionPointCatalog extends Service
     ];
 
     private const RUNTIME_CONTRACTS = [
+        self::AGENT_RUNTIME_RESULT => [
+            'kind' => 'action',
+            'area' => 'agent_runtime_result',
+            'phase' => 'after_correlated_result',
+            'owner' => 'AgentCompositionService',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'payload_required' => ['version', 'operation', 'status', 'ok'],
+            'payload_properties' => ['version' => 'integer', 'operation' => 'string', 'status' => 'string', 'ok' => 'boolean'],
+            'return_type' => 'void',
+            'return_required' => [],
+            'return_properties' => [],
+        ],
+        self::COMMAND_RESULT => [
+            'kind' => 'action',
+            'area' => 'command_result',
+            'phase' => 'after_presentation_outcome',
+            'owner' => 'CommandHost',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'payload_required' => ['version', 'status', 'confirmation_required', 'host_failure', 'phase'],
+            'payload_properties' => [
+                'version' => 'integer', 'status' => 'string', 'confirmation_required' => 'boolean',
+                'host_failure' => 'boolean', 'phase' => 'string',
+            ],
+            'return_type' => 'void',
+            'return_required' => [],
+            'return_properties' => [],
+        ],
+        self::ADDON_BOOT_RESULT => [
+            'kind' => 'action',
+            'area' => 'addon_boot',
+            'phase' => 'after_registration_outcome',
+            'owner' => 'BootAddOnManager',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'payload_required' => ['version', 'identity', 'state', 'phase', 'reason', 'effects', 'retryable', 'required', 'isolated'],
+            'payload_properties' => [
+                'version' => 'integer', 'identity' => 'object', 'state' => 'string', 'phase' => 'string',
+                'reason' => 'mixed', 'effects' => 'string', 'retryable' => 'boolean',
+                'required' => 'boolean', 'isolated' => 'boolean',
+            ],
+            'return_type' => 'void',
+            'return_required' => [],
+            'return_properties' => [],
+        ],
         self::ADDON_ORGANIZATION_CHANGED => [
             'kind' => 'action',
             'area' => 'addon_organization',
@@ -73,8 +128,8 @@ final class ExtensionPointCatalog extends Service
             'mutability' => 'observe_only',
             'exception_policy' => 'propagate_after_commit',
             'payload_type' => 'object',
-            'payload_required' => ['transition', 'session'],
-            'payload_properties' => ['transition' => 'string', 'session' => 'object'],
+            'payload_required' => ['version', 'transition', 'session'],
+            'payload_properties' => ['version' => 'integer', 'transition' => 'string', 'session' => 'object'],
             'return_type' => 'void',
             'return_required' => [],
             'return_properties' => [],

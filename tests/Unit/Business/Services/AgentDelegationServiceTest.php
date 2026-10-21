@@ -8,6 +8,8 @@ use App\Business\Services\AgentCapabilityMapResolver;
 use App\Business\Services\AgentCapabilityMapValidator;
 use App\Business\Services\AgentCompositionService;
 use App\Business\Services\AgentDelegationService;
+use App\Business\Services\ApplicationAgentRuntimeStateStore;
+use App\Domain\Agents\AgentApplicationScope;
 use App\Domain\Agents\AgentCapabilityMap;
 use App\Domain\Agents\AgentDelegationResult;
 use App\Domain\Agents\AgentDescriptor;
@@ -17,11 +19,299 @@ use App\Domain\Agents\IAgentRuntime;
 use App\Domain\Agents\IAgentRuntimeFactory;
 use App\Domain\Agents\IAgentRuntimeStateStore;
 use BlueFission\Arr;
+use BlueFission\Automata\LLM\Agent\Orchestration\OrchestrationConfig;
+use BlueFission\Automata\LLM\Agent\Orchestration\Orchestrator;
 use BlueFission\DevElation;
 use PHPUnit\Framework\TestCase;
 
 final class AgentDelegationServiceTest extends TestCase
 {
+    public function testDelegationPreservesReportedEvidenceAndHostAttribution(): void
+    {
+        $scope = new AgentApplicationScope('app-a');
+        [$service, $composition, $factory] = $this->service(applicationScope: $scope);
+        $context = $this->context(applicationScope: $scope);
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $factory->metadata['opus.central'] = ['confidence' => 0.6, 'usage' => ['cost' => 0.25]];
+        $factory->metadata['addon.search'] = [
+            'confidence' => 0.2,
+            'usage' => ['cost' => 0.5, 'latency_ms' => 12, 'energy' => 0.0, 'invocations' => 2,
+                'provider_payload' => 'private-provider-secret'],
+            'execution_id' => 'forged-execution', 'correlation_id' => 'forged-correlation',
+            'application_id' => 'forged-application', 'tenant_id' => 'forged-tenant',
+            'provider_payload' => 'private-provider-secret',
+        ];
+        $factory->traces['addon.search'] = [['operation' => 'strategy.route', 'status' => 'completed',
+            'attempt_count' => 2, 'prompt' => 'private-provider-secret']];
+
+        $data = $service->delegate('opus.central', ['addon.search', 'addon.billing'], [], $context)->toArray();
+
+        $this->assertTrue($data['ok']);
+        $this->assertCount(2, $data['worker_results']);
+        $this->assertSame(0.6, $data['worker_results'][0]['confidence']);
+        $worker = $data['worker_results'][1];
+        $this->assertSame(0.2, $worker['confidence']);
+        $this->assertSame(0.4, $data['metadata']['confidence']);
+        $this->assertSame(['cost' => 0.25], $data['worker_results'][0]['metadata']['usage']);
+        $this->assertSame(['cost' => 0.5, 'latency_ms' => 12, 'energy' => 0.0, 'invocations' => 2],
+            $worker['metadata']['usage']);
+        $this->assertSame([['operation' => 'strategy.route', 'status' => 'completed', 'attempt_count' => 2]],
+            $worker['metadata']['trace']);
+        $this->assertSame($factory->executions['addon.search'][0]['execution_id'], $worker['metadata']['execution_id']);
+        $this->assertSame('correlation-a', $worker['metadata']['correlation_id']);
+        $this->assertSame('app-a', $worker['metadata']['application_id']);
+        $this->assertSame('tenant-a', $worker['metadata']['tenant_id']);
+        $this->assertArrayNotHasKey('execution_evidence', $data['metadata']);
+        $this->assertArrayNotHasKey('addon.billing', $factory->executions);
+        $this->assertStringNotContainsString('private-provider-secret', json_encode($data, JSON_THROW_ON_ERROR));
+    }
+
+    /** @dataProvider unknownConfidence */
+    public function testUnknownConfidenceDoesNotBecomeCertaintyOrZero(array $metadata): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $factory->metadata['opus.central'] = ['confidence' => 0.8];
+        $factory->metadata['addon.search'] = $metadata;
+
+        $data = $service->delegate('opus.central', ['addon.search'], [], $context)->toArray();
+
+        $this->assertTrue($data['ok']);
+        $this->assertNull($data['worker_results'][1]['confidence']);
+        $this->assertNull($data['metadata']['confidence']);
+        $this->assertCount(1, $factory->executions['addon.search']);
+    }
+
+    public static function unknownConfidence(): array
+    {
+        return [
+            'absent' => [[]], 'null' => [['confidence' => null]],
+            'numeric string' => [['confidence' => '0.4']], 'boolean' => [['confidence' => true]],
+            'negative' => [['confidence' => -0.1]], 'above one' => [['confidence' => 1.1]],
+            'nan' => [['confidence' => NAN]], 'infinite' => [['confidence' => INF]],
+            'array' => [['confidence' => [0.4]]],
+        ];
+    }
+
+    public function testFailedExecutionRetainsUsageAndZeroConfidenceWithoutInventingMissingFields(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $factory->metadata['opus.central'] = ['confidence' => 1];
+        $factory->metadata['addon.search'] = ['confidence' => 0, 'usage' => ['cost' => 0.0]];
+        $factory->failures['addon.search'] = 'task_failed';
+
+        $data = $service->delegate('opus.central', ['addon.search'], [], $context)->toArray();
+
+        $this->assertFalse($data['ok']);
+        $this->assertSame(0.0, $data['worker_results'][1]['confidence']);
+        $this->assertSame(0.5, $data['metadata']['confidence']);
+        $this->assertSame(['cost' => 0.0], $data['worker_results'][1]['metadata']['usage']);
+        $this->assertNull($data['worker_results'][0]['metadata']['usage']);
+        $this->assertCount(1, $factory->executions['addon.search']);
+    }
+
+    public function testInvalidEvidenceIsOmittedWithoutFailingOrRepeatingExecution(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $factory->metadata['addon.search'] = ['usage' => [
+            'cost' => INF, 'latency_ms' => 1.5, 'energy' => -1, 'invocations' => '2',
+        ]];
+        $factory->traces['addon.search'] = [
+            ['operation' => 'strategy.route', 'status' => 'completed', 'attempt_count' => 1],
+            ['operation' => 'unbounded free text', 'status' => 'completed'],
+            ['operation' => 'strategy.route', 'status' => 'provider response'],
+            ['operation' => 'strategy.route', 'status' => 'completed', 'attempt_count' => -1],
+            'private-provider-secret',
+        ];
+
+        $data = $service->delegate('opus.central', ['addon.search'], [], $context)->toArray();
+
+        $this->assertTrue($data['ok']);
+        $worker = $data['worker_results'][1];
+        $this->assertNull($worker['metadata']['usage']);
+        $this->assertCount(1, $worker['metadata']['trace']);
+        $this->assertContains('agent_delegation_usage_invalid', $data['diagnostics']);
+        $this->assertContains('agent_delegation_trace_invalid', $data['diagnostics']);
+        $this->assertCount(1, $factory->executions['addon.search']);
+        $this->assertStringNotContainsString('private-provider-secret', json_encode($data, JSON_THROW_ON_ERROR));
+    }
+
+    public function testNewEvidenceStaysOutsideGlobalOrchestrationObservation(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $factory->metadata['addon.search'] = ['usage' => ['cost' => 0.5]];
+        $factory->traces['addon.search'] = [['operation' => 'strategy.route', 'status' => 'completed']];
+        $observed = [];
+        $reflection = new \ReflectionClass(DevElation::class);
+        $active = $reflection->getProperty('_isActive');
+        $actions = $reflection->getProperty('_actions');
+        $originalActive = $active->getValue();
+        $originalActions = $actions->getValue();
+        try {
+            DevElation::up();
+            DevElation::action('automata.llm.agent.orchestration.completed',
+                static function (...$arguments) use (&$observed): void { $observed = $arguments; });
+            $data = $service->delegate('opus.central', ['addon.search'], [], $context)->toArray();
+            $unknownObserved = $observed;
+            $factory->metadata['opus.central'] = ['confidence' => 0.6];
+            $factory->metadata['addon.search'] = ['confidence' => 0.2, 'usage' => ['cost' => 0.5]];
+            $known = $service->delegate('opus.central', ['addon.search'], [], $context)->toArray();
+        } finally {
+            $active->setValue(null, $originalActive);
+            $actions->setValue(null, $originalActions);
+        }
+        $this->assertNotEmpty($observed);
+        $public = json_encode([$unknownObserved, $observed], JSON_THROW_ON_ERROR);
+        foreach (['"usage"', '"trace"', '"tenant_id"', '"execution_id"', '"correlation_id"'] as $field) {
+            $this->assertStringNotContainsString($field, $public);
+        }
+        $this->assertSame(['cost' => 0.5], $data['worker_results'][1]['metadata']['usage']);
+        $this->assertCount(1, $data['worker_results'][1]['metadata']['trace']);
+        $this->assertArrayHasKey('confidence', $unknownObserved);
+        $this->assertNull($unknownObserved['confidence']);
+        $this->assertNull($data['metadata']['confidence']);
+        $this->assertSame(0.4, $observed['confidence']);
+        $this->assertSame(0.4, $known['metadata']['confidence']);
+    }
+
+    public function testUnknownPlanningConfidenceAndEvidenceRemainLocalToEachCall(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $factory->metadata['addon.search'] = ['confidence' => 0.9, 'usage' => ['cost' => 0.5]];
+        $first = $service->delegate('opus.central', ['addon.search'], [], $context)->toArray();
+        $this->assertNull($first['metadata']['confidence']);
+        $this->assertSame(0.9, $first['worker_results'][1]['confidence']);
+
+        $factory->outputs['opus.central'] = ['workers' => []];
+        $factory->metadata['opus.central'] = ['confidence' => 0.7];
+        $second = $service->delegate('opus.central', ['addon.search'], [], $context)->toArray();
+        $this->assertCount(1, $second['worker_results']);
+        $this->assertSame(0.7, $second['metadata']['confidence']);
+        $this->assertNull($second['worker_results'][0]['metadata']['usage']);
+        $this->assertCount(1, $factory->executions['addon.search']);
+        $this->assertNotSame($first['worker_results'][0]['metadata']['execution_id'],
+            $second['worker_results'][0]['metadata']['execution_id']);
+    }
+
+    public function testReturnedOrchestrationFailureRetainsAlreadyCollectedReceipts(): void
+    {
+        [$service] = $this->service();
+        $context = $this->context();
+        $receipt = ['agent_id' => 'opus.central', 'execution_id' => 'completed-attempt',
+            'status' => 'completed', 'usage' => ['cost' => 0.5], 'trace' => []];
+        $evidence = Arr::make([]);
+        // Characterize Automata's catch-and-return failure boundary, distinct from
+        // the completion observer throwing out of run().
+        $orchestration = (new Orchestrator(new OrchestrationConfig([
+            'pattern' => OrchestrationConfig::SEQUENTIAL,
+            'workers' => [
+                'first' => static function () use ($evidence, $receipt): array {
+                    $evidence->set('opus.central', $receipt);
+                    return ['output' => 'private-business-output'];
+                },
+                'second' => static function (): never { throw new \RuntimeException('private-provider-secret'); },
+            ],
+        ])))->run();
+        $this->assertSame([], $orchestration->toArray()['worker_results']);
+
+        $projection = new \ReflectionMethod(AgentDelegationService::class, 'result');
+        $data = $projection->invoke($service, 'opus.central', ['addon.search'],
+            $orchestration, $context, $evidence)->toArray();
+
+        $this->assertFalse($data['ok']);
+        $this->assertNull($data['output']);
+        $this->assertSame([], $data['worker_results']);
+        $this->assertSame([$receipt], $data['metadata']['execution_evidence']);
+        $this->assertNull($data['metadata']['confidence']);
+        $this->assertStringNotContainsString('private-provider-secret', json_encode($data, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('private-business-output', json_encode($data, JSON_THROW_ON_ERROR));
+    }
+
+    public function testExplicitEmptySelectionDoesNotExecuteSpecialists(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => []];
+
+        $result = $service->delegate('opus.central', ['addon.search', 'addon.billing'], [], $context);
+
+        $this->assertTrue($result->ok());
+        $this->assertSame([], $result->output());
+        $this->assertCount(1, $factory->executions['opus.central']);
+        $this->assertArrayNotHasKey('addon.search', $factory->executions);
+        $this->assertArrayNotHasKey('addon.billing', $factory->executions);
+        $this->assertCount(1, $result->toArray()['worker_results']);
+    }
+
+    /** @dataProvider invalidSelections */
+    public function testMalformedSelectionFailsBeforeAnySpecialistRuns(mixed $selection): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => $selection];
+
+        $result = $service->delegate('opus.central', ['addon.search', 'addon.billing'], [], $context);
+
+        $this->assertFalse($result->ok());
+        $this->assertSame(AgentDelegationResult::FAILED, $result->status());
+        $this->assertContains('agent_delegation_selection_invalid', $result->diagnostics());
+        $this->assertCount(1, $factory->executions['opus.central']);
+        $this->assertArrayNotHasKey('addon.search', $factory->executions);
+        $this->assertArrayNotHasKey('addon.billing', $factory->executions);
+    }
+
+    public static function invalidSelections(): array
+    {
+        return [
+            'null' => [null], 'scalar' => ['addon.search'], 'boolean' => [false],
+            'unknown' => [['addon.unknown']], 'mixed' => [['addon.search', 'addon.unknown']],
+            'associative' => [['worker' => 'addon.search']], 'non-string' => [[7]],
+            'nested' => [[['id' => 'addon.search']]],
+        ];
+    }
+
+    public function testOmittedSelectionRetainsDefaultParticipants(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['plan' => 'Use the host-provided participants'];
+        $result = $service->delegate('opus.central', ['addon.search', 'addon.billing'], [], $context);
+        $this->assertTrue($result->ok());
+        $this->assertCount(1, $factory->executions['addon.search']);
+        $this->assertCount(1, $factory->executions['addon.billing']);
+    }
+
+    public function testDuplicateSelectionsRunEachSpecialistOnceInRequestedOrder(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.billing', 'addon.search', 'addon.billing']];
+        $result = $service->delegate('opus.central', ['addon.search', 'addon.billing'], [], $context);
+        $this->assertTrue($result->ok());
+        $this->assertSame(['opus.central', 'addon.billing', 'addon.search'], array_keys($factory->executions));
+        $this->assertCount(1, $factory->executions['addon.search']);
+        $this->assertCount(1, $factory->executions['addon.billing']);
+    }
+
     /** @dataProvider orchestrationFailures */
     public function testOrchestrationExceptionsAreRedactedWithoutReplayingEffects(\Throwable $failure): void
     {
@@ -30,6 +320,8 @@ final class AgentDelegationServiceTest extends TestCase
         $this->startAll($composition, $context);
         $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
         $factory->outputs['addon.search'] = ['matches' => 1];
+        $factory->metadata['addon.search'] = ['usage' => ['cost' => 0.5],
+            'provider_payload' => 'private-provider-secret'];
         $this->expectOutputString('');
 
         $reflection = new \ReflectionClass(DevElation::class);
@@ -62,6 +354,12 @@ final class AgentDelegationServiceTest extends TestCase
         $this->assertSame(['addon.search'], $data['participants']);
         $this->assertSame('tenant-a', $data['metadata']['tenant_id']);
         $this->assertSame('correlation-a', $data['metadata']['correlation_id']);
+        $this->assertCount(2, $data['metadata']['execution_evidence']);
+        $receipt = $data['metadata']['execution_evidence'][1];
+        $this->assertSame('addon.search', $receipt['agent_id']);
+        $this->assertSame('completed', $receipt['status']);
+        $this->assertSame(['cost' => 0.5], $receipt['usage']);
+        $this->assertSame($factory->executions['addon.search'][0]['execution_id'], $receipt['execution_id']);
         $this->assertStringNotContainsString('private-provider-secret', json_encode($data, JSON_THROW_ON_ERROR));
         $this->assertCount(1, $factory->executions['opus.central']);
         $this->assertCount(1, $factory->executions['addon.search']);
@@ -133,6 +431,29 @@ final class AgentDelegationServiceTest extends TestCase
         $this->assertSame([], $factory->executions);
     }
 
+    public function testInvalidSecondParticipantIsRejectedBeforePlanning(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $result = $service->delegate('opus.central', ['addon.search', 'addon.unknown'], [], $context);
+        $this->assertSame(AgentDelegationResult::DENIED, $result->status());
+        $this->assertSame(['specialist_agent_invalid'], $result->diagnostics());
+        $this->assertSame([], $factory->executions);
+    }
+
+    public function testFilteredParticipantsRemainAnOrderedList(): void
+    {
+        [$service, $composition, $factory] = $this->service();
+        $context = $this->context();
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $data = $service->delegate('opus.central', ['', 'addon.search', 'addon.search'], [], $context)->toArray();
+        $this->assertTrue($data['ok']);
+        $this->assertSame(['addon.search'], $data['participants']);
+        $this->assertCount(1, $factory->executions['addon.search']);
+    }
+
     public function testCoordinatorFailurePreventsSpecialistExecution(): void
     {
         [$service, $composition, $factory] = $this->service();
@@ -177,18 +498,58 @@ final class AgentDelegationServiceTest extends TestCase
         $this->assertSame(['matches' => 1], $result->output()['addon.search']);
         $this->assertNull($result->output()['addon.billing']);
         $this->assertSame('hierarchical', $data['metadata']['pattern']);
+        $denied = $data['worker_results'][2];
+        $this->assertNull($denied['confidence']);
+        $this->assertNull($denied['metadata']['execution_id']);
+        $this->assertNull($denied['metadata']['usage']);
+        $this->assertSame([], $denied['metadata']['trace']);
     }
 
-    private function service(array $billingPermissions = []): array
+    public function testDelegationPreservesApplicationBindingAndRejectsForeignOrAbsentScope(): void
+    {
+        $scope = new AgentApplicationScope('app-a');
+        [$service, $composition, $factory] = $this->service(applicationScope: $scope);
+        $context = $this->context(applicationScope: $scope);
+        $this->startAll($composition, $context);
+        $factory->outputs['opus.central'] = ['workers' => ['addon.search']];
+        $factory->outputs['addon.search'] = ['matches' => 1];
+        foreach ([null, new AgentApplicationScope('app-b')] as $foreign) {
+            $denied = $service->delegate('opus.central', ['addon.search'], ['query' => 'bounded'],
+                $this->context(applicationScope: $foreign));
+            $this->assertFalse($denied->ok());
+            $this->assertContains('agent_application_scope_mismatch', $denied->diagnostics());
+            $this->assertSame([], $factory->executions);
+        }
+        $allowed = $service->delegate('opus.central', ['addon.search'], ['query' => 'bounded'], $context);
+        $this->assertTrue($allowed->ok());
+        $this->assertSame(['matches' => 1], $allowed->output()['addon.search']);
+        $this->assertCount(1, $factory->executions['opus.central']);
+        $this->assertCount(1, $factory->executions['addon.search']);
+    }
+
+    public function testApplicationScopeDenialPrecedesDelegationDescriptorValidation(): void
+    {
+        [$service, , $factory] = $this->service(applicationScope: new AgentApplicationScope('app-a'));
+        $foreign = $this->context(applicationScope: new AgentApplicationScope('app-b'));
+        foreach ([['opus.central', ['addon.search']], ['unknown', ['unknown']], ['opus.central', []]] as [$coordinator, $participants]) {
+            $result = $service->delegate($coordinator, $participants, [], $foreign);
+            $this->assertSame(AgentDelegationResult::DENIED, $result->status());
+            $this->assertSame(['agent_application_scope_mismatch'], $result->diagnostics());
+        }
+        $this->assertSame([], $factory->executions);
+    }
+
+    private function service(array $billingPermissions = [], ?AgentApplicationScope $applicationScope = null): array
     {
         $root = $this->map('application', 'opus.central', 'central');
         $search = $this->map('search', 'addon.search', 'specialist');
         $billing = $this->map('billing', 'addon.billing', 'generated', $billingPermissions);
         $factory = new DelegationRuntimeFactory();
+        $states = new DelegationStateStore();
         $composition = new AgentCompositionService(
             new AgentCapabilityMapResolver($root),
             $factory,
-            new DelegationStateStore()
+            $applicationScope === null ? $states : new ApplicationAgentRuntimeStateStore($applicationScope, $states)
         );
         $composition->registerMap($root);
         $composition->registerMap($search);
@@ -204,7 +565,7 @@ final class AgentDelegationServiceTest extends TestCase
         $this->assertTrue($composition->start('addon.billing', $context)->ok());
     }
 
-    private function context(array $capabilities = []): AgentRuntimeContext
+    private function context(array $capabilities = [], ?AgentApplicationScope $applicationScope = null): AgentRuntimeContext
     {
         return new AgentRuntimeContext(
             tenantId: 'tenant-a',
@@ -212,7 +573,8 @@ final class AgentDelegationServiceTest extends TestCase
             activeAddOns: ['search', 'billing'],
             lifecycleStates: ['search' => 'active', 'billing' => 'active'],
             capabilities: $capabilities,
-            correlationId: 'correlation-a'
+            correlationId: 'correlation-a',
+            applicationScope: $applicationScope
         );
     }
 
@@ -242,6 +604,8 @@ final class DelegationRuntimeFactory implements IAgentRuntimeFactory
     public array $outputs = [];
     public array $failures = [];
     public array $executions = [];
+    public array $metadata = [];
+    public array $traces = [];
 
     public function available(AgentDescriptor $descriptor, AgentRuntimeContext $context): bool
     {
@@ -296,21 +660,29 @@ final class DelegationRuntime implements IAgentRuntime
             'context' => $context->toArray(),
         ];
         if (isset($this->factory->failures[$this->agentId])) {
-            return AgentRuntimeResult::failed(
+            return new AgentRuntimeResult(
+                false,
+                AgentRuntimeResult::FAILED,
                 'execute',
                 $this->agentId,
                 $context->tenantId(),
                 'running',
-                $this->factory->failures[$this->agentId]
+                diagnostics: [$this->factory->failures[$this->agentId]],
+                trace: $this->factory->traces[$this->agentId] ?? [],
+                metadata: $this->factory->metadata[$this->agentId] ?? []
             );
         }
 
-        return AgentRuntimeResult::completed(
+        return new AgentRuntimeResult(
+            true,
+            AgentRuntimeResult::COMPLETED,
             'execute',
             $this->agentId,
             $context->tenantId(),
             'running',
-            $this->factory->outputs[$this->agentId] ?? ['agent_id' => $this->agentId]
+            $this->factory->outputs[$this->agentId] ?? ['agent_id' => $this->agentId],
+            trace: $this->factory->traces[$this->agentId] ?? [],
+            metadata: $this->factory->metadata[$this->agentId] ?? []
         );
     }
 }

@@ -13,6 +13,58 @@ php vendor/bin/phpunit --filter 'CommandActivityTest|CommandHostTest|TerminalSes
 Full-suite proof is still required for changes to the shared command host. These
 fixtures do not prove production filesystem crash durability, cluster behavior,
 retention policy or a distributed transaction with external command effects.
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'PrincipalModuleRuntimeTest|AgentRuntimeRetirementTest|AutomataStrategyRuntimeTest|AgentCompositionServiceTest|ApplicationAgentRuntimeScopeTest'`
+for [principal advisory admission](docs/principal-advisory-runtime.md), current
+authorization, disabled/specialist rejection, trusted scope/input mapping,
+retained Agent state integrity, cross-application isolation, restart, cleanup
+reentry and uncertain retirement. These fixtures use the installed Automata
+Agent with local callable modules and synthetic synchronization. They do not
+qualify an optional cognitive package or prove absence of external effects by
+arbitrary PHP modules. No provider credentials or services are required.
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentRuntimeCommandProcessorTest|AgentCompositionServiceTest|CommandHostTest|AgentScopedCommandProcessorTest'`
+for the [shared runtime administration commands](docs/runtime-commands.md).
+The fixture uses the actual installed Wise parser and processor, composition
+service and Storage with synthetic synchronization/runtime implementations.
+It covers text/structured/CLI parity, passive parsing, fresh operation grants,
+payload forgery denial, lifecycle routing and private failures. It does not
+establish deployed HTTP authentication or live provider/recovery readiness.
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentRuntimeRetirementTest|AutomataStrategyRuntimeTest|AgentRuntimeObservationTest|AgentCompositionServiceTest|ApplicationAgentRuntimeScopeTest|ExtensionPointCatalogTest'`
+for stale-owner retirement, current authority checks, failed/uncertain cleanup,
+reentry denial, preserved newer registrations and permanent native-object
+retirement. The actual native router and host enrollment path are exercised
+offline with synthetic synchronization. These tests do not prove distributed
+drain, provider shutdown or installation of an optional cognitive module.
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentRuntimeObservationTest|AgentCompositionServiceTest|ExtensionPointCatalogTest'`
+for runtime-result hook delivery, redaction, ordering, observer failure,
+cross-instance reentry denial, unknown-status bounding and catalog parity.
+These fixtures use actual DevElation actions and host storage with synthetic
+synchronization; they do not qualify remote effects or durable event delivery.
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'ApplicationAgentRuntimeScopeTest|AutomataStrategyRuntimeTest|AgentCompositionServiceTest|AgentDelegationServiceTest'`
+for [application-bound runtime isolation](docs/agent-application-scope.md).
+Fixtures share a real host `Storage` object with synthetic synchronization and
+exercise native Automata routing, isolated state/claims/locks, pre-read denial,
+scope-preserving delegation and legacy separation. They do not certify live
+database concurrency or principal-module installation.
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentScopedProfileTest|AgentCapabilityMapTest|AgentCommandContextLifecycleTest|CommandHostTest'`
+for continuation scope and command-policy regressions. Denied known tokens and
+unknown tokens must produce the same public result for a given caller context,
+without stored tool/profile details, underlying execution or token consumption.
+Fixtures cover actor, tenant, agent, profile and revoked-permission boundaries,
+and prove that the original owner can still resume after a denied attempt.
+These tests do not establish constant-time lookup or atomic storage consumption.
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AddOnBootLifecycleTest.php`
+for the canonical boot contract. The real installed `Engine::bootstrap()` loads
+synthetic baseline mappings before add-on routes, themes and service overrides.
+Failure cases preserve package identity and redacted phase/reason/effect reports,
+avoid replay, and keep reports separate across completed and failed packages.
+The active-row query is controlled; these tests do not claim fresh-MySQL lifecycle
+installation proof, which remains a separate readiness requirement.
 
 The [minimal application profiles](docs/application-profiles.md) have real HTTP
 tests in `tests/Feature/ApplicationProfileHttpTest.php`. They start temporary
@@ -379,3 +431,90 @@ unused directories, migration warnings and unchanged source/mapping/template
 errors. Installed-engine tests register an embedded package exactly once and
 reject metadata that tries to choose its own validation policy. No Composer
 installation, database connection or provider credentials are needed.
+
+Private asset distribution: run npm run audit:public-assets and npm run test:assets.
+The latter requires Git, tar, npm and Composer and uses only synthetic temporary fixtures;
+no licensed theme, application dependencies or provider credentials are needed.
+
+Optional boot isolation: `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AddOnBootLifecycleTest.php`.
+Fixtures exercise real Engine bootstrap with an invalid optional package and a
+healthy package, fail-closed partial effects, captured host-only policy, malformed
+policy and no replay after repair. This does not prove database recovery or
+production operator command bindings.
+
+Boot action contracts: `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter "AddOnBootLifecycleTest|ExtensionPointCatalogTest"`.
+Tests use the installed DevElation dispatcher and Engine with synthetic packages;
+they cover settled state, priority order, reentrancy, no replay, disabled dispatch,
+redaction and preserved successful, isolated and required-failure outcomes.
+
+Passive usage inventory: `php bin/audit-develation-usage.php --summary`.
+Focused syntax/evidence fixtures:
+`php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/DevElationUsageInventoryTest.php`.
+These verify imports/aliases, namespace boundaries, inert comments/string bodies,
+direct fluent chains, unresolved behavior calls, source hashes and incomplete
+scan errors. This is not runtime type inference, profiling or dependency parity.
+
+# Shared command result observation
+
+Run `php vendor/bin/phpunit tests/Unit/Business/Services/CommandResultObservationTest.php`
+for actual DevElation delivery, result privacy, ordering, disabled/no-handler
+compatibility, host failures, observer exceptions and cross-host reentry denial.
+Run `php vendor/bin/phpunit tests/Unit/Business/Services/ExtensionPointCatalogTest.php`
+for the published schema/runtime contract. Use `php vendor/bin/phpunit` for the
+full suite before publishing changes to this shared command boundary. These
+tests make no provider calls and do not prove durable audit delivery.
+
+
+# Native strategy runtime
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AutomataStrategyRuntimeTest.php`.
+These provider-free tests use actual Automata routing, Intelligence and decision
+tree classes, with host authorization and persistence fixtures. They cover
+tenant binding, revocation, task/policy separation, budget rejection, redacted
+errors and composition lifecycle. See `docs/native-strategy-runtime.md` for
+configuration and the limits of synchronous cancellation and deployment proof.
+## Runtime enrollment regression
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentCompositionServiceTest|ApplicationAgentRuntimeScopeTest|AutomataStrategyRuntimeTest|AgentDelegationServiceTest'`.
+The enrollment cases exercise stop/retry, provider-free metadata transitions,
+durable tombstones, tenant isolation, stale host caches, and registration changes
+during runtime construction. Synthetic synchronization does not qualify live
+multi-process database locking or remote agent-module teardown. See
+`docs/agent-runtime-enrollment.md` for the host drain contract.
+
+# Intake observation privacy
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'ApplicationIntakeServiceTest|ExtensionPointCatalogTest'`.
+These tests use persisted session fixtures with private answers and actor data,
+assert the version-2 payload allowlist, deny all six nested mutations before
+repository reads/writes, and verify guard recovery after successful and throwing
+observers. Run the complete PHPUnit suite before release. No provider, database
+service, credentials or dependency changes are required for this contract.
+
+# Command tenant-scope regressions
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentCommandContextLifecycleTest|AgentScopedProfileTest|AgentCapabilityMapTest|AgentScopedCommandProcessorTest'`.
+The tests attempt coordinated tenant/profile changes for unscoped human and
+anonymous requests and continuation refreshes. Actual Wise profile resolution
+must retain null scope. Existing explicit tenant and metadata behavior remains
+covered. No provider calls, credentials or installations are required.
+
+# Delegation selection regressions
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentDelegationServiceTest|AgentCompositionServiceTest'`.
+The installed Automata hierarchical pattern is exercised with explicit empty,
+malformed, mixed valid/unknown, omitted and duplicate worker selections. Invalid
+plans must not execute specialists; the coordinator remains a single completed
+attempt whose effects are not rolled back. No provider or network calls occur.
+
+# Delegation evidence regressions
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/AgentDelegationServiceTest.php`.
+The real composition and installed Automata path cover known/unknown/invalid
+confidence, usage retained on success and failure, host-owned attribution,
+trace projection, pre-execution denial, sparse participant validation, call-local
+evidence, and completion-observer exceptions without replay. A live DevElation
+observer verifies that the added usage, trace and scope fields stay outside its
+global payload. See `docs/delegation-evidence.md` for nullable confidence and
+unknown-measurement migration semantics. Run the full suite before release.
+These fixtures do not qualify providers, durable accounting or billing totals.

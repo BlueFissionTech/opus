@@ -13,6 +13,15 @@ failed initial append prevents dispatch; failed outcome persistence reports unkn
 effects without replay. See [command activity](docs/command-activity.md) for setup,
 privacy boundaries, observable receipts, durability limits and remaining timeline
 acceptance. This is not a general audit, workflow or retry authorization system.
+## Add-on boot diagnostics
+
+Canonical add-on registration failures retain the selected package identity,
+host-owned phase and reason, and whether effects may have started. The diagnostic
+never includes paths, exception text, provider output or a previous exception.
+Repeated engine dispatch returns the same failure without replaying package code.
+Diagnostics are host-local observations, not activation state or retry authority.
+Baseline mappings must load before add-on routes, themes and services, allowing
+intentional overrides through the real engine bootstrap order.
 
 ## Minimal application profiles
 
@@ -97,6 +106,18 @@ implementation detail; the durable contract is the host, lifecycle, readiness,
 resource, and feedback behavior being exercised.
 
 ## Target Architecture
+
+### Native Strategy Runtime
+
+An opt-in runtime factory must compose the installed Automata strategy router
+and host-configured Intelligence advisor behind `IAgentRuntimeFactory`.
+Availability probes must not construct runtimes or request authorization.
+Every execution must obtain fresh host-owned authorization, bind the subject
+to the descriptor and tenant, and keep task content separate from route policy.
+Deterministic routing is the default; learned/generative escalation requires
+explicit host configuration. Results expose business output and bounded usage
+and routing evidence without copying provider diagnostics or authority packets.
+Synchronous routing must not claim background interruption or module teardown.
 
 ### HTTP Authentication Boundary
 
@@ -226,6 +247,10 @@ Acceptance criteria:
   names, and command execution rechecks the same policy.
 - Confirmation continuations remain pinned to the originating actor, tenant,
   agent, tool, and profile.
+- A denied continuation exposes no stored tool, profile, command or token.
+  Missing and foreign tokens produce the same public denial for the same
+  caller context. Scope checks precede profile policy resolution; denial must
+  neither consume the owner's continuation nor invoke the underlying processor.
 - The built-in conversation catalog is versioned and deterministic, starts in
   shadow mode, and contains only safe command-discovery and private-profile
   read examples.
@@ -425,6 +450,12 @@ never grants execution authority. Unavailable/failed providers return structured
 results without exception payloads. Caller overrides create new advisory records;
 no task, budget, goal, agent, command, deployment or workflow is mutated.
 
+The registered guidance service resolves the configured provider binding and
+participates in DevElation's native service parent and behavior routing. A host
+may register an advisory action that calls the same validated `advise()` method;
+such routing does not grant execution authority or make direct method calls
+automatically observable. The default provider remains unavailable.
+
 ## Canonical add-on boot registration (#40)
 
 The platform and selected application profiles consume canonical registration
@@ -504,6 +535,77 @@ subsequent integration work and are not claimed by this persistence increment.
 
 
 
+### Agent runtime result observation (#110)
+
+Publish `opus.agent.runtime.result` after a public composition operation returns
+its correlated result. Only bounded operation/status values and an outcome
+boolean enter the versioned payload; identities, task/output data, diagnostics,
+state, correlation tokens and runtime metadata remain private. Observer return
+values and exceptions cannot change the result or replay the operation. Nested
+composition operations and descriptor registration during synchronous delivery
+are denied before inspecting state or constructing a runtime. This action is
+best-effort observation, not authority, durable audit or proof of remote effects.
+
+### Principal advisory module admission (#29)
+
+An opt-in principal runtime factory must admit only application-owned central
+descriptors with explicit application scope and configured profiles. Readiness
+and lifecycle startup must not construct an Agent or cognitive module. Each
+evaluation requires fresh typed authorization bound to the host subject and
+capability before lazy construction and real Automata `Agent::runModule` use.
+Task data cannot select factories, profiles or identity. Advisory modules receive
+isolated state; proposed writes, decisions or state mutation are rejected before
+they reach the retained Agent. Outputs remain advice requiring review, never
+execution authority. Revocation, foreign scope, disablement, reentry and retirement
+must deny evaluation. Existing strategy routing remains independently available;
+this optional runtime does not activate an inference provider or install modules.
+
+### Shared runtime administration commands (#125)
+
+Runtime inspection and explicit lifecycle/cleanup operations must use the same
+Wise parser and CommandHost as other commands. Text and structured input must
+produce equivalent authorized operations. Host-resolved current identity,
+application, tenant and per-operation grants must precede runtime inspection or
+construction; command payload/context cannot mint those grants. Parsing is
+passive. Unsupported verbs, arguments and replay/continuation attempts must not
+fall through to a second runtime executor. Existing non-runtime commands retain
+their processor behavior. This command boundary does not install an HTTP
+authentication policy or implement retries, dead-letter replay or provider health.
+
+### Scoped runtime unregistration (#29)
+
+Stale owners must be able to retire only their retained local runtime through
+an explicit idempotent instance-local contract. Fresh application, tenant,
+capability and add-on authorization still applies. Retirement must not construct
+a runtime, admit work, or alter the newer persisted registration. Unsupported,
+failed or uncertain cleanup retains the handle. Successful retirement permanently
+fences the old object and evicts only that local cache entry. Reentrant cleanup
+is denied; distributed drain and remote shutdown remain host responsibilities.
+
+Descriptor discovery and runtime enrollment are separate. An authorized operator
+may unregister one application/tenant/agent runtime after its stop operation
+succeeds. Persist an unregistered tombstone and evict only that local cache entry;
+other tenant runtimes remain registered. Start must require explicit runtime
+registration after this tombstone, including after host reconstruction. Repeated
+unregistration is idempotent. Failed cleanup retains the runtime for retry.
+Registration is metadata-only and must not instantiate or start a provider.
+Descriptor replacement must not silently discard a cached runtime; drain and
+unregister its local scopes first. This is host runtime enrollment, not removal
+of package descriptors or proof of distributed-process/module teardown.
+
+### Explicit application runtime scope (#29)
+
+An installation may bind its runtime state store to an immutable application
+identity supplied by trusted host configuration. Explicitly scoped composition
+requires the same application identity in every lifecycle/execution context,
+before state reads, provider discovery or runtime construction. An absent
+identity is not an application-wide grant. Tenant and agent checks still apply.
+Shared storage and operation locks must isolate identical tenant/agent names
+across applications, and native strategy subjects must include the application.
+Legacy unbound composition may accept only unbound contexts; it cannot claim
+these guarantees. Scoped storage never inherits legacy claims or approvals.
+This boundary does not install Cogito modules or provide their teardown.
+
 ### Conversational learning policy guards (#99)
 
 Unknown-intent capture requires a strict boolean allow through the package,
@@ -550,3 +652,90 @@ domain directories follow the declared `layers`; unused layers need no empty
 directories. Legacy omissions and inherited tooling produce stable warnings,
 while missing declared layers and invalid contracts remain errors. Engine boot
 uses the host-selected profile captured when registration is queued.
+
+### Public private-asset boundary (#68)
+
+Reserved Snow and private-assets path components must be excluded from normal
+staging and public source/package archives. Forced staging must fail a dependency-
+free CI audit with redacted structured reasons. Synthetic fixtures must retain
+public fallback templates while excluding private sentinels. Private injection
+and container-layer proof remain separate deployment acceptance requirements.
+
+### Optional add-on boot isolation (#125)
+
+Host composition may mark exact canonical package names optional before queueing.
+That policy is captured with the package identity, cannot be supplied by package
+metadata, and does not alter activation or authorization. Required failures stop
+boot. Optional failures may continue only while no package code has run; the
+failed diagnostic remains inspectable with required/isolated flags. Partial or
+unknown effects still stop boot. Later policy changes and file repair must not
+replay failed registration inside the same engine. Real Engine bootstrap proof
+must preserve an unaffected host route and separately registered healthy package.
+
+### Canonical boot result observation (#110)
+
+Publish one detached, redacted boot report through opus.addon.boot.result after
+a canonical queued registration settles, preserving the original outcome and
+failure. Observer return values, argument mutation, exceptions and reentrant
+boot events must not change policy or replay registration. Disabled dispatch and
+later subscriptions do not backfill results. Catalog version1.3.0 documents the
+payload, order and failure policy; lifecycle mutation stays service-owned.
+
+### Passive DevElation source inventory (#151)
+
+Provide a dependency-free audit command for app/common/mapping PHP source with
+stable per-module summaries, source hashes and line-addressed primitive, service,
+behavior and hook references. Keep declarations, static fluent chains and
+unresolved behavior candidates distinct. Never execute inspected source or infer
+runtime compatibility from lexical counts. Missing/unreadable or unparsable input
+must yield an incomplete report and a nonzero process result.
+# Command result observation
+
+The shared CommandHost publishes one observe-only DevElation action after a
+presentation or a private-safe host failure settles. Its versioned scalar
+summary contains a normalized status, confirmation flag, host-failure marker
+and phase, never input, output, metadata, tenant identity or continuation proof.
+Observers cannot replace the result or replay it through a nested CommandHost
+call. Observer exceptions do not convert success to failure or retry execution.
+The action is synchronous, best-effort and requires DevElation to be enabled;
+it is not durable audit storage, a permission grant or a sandbox for PHP code.
+
+# Intake observation privacy
+
+The persisted intake transition action must publish only a versioned transition
+and status summary. Answers, defaults, actor and tenant identity, correlation
+tokens, timestamps and application names must not enter the global observation
+payload. Nested intake mutations during observation must fail before repository
+access, across service instances. The existing post-commit exception contract
+remains unchanged; guard state must reset even when an observer throws.
+
+# Host-owned command tenant scope
+
+Command-context filters cannot select a tenant when the host provided no tenant.
+Null is an authoritative scope, not permission to derive membership. Discard
+scope-changing filter output before profile resolution on both initial commands
+and continuation refreshes. Resolve and authorize tenant membership at the host
+boundary before constructing command context; preserve safe metadata enrichment
+within an unchanged scope.
+
+# Explicit delegation selection
+
+A coordinator's explicit empty worker list selects no specialists. A malformed
+or unknown worker selection must fail before any specialist executes, rather
+than silently widening or partially accepting the plan. An omitted workers field
+retains the existing host-participant default; valid duplicate IDs execute once
+in requested order. Use the installed Automata orchestration implementation and
+preserve host authorization on every actual runtime execution.
+
+# Delegation evidence
+
+Delegation must retain provider-neutral per-execution usage and trace evidence
+from the principal and each executed specialist. Execution identity and request
+scope remain host-owned. Missing or invalid measurements stay unknown, rather
+than becoming zero; no monetary or energy total is inferred across unspecified
+units. Successful execution does not imply confidence. A supplied finite score
+in [0, 1] is retained; otherwise confidence is null. Aggregate confidence is
+unknown if any executed participant has unknown confidence. Evidence must not
+change selection, authorization, retry or execution count. The added usage,
+trace and request-scope fields must stay outside global observation payloads.
+See `docs/delegation-evidence.md`.

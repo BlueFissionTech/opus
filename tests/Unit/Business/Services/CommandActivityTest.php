@@ -326,7 +326,7 @@ final class CommandActivityTest extends TestCase
             $object->dispatch('activity_test');
             $this->assertTrue($observed);
         }
-        $this->assertSame($event->toArray(), $event->data());
+        $this->assertSame($event->toArray(), $event->data()->toArray());
         $this->assertSame($event->id, $event->field('event_id'));
         $this->assertSame($event->id, $event->event_id);
         $this->assertSame($event->toArray(), unserialize(serialize($event))->toArray());
@@ -348,14 +348,58 @@ final class CommandActivityTest extends TestCase
         ] as $mutate) {
             try {
                 $mutate();
-                $this->fail('A receipt must not accept mutation.');
-            } catch (\LogicException|\Error $exception) {
+            } catch (\Exception|\Error $exception) {
                 $this->assertSame($expected, $event->toArray());
-                $this->assertSame($expected, $event->data());
+                $this->assertSame($expected, $event->data()->toArray());
+                continue;
             }
+            $this->fail('A receipt must not accept mutation.');
         }
     }
 
+    public function testNativeImmutableDataProjectionCannotChangeReceipt(): void
+    {
+        $event = ActivityEvent::create(new ActivityScope('app', null, 'actor'), 'requested', 'command.execute');
+        $expected = $event->toArray();
+        $this->assertTrue($event->isImmutable());
+        foreach (['field', 'assign', 'clear', 'data', '__unset', 'unserialize'] as $method) {
+            $this->assertSame(\BlueFission\Obj::class, (new \ReflectionMethod($event, $method))->getDeclaringClass()->getName());
+        }
+        $projection = $event->data();
+        $this->assertInstanceOf(\BlueFission\Arr::class, $projection);
+        $projection->set('actor_id', 'other');
+        $projection->set('status', 'completed');
+        $event->exposeValueObject(true);
+        $this->assertSame($expected, $event->toArray());
+        $this->assertSame('actor', $event->field('actor_id'));
+        $this->assertSame($expected, $event->data()->toArray());
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testResultObserverCannotAppendOrReplayActivity(): void
+    {
+        $processor = $this->processor();
+        $host = new CommandHost($processor, new CommandResultPresenter(), new CommandActivityService($this->store, 'app'));
+        $observed = [];
+        \BlueFission\DevElation::up();
+        \BlueFission\DevElation::action(\App\Business\Services\ExtensionPointCatalog::COMMAND_RESULT,
+            function (array $event) use ($host, &$observed): void {
+                $observed[] = $event;
+                $denied = $host->execute('nested-private-input', $this->context());
+                $this->assertSame(['command_result_observer_reentry_denied'], $denied->diagnostics());
+                throw new \RuntimeException('private observer exception');
+            });
+        $result = $host->execute('private-input', $this->context());
+        $this->assertTrue($result->confirmationRequired());
+        $this->assertSame(1, $processor->calls);
+        $this->assertCount(2, $host->history($this->context()));
+        $this->assertCount(1, $observed);
+        $this->assertSame(['version', 'status', 'confirmation_required', 'host_failure', 'phase'], array_keys($observed[0]));
+        $this->assertStringNotContainsString('private', json_encode($observed));
+    }
     public function testDeltaUsesExistingDiscoveryAndExplicitRollback(): void
     {
         $manager = new \ReflectionClass(\BlueFission\BlueCore\Business\Managers\DatasourceManager::class);

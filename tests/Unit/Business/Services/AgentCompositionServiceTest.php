@@ -489,7 +489,7 @@ final class AgentCompositionServiceTest extends TestCase
         $this->assertSame(2, $factory->created);
     }
 
-    public function testReplacingADescriptorEvictsEveryCachedRuntimeScope(): void
+    public function testReplacingADescriptorRequiresRuntimeUnregistration(): void
     {
         $root = $this->map('application', 'opus.central', 'central');
         $replacement = $this->map('application', 'opus.central', 'central', [], 'opus.central.v2');
@@ -498,11 +498,162 @@ final class AgentCompositionServiceTest extends TestCase
         $service->registerMap($root);
         $service->start('opus.central', new AgentRuntimeContext());
 
-        $service->registerMap($replacement);
-        $service->execute('opus.central', ['intent' => 'status'], new AgentRuntimeContext());
+        $denied = $service->registerMap($replacement);
+        $this->assertSame(['agent_runtime_unregistration_required'], $denied->diagnostics());
+        $this->assertSame(1, $factory->created);
+        $context = new AgentRuntimeContext();
+        $this->assertTrue($service->unregister('opus.central', $context)->ok());
+        $this->assertTrue($service->registerMap($replacement)->ok());
+        $this->assertTrue($service->registerRuntime('opus.central', $context)->ok());
+        $this->assertTrue($service->start('opus.central', $context)->ok());
 
         $this->assertSame(2, $factory->created);
         $this->assertSame(['opus.central', 'opus.central.v2'], $factory->profiles);
+    }
+
+    public function testUnregistrationStopsOnceAndRequiresExplicitRegistration(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext(correlationId: 'unregister-proof');
+        $service->start('opus.central', $context);
+        $first = $service->unregister('opus.central', $context);
+        $this->assertTrue($first->ok());
+        $this->assertSame('unregistered', $first->state());
+        $this->assertSame('unregister-proof', $first->toArray()['metadata']['correlation_id']);
+        $this->assertTrue($service->unregister('opus.central', $context)->ok());
+        $this->assertSame(1, $factory->runtimes[0]->calls['stop']);
+        $this->assertSame(['agent_registration_required'], $service->start('opus.central', $context)->diagnostics());
+        $this->assertSame(1, $factory->created);
+        $this->assertTrue($service->registerRuntime('opus.central', $context)->ok());
+        $this->assertSame(1, $factory->created);
+        $this->assertTrue($service->start('opus.central', $context)->ok());
+        $this->assertSame(2, $factory->created);
+    }
+
+    public function testFirstExplicitRegistrationPersistsWithoutProviderDiscovery(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $factory->throwOnAvailable = $factory->throwOnCreate = true;
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+        $this->assertTrue($service->registerRuntime('opus.central', $context)->ok());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $first = $states->get('opus.central', null);
+        $this->assertSame('registered', $first['state']);
+        $this->assertNotEmpty($first['registration_id']);
+        $this->assertTrue($service->registerRuntime('opus.central', $context)->ok());
+        $this->assertSame($first['registration_id'], $states->get('opus.central', null)['registration_id']);
+        $this->assertSame(0, $factory->availableCalls);
+        $this->assertSame(0, $factory->created);
+    }
+
+    public function testUnregistrationOfNeverStartedRuntimeIsProviderFreeAndDurable(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $factory->throwOnAvailable = $factory->throwOnCreate = true;
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+        $this->assertTrue($service->unregister('opus.central', $context)->ok());
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $next = new AgentCompositionService(new AgentCapabilityMapResolver($root), $factory, $states);
+        $next->registerMap($root);
+        $this->assertSame(['agent_registration_required'], $next->start('opus.central', $context)->diagnostics());
+        $this->assertTrue($next->registerRuntime('opus.central', $context)->ok());
+        $this->assertTrue($next->registerRuntime('opus.central', $context)->ok());
+        $this->assertSame(0, $factory->availableCalls);
+        $this->assertSame(0, $factory->created);
+    }
+
+    public function testUnregistrationPreservesOtherTenantRuntimeAndRetriesFailedCleanup(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $a = new AgentRuntimeContext(tenantId: 'tenant-a');
+        $b = new AgentRuntimeContext(tenantId: 'tenant-b');
+        $service->start('opus.central', $a);
+        $service->start('opus.central', $b);
+        $factory->onStop = static function (): void { throw new \RuntimeException('private-cleanup'); };
+        $failed = $service->unregister('opus.central', $a);
+        $this->assertFalse($failed->ok());
+        $this->assertSame('failed', $failed->state());
+        $this->assertStringNotContainsString('private-cleanup', serialize($failed->toArray()));
+        $factory->onStop = null;
+        $this->assertTrue($service->unregister('opus.central', $a)->ok());
+        $this->assertSame(2, $factory->runtimes[0]->calls['stop']);
+        $this->assertTrue($service->execute('opus.central', [], $b)->ok());
+        $this->assertSame(0, $factory->runtimes[1]->calls['stop']);
+        $this->assertSame(2, $factory->created);
+    }
+
+    public function testPriorHostCannotReuseRuntimeAfterRegistrationGenerationChanges(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+        $service->start('opus.central', $context);
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $otherFactory = $this->factory();
+        $other = new AgentCompositionService(new AgentCapabilityMapResolver($root), $otherFactory, $states);
+        $other->registerMap($root);
+        $this->assertTrue($other->execute('opus.central', [], $context)->ok());
+        $this->assertTrue($service->unregister('opus.central', $context)->ok());
+        $this->assertTrue($service->registerRuntime('opus.central', $context)->ok());
+        $this->assertTrue($service->start('opus.central', $context)->ok());
+        foreach (['start', 'unregister', 'registerRuntime'] as $action) {
+            $this->assertSame(['agent_runtime_registration_stale'], $other->{$action}('opus.central', $context)->diagnostics());
+        }
+        $this->assertSame(['agent_runtime_registration_stale'], $other->execute('opus.central', [], $context)->diagnostics());
+        $this->assertSame(1, $otherFactory->runtimes[0]->calls['execute']);
+        $this->assertSame(0, $otherFactory->runtimes[0]->calls['stop']);
+    }
+
+    public function testRegistrationGenerationChangeDuringFactoryCreationPreventsExecution(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+        $service->start('opus.central', $context);
+        $states = (new \ReflectionClass($service))->getProperty('states')->getValue($service);
+        $otherFactory = $this->factory();
+        $other = new AgentCompositionService(new AgentCapabilityMapResolver($root), $otherFactory, $states);
+        $other->registerMap($root);
+        $otherFactory->onCreate = function () use ($service, $context): void {
+            $this->assertTrue($service->unregister('opus.central', $context)->ok());
+            $this->assertTrue($service->registerRuntime('opus.central', $context)->ok());
+            $this->assertTrue($service->start('opus.central', $context)->ok());
+        };
+        $this->assertFalse($other->execute('opus.central', [], $context)->ok());
+        $this->assertSame(0, $otherFactory->runtimes[0]->calls['execute']);
+        $this->assertSame(['agent_runtime_registration_stale'], $other->execute('opus.central', [], $context)->diagnostics());
+    }
+
+    public function testUnregistrationBlocksReentrantAdmissionUntilCleanupCompletes(): void
+    {
+        $root = $this->map('application', 'opus.central', 'central');
+        $factory = $this->factory();
+        $service = $this->service($root, $factory);
+        $service->registerMap($root);
+        $context = new AgentRuntimeContext();
+        $service->start('opus.central', $context);
+        $factory->onStop = function () use ($service, $context): void {
+            $this->assertSame(['agent_transition_in_progress'], $service->execute('opus.central', [], $context)->diagnostics());
+            $this->assertSame(['agent_transition_in_progress'], $service->unregister('opus.central', $context)->diagnostics());
+        };
+        $this->assertTrue($service->unregister('opus.central', $context)->ok());
+        $this->assertSame(0, $factory->runtimes[0]->calls['execute']);
     }
 
     public function testPolicyDenialPreventsRuntimeConstruction(): void

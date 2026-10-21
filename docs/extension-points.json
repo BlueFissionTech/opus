@@ -1,8 +1,105 @@
 {
   "schema_version": 1,
-  "catalog_version": "1.2.0",
+  "catalog_version": "2.0.1",
   "namespace": "opus",
   "extension_points": [
+    {
+      "name": "opus.agent.runtime.result",
+      "kind": "action",
+      "area": "agent_runtime_result",
+      "phase": "after_correlated_result",
+      "owner": "AgentCompositionService",
+      "payload": {
+        "type": "object",
+        "required": ["version", "operation", "status", "ok"],
+        "properties": {"version": "integer", "operation": "string", "status": "string", "ok": "boolean"}
+      },
+      "returns": {"type": "void"},
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "One synchronous observation after a correlated public runtime result; descriptor registration is not runtime execution and is excluded.",
+        "Version is 1. Operation is inspect, start, suspend, resume, stop, cancel, execute, registerRuntime, unregister, retire or unknown. Status is completed, denied, failed, unavailable or unknown; only completed with a true runtime outcome has ok=true.",
+        "No identities, state, tasks, outputs, diagnostics, trace, correlation tokens or runtime metadata enter the payload.",
+        "Observer return values and payload mutation cannot alter the original result. Exceptions stop later handlers but are contained without replay.",
+        "Nested composition operations and descriptor registration across instances are denied before state access or runtime construction and do not emit another observation. The process-wide guard always resets.",
+        "Requires enabled DevElation. Idempotent requests may be observed again; delivery is best-effort, not durable audit, approval, remote-effect proof or a sandbox for installed PHP handlers."
+      ]
+    },
+    {
+      "name": "opus.command.result",
+      "kind": "action",
+      "area": "command_result",
+      "phase": "after_presentation_outcome",
+      "owner": "CommandHost",
+      "payload": {
+        "type": "object",
+        "required": ["version", "status", "confirmation_required", "host_failure", "phase"],
+        "properties": {
+          "version": "integer", "status": "string", "confirmation_required": "boolean",
+          "host_failure": "boolean", "phase": "string"
+        }
+      },
+      "returns": {"type": "void"},
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "One synchronous observation per admitted CommandHost call, after presentation or a host failure settles; execute, resume and CLI use the same boundary.",
+        "Version is 1. Status is completed, parsed, confirmation_required, invalid, failed or unknown. Phase is presented, processing_failed or presentation_failed.",
+        "No inputs, command objects, output, diagnostics, metadata, identities, provider errors, continuation tokens or other mutable objects enter the payload.",
+        "Observer return values and payload changes cannot alter the settled result. Exceptions stop later handlers but are contained without retry or replay.",
+        "Nested calls to any CommandHost during synchronous observation fail before processor dispatch and do not emit another observation. The process-wide guard always resets.",
+        "Requires enabled DevElation. This is best-effort observation, not durable delivery, permission, effect completion or a sandbox for installed PHP handlers."
+      ]
+    },
+    {
+      "name": "opus.addon.boot.result",
+      "kind": "action",
+      "area": "addon_boot",
+      "phase": "after_registration_outcome",
+      "owner": "BootAddOnManager",
+      "payload": {
+        "type": "object",
+        "required": [
+          "version",
+          "identity",
+          "state",
+          "phase",
+          "reason",
+          "effects",
+          "retryable",
+          "required",
+          "isolated"
+        ],
+        "properties": {
+          "version": "integer",
+          "identity": "object",
+          "state": "string",
+          "phase": "string",
+          "reason": "mixed",
+          "effects": "string",
+          "retryable": "boolean",
+          "required": "boolean",
+          "isolated": "boolean"
+        }
+      },
+      "returns": {
+        "type": "void"
+      },
+      "mutability": "observe_only",
+      "exception_policy": "ignore_observer_failure",
+      "ordering": "priority_ascending_then_registration_order",
+      "invariants": [
+        "One result per canonical queued registration in an engine, after registered, skipped, or failed state is settled; repeated and reentrant boot events do not redeliver.",
+        "Payload version is 1. Identity contains only persisted id, name, namespace, and version strings. Reason is a stable string for failed/skipped outcomes or null for success.",
+        "Paths, contributions, provider payloads, configuration, exceptions, and mutable internal objects are omitted.",
+        "Return values and payload mutation cannot change boot state, activation, required policy, isolation, retryability, or registration effects.",
+        "Observer exceptions stop later DevElation handlers for that delivery but cannot replace the original boot failure or turn successful/isolated boot into failure.",
+        "Dispatch requires DevElation to be enabled. There is no durable delivery, replay, automatic activation, or permission grant."
+      ]
+    },
     {
       "name": "opus.addon.organization.changed",
       "kind": "action",
@@ -73,8 +170,9 @@
       "owner": "ApplicationIntakeService",
       "payload": {
         "type": "object",
-        "required": ["transition", "session"],
+        "required": ["version", "transition", "session"],
         "properties": {
+          "version": "integer",
           "transition": "string",
           "session": "object"
         }
@@ -87,7 +185,9 @@
       "ordering": "priority_ascending_then_registration_order",
       "invariants": [
         "The session is persisted before observers run.",
-        "Observer failure does not roll back the completed write."
+        "Observer failure does not roll back the completed write.",
+        "Version 2 session contains only status and revision; answers, identity, correlation and timestamps are excluded.",
+        "Nested intake mutations across service instances are denied before repository access during synchronous observation."
       ]
     },
     {
@@ -113,7 +213,7 @@
       "exception_policy": "propagate_before_execution",
       "ordering": "priority_ascending_then_registration_order",
       "invariants": [
-        "Caller identity and an explicit tenant cannot be changed.",
+        "Caller identity and host tenant scope, including null or omitted tenant, cannot be changed.",
         "Agent identity and host capabilities are restored from the authoritative context after filtering.",
         "Profile roles and profile policy are host-owned and cannot be granted by the filter.",
         "Activated add-ons and lifecycle states are restored from the authoritative query after filtering, including continuation refresh and query failure.",
@@ -253,6 +353,29 @@
   ],
   "boundary_inventory": [
     {
+      "area": "agent_runtime_result",
+      "status": "hooked",
+      "owner": "AgentCompositionService",
+      "extension_points": ["opus.agent.runtime.result"],
+      "rationale": "Observe bounded operation outcomes while runtime state, identity, effects, authorization and recovery remain service-owned."
+    },
+    {
+      "area": "command_result",
+      "status": "hooked",
+      "owner": "CommandHost",
+      "extension_points": ["opus.command.result"],
+      "rationale": "Observe a bounded summary after presentation while command authority, result contents and continuation consumption remain service-owned."
+    },
+    {
+      "area": "addon_boot",
+      "status": "hooked",
+      "owner": "BootAddOnManager",
+      "extension_points": [
+        "opus.addon.boot.result"
+      ],
+      "rationale": "Observe sanitized terminal canonical registration results after host policy and effects are settled. Lifecycle mutation, recovery and authoritative state remain service-owned."
+    },
+    {
       "area": "addon_organization",
       "status": "hooked",
       "owner": "AddOnOrganizationService",
@@ -276,7 +399,7 @@
       "status": "stronger_abstraction",
       "owner": "BlueCore add-on lifecycle contracts and Opus readiness services",
       "extension_points": [],
-      "rationale": "Discovery, validation, registration, activation, and removal remain behind lifecycle services, state validation, idempotency, and approval gates."
+      "rationale": "Discovery, validation, registration mutation, activation, and removal remain behind lifecycle services, state validation, idempotency, and approval gates. Canonical boot-result observation is catalogued separately."
     },
     {
       "area": "agent_wise_runtime",

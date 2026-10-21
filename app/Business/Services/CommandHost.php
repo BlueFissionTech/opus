@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Business\Services;
@@ -7,6 +6,8 @@ namespace App\Business\Services;
 use App\Business\Presentation\CommandResultPresenter;
 use App\Domain\Activity\ActivityEvent;
 use App\Domain\Console\CommandPresentation;
+use BlueFission\Arr;
+use BlueFission\DevElation;
 use BlueFission\Services\Service;
 use BlueFission\Wise\Cmd\Command;
 use BlueFission\Wise\Cmd\CommandRequest;
@@ -16,6 +17,7 @@ use Throwable;
 final class CommandHost extends Service
 {
     private ?CommandActivityService $activity;
+    private static bool $observingResult = false;
 
     public function __construct(
         private ICommandProcessor $processor,
@@ -32,24 +34,32 @@ final class CommandHost extends Service
 
     public function process(CommandRequest|Command|array|string $request): CommandPresentation
     {
+        if (self::$observingResult) {
+            return new CommandPresentation(
+                'failed', null, 'Commands cannot execute from result observers.', '', false, 1,
+                ['command_result_observer_reentry_denied'], 'command_result_observer_reentry_denied',
+                ['effects' => 'none'], null
+            );
+        }
         $receipt = null;
         try {
             $request = $request instanceof CommandRequest ? $request : new CommandRequest($request);
             $receipt = $this->activity?->begin($request);
         } catch (Throwable) {
-            return CommandPresentation::hostFailure($this->activity === null ? 'processing' : 'activity_start');
+            return $this->observe(CommandPresentation::hostFailure(
+                $this->activity === null ? 'processing' : 'activity_start'), 'processing_failed');
         }
         try {
             $result = $this->processor->process($request);
         } catch (Throwable) {
-            return $this->record($receipt, CommandPresentation::hostFailure('processing'));
+            return $this->observe($this->record($receipt, CommandPresentation::hostFailure('processing')), 'processing_failed');
         }
         try {
             $presentation = $this->presenter->present($result);
         } catch (Throwable) {
-            $presentation = CommandPresentation::hostFailure('presentation');
+            return $this->observe($this->record($receipt, CommandPresentation::hostFailure('presentation')), 'presentation_failed');
         }
-        return $this->record($receipt, $presentation);
+        return $this->observe($this->record($receipt, $presentation), 'presented');
     }
 
     public function history(array $context, int $after = 0, int $limit = 100, ?string $correlation = null): array
@@ -65,9 +75,7 @@ final class CommandHost extends Service
         try {
             if ($receipt !== null) {
                 $recorded = $this->activity?->finish($receipt, $result);
-                if ($recorded !== null) {
-                    return $result->withActivityReceipt($recorded);
-                }
+                if ($recorded !== null) { return $result->withActivityReceipt($recorded); }
             }
             return $result;
         } catch (Throwable) {
@@ -81,11 +89,27 @@ final class CommandHost extends Service
         return $this->process(new CommandRequest($input, context: $context));
     }
 
-    public function resume(
-        string $continuationToken,
-        bool $approved,
-        array $context = []
-    ): CommandPresentation {
+    public function resume(string $continuationToken, bool $approved, array $context = []): CommandPresentation
+    {
         return $this->process(CommandRequest::resume($continuationToken, $approved, $context));
+    }
+
+    private function observe(CommandPresentation $result, string $phase): CommandPresentation
+    {
+        self::$observingResult = true;
+        try {
+            $status = $result->status();
+            DevElation::do(ExtensionPointCatalog::COMMAND_RESULT, [[
+                'version' => 1,
+                'status' => Arr::has(['completed', 'parsed', 'confirmation_required', 'invalid', 'failed'], $status, true)
+                    ? $status : 'unknown',
+                'confirmation_required' => $result->confirmationRequired(),
+                'host_failure' => $result->failedAtHost(),
+                'phase' => $phase,
+            ]]);
+        } catch (Throwable) {
+            // Observation cannot replace a settled result or replay an operation.
+        } finally { self::$observingResult = false; }
+        return $result;
     }
 }

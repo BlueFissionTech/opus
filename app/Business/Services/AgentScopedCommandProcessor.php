@@ -168,11 +168,6 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
         $token = (string) $request->continuationToken();
         $continuation = Arr::make((array) $this->continuations->get($token));
         $tool = $continuation->get('tool');
-        $profileDecision = Str::is($tool)
-            ? $this->profileDecision((string) $tool, $resolved, $context)
-            : null;
-        $metadata = Arr::merge($metadata, $this->profileMetadata($profileDecision));
-        $targetProfile = $profileDecision?->metadata()['target_profile'] ?? null;
         $scopeMismatch = $continuation->isEmpty()
             || !$this->hasActorScope($continuation->get('actor'))
             || !$this->hasActorScope($context->get('actor'))
@@ -180,26 +175,23 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             || $continuation->get('tenant_id') !== $resolved->tenantId()
             || $this->actorIdentity($continuation->get('actor'))
                 !== $this->actorIdentity($context->get('actor'))
-            || ($profileDecision instanceof ProfileAccessDecision
-                && $continuation->get('wise_profile') !== $targetProfile)
             || !Str::is($tool);
-        $capabilityRevoked = $request->approved() !== false
-            && Str::is($tool)
-            && (!$resolved->allows((string) $tool)
-                || ($profileDecision instanceof ProfileAccessDecision && !$profileDecision->allowed()));
-        if ($scopeMismatch || $capabilityRevoked) {
-            return CommandResult::invalid(
-                'Command continuation is unavailable to this agent.',
-                ['agent_continuation_denied'],
-                Arr::merge($metadata, [
-                    'agent_tool' => $tool,
-                    'agent_decision' => 'deny',
-                    'agent_reason' => 'continuation_scope_mismatch',
-                    'agent_result_status' => CommandResult::INVALID,
-                ])
-            );
+        if ($scopeMismatch) {
+            return $this->continuationDenied($metadata);
         }
 
+        $profileDecision = $this->profileDecision((string) $tool, $resolved, $context);
+        $targetProfile = $profileDecision?->metadata()['target_profile'] ?? null;
+        $profileMismatch = $profileDecision instanceof ProfileAccessDecision
+            && $continuation->get('wise_profile') !== $targetProfile;
+        $capabilityRevoked = $request->approved() !== false
+            && (!$resolved->allows((string) $tool)
+                || ($profileDecision instanceof ProfileAccessDecision && !$profileDecision->allowed()));
+        if ($profileMismatch || $capabilityRevoked) {
+            return $this->continuationDenied($metadata);
+        }
+
+        $metadata = Arr::merge($metadata, $this->profileMetadata($profileDecision));
         $this->continuations->delete($token);
 
         $result = $this->processor->process($request);
@@ -211,6 +203,19 @@ final class AgentScopedCommandProcessor implements ICommandProcessor
             'agent_reason' => $rejected ? 'continuation_rejected' : 'continuation_granted',
             'agent_result_status' => $result->status(),
         ]));
+    }
+
+    private function continuationDenied(array $metadata): CommandResult
+    {
+        return CommandResult::invalid(
+            'Command continuation is unavailable to this agent.',
+            ['agent_continuation_denied'],
+            Arr::merge($metadata, [
+                'agent_decision' => 'deny',
+                'agent_reason' => 'continuation_scope_mismatch',
+                'agent_result_status' => CommandResult::INVALID,
+            ])
+        );
     }
 
     private function hasActorScope(mixed $actor): bool

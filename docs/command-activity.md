@@ -1,5 +1,7 @@
 # Command activity
 
+The current SQLite adapter is retained for conformance testing and is not ready for promotion. Its direct statements must move behind native Scaffold/BlueCore models, queries and repositories (or a qualified Chronicler journal), preserving atomic scoped sequence allocation and truthful persistence failures. Do not replace the atomic append with a read-then-write counter. The interface and existing tests remain the acceptance boundary for that correction.
+
 The opt-in command activity service records a versioned, durable receipt around
 the shared command host. It does not parse or execute commands itself. Wise and
 the existing host policy remain responsible for authorization, confirmations,
@@ -48,10 +50,7 @@ $history = $host->history($authenticatedContext, after: 0, limit: 100,
 
 The delta extends BlueCore `Delta` and declares columns with DevElation
 `SQLiteStructure`. It executes that scaffold and its compound indexes against the
-explicitly bound SQLite connection in one transaction. The installed static
-`SQLiteScaffold` selects a default connection and does not propagate failure;
-using its structure builder with the injected connection preserves isolation and
-observable failure. Schema creation is removed from `SQLiteActivityStore`.
+explicitly bound SQLite connection in one transaction. The locked SQLiteScaffold now accepts an injected connection and exposes status through that connection. Adopting it here still requires preserving the combined table/index transaction and explicit failure propagation. Schema creation is removed from `SQLiteActivityStore`.
 
 Run this optional directory through the existing BlueCore `DatasourceManager`
 installation flow. Bind the same opened `$link` to the delta before discovery:
@@ -77,9 +76,9 @@ and readers; the existing `revertMigrations()` flow invokes `revert()`, which
 rollback. A failed change rolls back table and index creation together.
 
 `CommandHost` and `CommandActivityService` initialize DevElation `Service`.
-`ActivityEvent` initializes `Obj` for behavioral integration and exposes the
+`ActivityEvent` uses DevElation v1.3.47 native immutable `Obj` support and exposes the
 closed receipt through `field()`, property reads, `data()` and `toArray()`.
-Receipt fields remain immutable across generic assignment, clearing and field
+`data()` returns a detached `Arr`; use `toArray()` for the native envelope. Field writes, assignment, clearing, unset and legacy unserialize delegate to Obj rather than local rejection overrides. Validated PHP serialization retains the closed envelope. Receipt fields remain immutable across generic assignment, clearing and field
 writes; use validated `fromArray()` to reconstruct a record. Behavioral metadata
 never becomes a persisted receipt field.
 
@@ -114,7 +113,7 @@ retry. A database lock fails closed. Operators must arrange backup, capacity,
 connection timeout and filesystem permissions; this adapter is for a
 single installation with a local SQLite database, not a shared network filesystem
 or a distributed cluster. `IActivityStore` is the replaceable persistence boundary.
-There are no mutable record filters or public observer hooks in this increment.
+There are no mutable record filters. The shared opus.command.result hook runs after receipt recording and retains its bounded status-only schema. Receipt IDs, scope and payload never enter observer data. Observer reentry is denied before either recording a request or executing it.
 There is no deletion API. Manual pruning can invalidate sequence cursors and
 approval links; a retention rotation must reset clients' cursors explicitly until
 a supported retention/checkpoint contract exists.

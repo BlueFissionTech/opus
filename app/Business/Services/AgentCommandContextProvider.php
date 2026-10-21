@@ -81,14 +81,11 @@ final class AgentCommandContextProvider
         }
         $requestedTenantId = Str::isNotEmpty((string) $tenantId) ? $tenantId : null;
         $filteredTenantId = $filtered->get('tenant_id');
-        if ((!Str::isNull($filteredTenantId)
-                && (!Str::is($filteredTenantId)
-                    || Str::isEmpty(Str::make((string) $filteredTenantId)->trim()->val())))
-            || (!Str::isNull($requestedTenantId) && $filteredTenantId !== $requestedTenantId)
-        ) {
+        // A null host scope is authoritative too; filters cannot select membership.
+        if ($filteredTenantId !== $requestedTenantId) {
             return $context->toArray();
         }
-        $effectiveTenantId = $requestedTenantId ?? $filteredTenantId;
+        $effectiveTenantId = $requestedTenantId;
 
         $profile = Arr::make((array) $filtered->get('wise_profile'));
         if (Str::isNotEmpty($actorId)

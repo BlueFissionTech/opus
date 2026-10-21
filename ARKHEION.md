@@ -36,10 +36,13 @@ are not release evidence by themselves.
 Snapshot: Opus `17cc2a1`, 2026-08-22. A lock or capability change must refresh
 this table before release.
 
+Package source references refreshed from the Composer-update lock on 2026-10-20.
+This refresh does not promote maturity or establish new runtime qualification.
+
 | Capability | Current source | Maturity | Source-of-truth and duplicate status | Current disposition |
 | --- | --- | --- | --- | --- |
-| Hoom | `bluefission/opus-addon-hoom` at `98db9a8` | evolving | Composer package is authoritative. Runtime directories named `hoom` and `opus-addon-hoom` represent the same metadata identity; coexistence blocks release readiness until one migration path is selected. | Remain a package-owned add-on. Identity and access semantics stay with Hoom and Presence. |
-| Kapsle | `bluefission/opus-addon-kapsle` at `4e39482` | experimental | Composer package is authoritative. Runtime directories named `kapsle` and `opus-addon-kapsle` represent the same metadata identity; coexistence and unresolved autoload diagnostics block release readiness. | Remain a package-owned add-on. Tenancy protocol semantics stay with Kapsle and Annex. |
+| Hoom | `bluefission/opus-addon-hoom` at `58fc782` | evolving | Composer package is authoritative. Runtime directories named `hoom` and `opus-addon-hoom` represent the same metadata identity; coexistence blocks release readiness until one migration path is selected. | Remain a package-owned add-on. Identity and access semantics stay with Hoom and Presence. |
+| Kapsle | `bluefission/opus-addon-kapsle` at `d3c687c` | experimental | Composer package is authoritative. Runtime directories named `kapsle` and `opus-addon-kapsle` represent the same metadata identity; coexistence and unresolved autoload diagnostics block release readiness. | Remain a package-owned add-on. Tenancy protocol semantics stay with Kapsle and Annex. |
 | Aimos | runtime installation only | unknown | No versioned Opus source or declared add-on package establishes a release contract. | Keep application-local until package ownership, tests, and lifecycle proof exist. |
 | BasicContact | runtime installation only | unknown | No versioned Opus source or declared add-on package establishes a release contract. | Keep application-local; do not infer a messaging service contract. |
 | Cogito | runtime installation only | unknown | No versioned Opus source or declared add-on package establishes a release contract. | Keep application-local until provider-neutral agent contracts are package-owned. |
