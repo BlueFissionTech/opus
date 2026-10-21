@@ -6,7 +6,6 @@ namespace App\Business\Services;
 
 use BlueFission\Arr;
 use BlueFission\BlueCore\Domain\AddOn\AddOn;
-use BlueFission\Utils\File;
 use RuntimeException;
 
 final class SelectedAddOnManager extends BootAddOnManager
@@ -24,12 +23,15 @@ final class SelectedAddOnManager extends BootAddOnManager
         // Validate the whole selection before running any selected entrypoint.
         foreach ($names as $name) {
             $addon = $selected->get($name);
-            if (!$addon instanceof AddOn || !(new File())->exists($addon->path . DIRECTORY_SEPARATOR . $addon->primary_file)) {
+            if (!$addon instanceof AddOn || ($this->resolvePrimaryFile($addon)['ok'] ?? false) !== true) {
                 throw new RuntimeException('selected_addon_unavailable');
             }
         }
         foreach (Arr::make($names)->unique() as $name) {
-            $this->loadAddOn($selected->get($name));
+            $result = $this->loadAddOn($selected->get($name));
+            if (($result['ok'] ?? false) !== true) {
+                throw new RuntimeException('selected_addon_unavailable');
+            }
         }
     }
 }

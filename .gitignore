@@ -1,8 +1,21 @@
+# Blue Fission Codex harness
+/docker/
+/scripts/
+/.codex/
+/AGENTS.md
+/AGENTS.behavior.md
+/harness.json
+/vendor/
+/.phpunit.cache/
+/.phpunit.result.cache
+/composer.phar
+.env
+/artifacts/
+/AGENTS.standards.md
+/TOOLS.md
+
 /node_modules
 # Local agent operating policy; repository standards remain tracked.
-/AGENTS.behavior.md
-/vendor
-/.env
 .DS_Store
 addons/*
 !addons/tributary/
@@ -16,10 +29,6 @@ storage/models/*
 storage/system/*
 /public/assets/*
 error.log
-
-# Local Compose orchestration; installation-specific and not distributed.
-/docker/compose.opus.yml
-/harness.json
 
 # Licensed private theme inputs and outputs, at every depth.
 **/[Ss][Nn][Oo][Ww]

@@ -31,23 +31,25 @@ class ComposerMetadataTest extends TestCase
         $required = $this->readJson($root . '/templates/composer/opus-root.json');
         $optional = $this->readJson($root . '/templates/composer/opus-root-optional-wise.json');
 
-        $this->assertArrayNotHasKey('bluefission/wise', $composer['require'] ?? []);
-        $this->assertSame('0.1.0-alpha.2', $composer['require-dev']['bluefission/wise'] ?? null);
-        $this->assertSame('0.1.0-alpha.3', $composer['require']['bluefission/presence'] ?? null);
-        $this->assertArrayHasKey('bluefission/wise', $composer['suggest'] ?? []);
-        $this->assertSame('0.1.0-alpha.2', $required['require']['bluefission/wise'] ?? null);
-        $this->assertArrayNotHasKey('bluefission/wise', $optional['require'] ?? []);
-        $this->assertArrayNotHasKey('bluefission/wise', $optional['repositories'] ?? []);
+        $this->assertSame('^0.1.0-alpha.3', $composer['require']['bluefission/wise'] ?? null);
+        $this->assertArrayNotHasKey('bluefission/wise', $composer['require-dev'] ?? []);
+        $this->assertSame('^0.1.0-alpha.3', $composer['require']['bluefission/presence'] ?? null);
+        $this->assertArrayNotHasKey('bluefission/wise', $composer['suggest'] ?? []);
+        foreach ([$required, $optional] as $profile) {
+            $this->assertSame($composer['require']['bluefission/wise'], $profile['require']['bluefission/wise'] ?? null);
+            $this->assertSame('vcs', $profile['repositories']['bluefission/wise']['type'] ?? null);
+            $this->assertSame('https://github.com/BlueFissionTech/wise', $profile['repositories']['bluefission/wise']['url'] ?? null);
+        }
     }
 
-    public function testWiseIsClassifiedAsDevelopmentOnlyInTheLock(): void
+    public function testWiseIsInstalledWithProductionDependencies(): void
     {
         $lock = $this->readJson(dirname(__DIR__, 2) . '/composer.lock');
         $packages = array_column($lock['packages'] ?? [], 'name');
         $developmentPackages = array_column($lock['packages-dev'] ?? [], 'name');
 
-        $this->assertNotContains('bluefission/wise', $packages);
-        $this->assertContains('bluefission/wise', $developmentPackages);
+        $this->assertContains('bluefission/wise', $packages);
+        $this->assertNotContains('bluefission/wise', $developmentPackages);
     }
 
     public function testWiseAndPresenceLocksUseReviewedAlphaReleases(): void
@@ -63,12 +65,12 @@ class ComposerMetadataTest extends TestCase
 
         $wise = $byName->get('bluefission/wise');
         $presence = $byName->get('bluefission/presence');
-        $wiseReference = 'e55c68fd690c529989ccce62c74f2fe62e00edef';
+        $wiseReference = 'ab4975fd85f8dff9d3f79337b4a3c6fab2e7f855';
         $presenceReference = '5c01dca824a2bccb2c899b59ab9587d21b715515';
 
         $this->assertInstanceOf(Arr::class, $wise);
         $this->assertInstanceOf(Arr::class, $presence);
-        $this->assertSame('v0.1.0-alpha.2', $wise->get('version'));
+        $this->assertSame('v0.1.0-alpha.3', $wise->get('version'));
         $this->assertSame($wiseReference, $wise->getPath('source.reference'));
         $this->assertSame($wiseReference, $wise->getPath('dist.reference'));
         $this->assertSame(

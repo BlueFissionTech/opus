@@ -23,10 +23,6 @@
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/synematic"
         },
-        "bluefission/annex-php-sdk": {
-            "type": "vcs",
-            "url": "https://github.com/BlueFissionTech/annex-php-sdk"
-        },
         "bluefission/jenerator": {
             "type": "vcs",
             "url": "https://github.com/BlueFissionTech/jenerator"
@@ -43,7 +39,7 @@
     "require": {
         "php": "^8.2",
         "bluefission/opus": "dev-main",
-        "bluefission/wise": "0.1.0-alpha.2"
+        "bluefission/wise": "^0.1.0-alpha.3"
     },
     "config": {
         "use-github-api": false,
