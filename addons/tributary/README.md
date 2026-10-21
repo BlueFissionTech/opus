@@ -14,7 +14,7 @@ permissions and creates no runtime. Source presence in `addons/` makes the
 definition discoverable; it does not install dependencies, register Composer
 autoloading, enroll governors, or activate the add-on.
 
-The package requires a compatible Opus host plus Wise. The source is tested
+The package requires a compatible Opus host, Wise and Synematic. The source is tested
 against this repository's composer.lock; its dev-main requirement is not an
 immutable release guarantee. Pin the reviewed Opus source when distributing a
 host. Composer metadata is supplied for future package installation; this sprint
@@ -38,16 +38,30 @@ $project = new Project('operations', 'app-id', 'tenant-id',
     ['report' => ['source' => 'coordinator', 'targets' => ['reporter'],
         'capabilities' => ['report.read'], 'input' => ['period' => 'current']]]
 );
-$tasks = new TaskService($composition, [$project]);
+$tasks = new TaskService($composition, [$project], $delegation);
 $processor = new TaskCommandProcessor($wiseProcessor, $tasks, $resolveTrustedContext);
 ```
 
-The injected composition, Wise processor and no-argument context resolver belong
+The injected composition, delegation service, Wise processor and no-argument context resolver belong
 to the host. The resolver must consult current authorization for every call and
 return an AgentRuntimeContext with application, tenant, actor, correlation and
 host-granted capabilities. Neither example IDs nor request metadata are identity.
+Resolve AgentDelegationService against the same AgentCompositionService supplied
+to TaskService. The optional fourth constructor argument is a no-argument factory
+returning a fresh Synematic Pipeline, allowing host-owned workflow observations.
+Tributary adds its steps and enforces zero retries. Factories must not reuse a
+pipeline. No dependency is installed or runtime activated by this composition.
 Wrap the processor with Opus's AgentScopedCommandProcessor when exposed to a
 governor so the governor's own tool policy is also enforced.
+
+For native Application integration, bind the constructor arguments with
+`bindArgs(..., TaskService::class)`, resolve the service, and delegate that
+instance with `delegate('tributary.tasks', $tasks)`. Register host actions against
+that delegate with `Application::register()` and forward their command input to
+the same processor. Registering the resolved instance gives callbacks the service
+scope. Every invocation still resolves current identity through the processor;
+an action name or an earlier successful call does not grant authority. The package
+tests exercise this real registration path and deny execution after a role change.
 
 Commands use the native Wise resource syntax:
 

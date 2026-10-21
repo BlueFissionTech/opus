@@ -23,6 +23,10 @@ use App\Domain\Agents\IAgentRuntimeFactory;
 use App\Domain\Agents\IAgentRuntimeStateSynchronizer;
 use BlueFission\Data\Storage\Storage;
 use BlueFission\DevElation;
+use BlueFission\Behavioral\Behaviors\Action;
+use BlueFission\Behavioral\Behaviors\Behavior;
+use BlueFission\Services\Application;
+use BlueFission\Synematic\Workflow\Pipeline;
 use BlueFission\Wise\Cmd\CommandProcessor;
 use BlueFission\Wise\Cmd\CommandRequest;
 use BlueFission\Wise\Cmd\CommandResult;
@@ -81,6 +85,115 @@ final class TaskServiceTest extends TestCase
     }
 
     public static function teamSizes(): array { return [[1], [2]]; }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testNativeApplicationRegistrationKeepsInjectedWorkflowAndFreshCommandAuthority(): void
+    {
+        [, $composition] = $this->fixture();
+        $workflows = 0;
+        $application = new Application(['name' => 'tributary-registration']);
+        $application->bindArgs([
+            'agents' => $composition,
+            'projects' => [$this->project()],
+            'delegation' => new AgentDelegationService($composition),
+            'workflowFactory' => function () use (&$workflows): Pipeline {
+                ++$workflows;
+                return new Pipeline(0);
+            },
+        ], TaskService::class);
+        $service = $application->resolve(TaskService::class);
+        $storage = new Storage();
+        (new \ReflectionProperty(Storage::class, '_source'))->setValue($storage, []);
+        $commands = new TaskCommandProcessor(new CommandProcessor($storage), $service, fn () => $this->current);
+        $application->delegate('tributary.tasks', $service);
+        $results = [];
+        $receivers = [];
+        $application->register('tributary.tasks', new Action('DoTributaryTask'),
+            function (Behavior $behavior, array $arguments) use ($commands, &$results, &$receivers): void {
+                $receivers[] = $this;
+                $results[] = $commands->process($arguments[0]);
+            });
+
+        $application->perform('DoTributaryTask', 'do tributary-task "operations" "report"');
+        $this->current = $this->context(actor: 'viewer');
+        $application->perform('DoTributaryTask', 'do tributary-task "operations" "report"');
+
+        self::assertSame([$service, $service], $receivers);
+        self::assertSame(CommandResult::COMPLETED, $results[0]->status());
+        self::assertSame(CommandResult::FAILED, $results[1]->status());
+        self::assertNull($results[1]->output());
+        self::assertSame(1, $workflows);
+        self::assertCount(2, $this->executions);
+    }
+
+    public function testNativeWorkflowIsFreshAndDoesNotExposeAssignmentData(): void
+    {
+        $pipelines = [];
+        $observations = [];
+        [$processor] = $this->fixture(workflowFactory: function () use (&$pipelines, &$observations): Pipeline {
+            $pipeline = new Pipeline(0);
+            $pipeline->on('after', function ($step, $value) use (&$observations): void {
+                $observations[] = [$step, $value];
+            });
+            $pipelines[] = $pipeline;
+            return $pipeline;
+        });
+        for ($i = 0; $i < 2; ++$i) {
+            self::assertSame(CommandResult::COMPLETED, $processor->process('do tributary-task "operations" "report"')->status());
+        }
+        self::assertCount(4, $this->executions);
+        self::assertCount(2, $pipelines);
+        self::assertNotSame($pipelines[0], $pipelines[1]);
+        self::assertSame([
+            ['delegate', 'delegated'], ['observe', 'observed'],
+            ['delegate', 'delegated'], ['observe', 'observed'],
+        ], $observations);
+        foreach ($pipelines as $pipeline) {
+            self::assertSame(['delegate', 'observe'], array_column($pipeline->telemetry(), 'step'));
+            self::assertSame([1, 1], array_column($pipeline->telemetry(), 'attempts'));
+            self::assertSame([[], []], array_column($pipeline->telemetry(), 'context'));
+        }
+    }
+
+    public function testWorkflowFailureBeforeDelegationDoesNotStartAgents(): void
+    {
+        [$processor] = $this->fixture(workflowFactory: function (): Pipeline {
+            $pipeline = new Pipeline(0);
+            $pipeline->on('before', fn () => throw new \RuntimeException('private workflow failure'));
+            return $pipeline;
+        });
+        $result = $processor->process('do tributary-task "operations" "report"');
+        self::assertSame(CommandResult::FAILED, $result->status());
+        self::assertSame([], $this->executions);
+        self::assertFalse($result->output()['operation_started']);
+        self::assertSame('none', $result->output()['effects']);
+    }
+
+    public function testWorkflowFailureAfterDelegationPreservesResultWithoutReplay(): void
+    {
+        [$processor] = $this->fixture(workflowFactory: function (): Pipeline {
+            $pipeline = new Pipeline(0);
+            $pipeline->on('after', fn () => throw new \RuntimeException('private workflow failure'));
+            return $pipeline;
+        });
+        $result = $processor->process('do tributary-task "operations" "report"');
+        self::assertSame(CommandResult::COMPLETED, $result->status());
+        self::assertCount(2, $this->executions);
+        self::assertCount(2, $result->output()['worker_results']);
+        self::assertSame(['status' => 'failed', 'diagnostics' => ['tributary_workflow_failed']], $result->output()['workflow']);
+    }
+
+    public function testReusedWorkflowIsRejectedBeforeAnotherExecution(): void
+    {
+        $pipeline = new Pipeline(0);
+        [$processor] = $this->fixture(workflowFactory: fn (): Pipeline => $pipeline);
+        self::assertSame(CommandResult::COMPLETED, $processor->process('do tributary-task "operations" "report"')->status());
+        self::assertSame(CommandResult::FAILED, $processor->process('do tributary-task "operations" "report"')->status());
+        self::assertCount(2, $this->executions);
+    }
 
     public function testStructuredAndTextCommandsHaveSameAuthorityAndResult(): void
     {
@@ -240,12 +353,12 @@ final class TaskServiceTest extends TestCase
         $record['profiles']['worker1']['profile'] = 'unreviewed.profile';
         $project = new Project($record['id'], $record['application_id'], $record['tenant_id'],
             $record['profiles'], $record['roles'], $record['members'], $record['tasks']);
-        $service = new TaskService($composition, [$project]);
+        $service = new TaskService($composition, [$project], new AgentDelegationService($composition));
         self::assertSame('denied', $service->run('operations', 'report', $this->current)['status']);
         self::assertSame([], $this->executions);
     }
 
-    private function fixture(int $workers = 1, bool $start = true): array
+    private function fixture(int $workers = 1, bool $start = true, ?\Closure $workflowFactory = null): array
     {
         $this->current = $this->context();
         $principal = new AgentCapabilityMap(1, 'application', ['principal' => [
@@ -281,7 +394,7 @@ final class TaskServiceTest extends TestCase
             ]]));
         }
         if ($start) { foreach ($ids as $id) { self::assertTrue($composition->start($id, $this->current)->ok()); } }
-        $service = new TaskService($composition, [$this->project($workers)]);
+        $service = new TaskService($composition, [$this->project($workers)], new AgentDelegationService($composition), $workflowFactory);
         $storage = new Storage();
         (new \ReflectionProperty(Storage::class, '_source'))->setValue($storage, []);
         $processor = new TaskCommandProcessor(new CommandProcessor($storage), $service, function (): ?AgentRuntimeContext {

@@ -8,7 +8,8 @@
     "bluefission/bluecore": "^0.1.1@alpha",
     "bluefission/develation": "^1.3.41",
     "bluefission/opus": "dev-main",
-    "bluefission/wise": "0.1.0-alpha.2"
+    "bluefission/wise": "0.1.0-alpha.2",
+    "bluefission/synematic": "dev-main"
   },
   "require-dev": {
     "phpunit/phpunit": "^9.6"

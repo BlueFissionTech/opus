@@ -14,19 +14,22 @@ use BlueFission\Arr;
 use BlueFission\DevElation;
 use BlueFission\Services\Service;
 use BlueFission\Str;
+use BlueFission\Synematic\Workflow\Pipeline;
+use Closure;
 use InvalidArgumentException;
 use Throwable;
 
-final class TaskService extends Service
+class TaskService extends Service
 {
     private array $projects = [];
     private static bool $executing = false;
-    private AgentDelegationService $delegation;
+    private Closure $workflowFactory;
 
-    public function __construct(private AgentCompositionService $agents, array $projects)
+    public function __construct(private AgentCompositionService $agents, array $projects,
+        private AgentDelegationService $delegation, ?Closure $workflowFactory = null)
     {
         parent::__construct();
-        $this->delegation = new AgentDelegationService($agents);
+        $this->workflowFactory = $workflowFactory ?? static fn (): Pipeline => new Pipeline(0);
         foreach ($projects as $project) {
             if (!$project instanceof Project) { throw new InvalidArgumentException('Expected a project record.'); }
             $key = $this->key($project->applicationId, $project->tenantId, $project->id);
@@ -65,6 +68,7 @@ final class TaskService extends Service
         }
         self::$executing = true;
         $started = false;
+        $result = null;
         try {
             $request = new DelegationRequest($project->applicationId, $project->tenantId, $project->id,
                 $taskId, Arr::getPath($context->actor(), 'id'), $context->correlationId(),
@@ -80,14 +84,33 @@ final class TaskService extends Service
                 $request->correlationId, new AgentApplicationScope($request->applicationId));
             $receipt = $request->toArray();
             unset($receipt['input']);
-            $started = true;
-            $result = $this->delegation->delegate($request->sourceAgent, $request->targetAgents,
-                ['assignment' => $receipt, 'input' => $input], $bounded)->toArray();
-            $result['assignment'] = $receipt;
-            try { DevElation::do('tributary.task.result', [['version' => 1, 'status' => $result['status']]]); }
-            catch (Throwable) { /* Observation cannot change the execution result or cause replay. */ }
+            $workflow = ($this->workflowFactory)();
+            if (!$workflow instanceof Pipeline || $workflow->steps->count() !== 0) {
+                throw new InvalidArgumentException('A fresh Synematic pipeline is required.');
+            }
+            $workflow->retry_limit = 0;
+            $workflow->context([]);
+            // Authority and private results stay out of filterable workflow values.
+            $workflow->addStep(function () use ($request, $receipt, $input, $bounded, &$started, &$result): string {
+                if ($started) { throw new InvalidArgumentException('Task replay is not supported.'); }
+                $started = true;
+                $result = $this->delegation->delegate($request->sourceAgent, $request->targetAgents,
+                    ['assignment' => $receipt, 'input' => $input], $bounded)->toArray();
+                $result['assignment'] = $receipt;
+                return 'delegated';
+            }, 'delegate');
+            $workflow->addStep(function () use (&$result): string {
+                try { DevElation::do('tributary.task.result', [['version' => 1, 'status' => $result['status']]]); }
+                catch (Throwable) { /* Observation cannot change the execution result or cause replay. */ }
+                return 'observed';
+            }, 'observe');
+            $workflow->run(null);
             return $result;
         } catch (Throwable) {
+            if ($result !== null) {
+                $result['workflow'] = ['status' => 'failed', 'diagnostics' => ['tributary_workflow_failed']];
+                return $result;
+            }
             return ['ok' => false, 'status' => 'failed', 'output' => null,
                 'diagnostics' => ['tributary_task_failed'], 'operation_started' => $started,
                 'effects' => $started ? 'unknown' : 'none'];

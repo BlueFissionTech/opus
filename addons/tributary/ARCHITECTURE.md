@@ -10,12 +10,29 @@ parser for text and structured commands, and a no-argument host callback for fre
 `AgentRuntimeContext`. Request metadata is never supplied to that callback.
 Unrelated commands and continuations remain with the wrapped processor.
 
-Execution enters `AgentDelegationService`, then actual Automata orchestration,
+`TaskService` retains native DevElation Service initialization and delegation.
+Hosts bind collaborators through Application, resolve the service, then delegate
+the instance so registered callbacks run in its scope. Native host actions feed
+the existing command processor; they do not create a second authorization path.
+Registration tests cover constructor injection, callback scope, native action
+delivery and fresh role checks before a workflow can start.
+
+Execution uses Synematic's native `Pipeline` with delegation and observation
+steps, then the injected `AgentDelegationService` and actual Automata orchestration,
 then `AgentCompositionService` for each governor. Tributary does not create a
 provider, start a runtime, import a specialist's tool map or execute returned
 text. Result data is the existing delegation result plus a bounded assignment
-receipt. Core orchestration's worker diagnostics are retained; full per-runtime
-traces are not currently propagated by that core result contract.
+receipt. Core orchestration's worker diagnostics and supplied normalized metadata
+are retained; Tributary does not replace the core accounting contract.
+
+The host may supply a factory returning a fresh native Pipeline. Existing steps
+are rejected, context is empty and retries are disabled. Private task data,
+authority and results remain in the service's captured execution scope; pipeline
+values contain only phase markers and are never interpreted as authority.
+Failure before delegation reports no effects. Failure after delegation preserves
+the settled agent result and adds a bounded `workflow` failure diagnostic; it
+does not repeat the operation. These are synchronous workflow steps, not a local
+replacement for Synematic scheduling or Automata orchestration.
 
 The package owns two DevElation extension points:
 

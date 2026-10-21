@@ -24,6 +24,10 @@ authenticate a caller or confer host privileges.
 - Source and targets come from a validated assignment. Specialists retain their
   own capability maps, lifecycle and permission checks in Opus composition.
 - Text and structured commands share Wise parsing and the same service.
+- Synematic owns the execution workflow; Automata owns hierarchical orchestration.
+  The host supplies the delegation service and can configure a fresh native
+  workflow for each assignment. Workflow observations contain phase markers,
+  not authenticated context, task content or private agent results.
 - Deterministic execution uses the actual Automata hierarchical orchestrator.
   Results remain data, including failures and partial results; no automatic
   retry, result execution or speculative provider fallback is permitted.
