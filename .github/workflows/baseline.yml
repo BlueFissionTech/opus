@@ -36,12 +36,22 @@ jobs:
           OPUS_COMPOSER_TOKEN: ${{ secrets.OPUS_COMPOSER_TOKEN }}
         run: php -r "if (!getenv('OPUS_COMPOSER_TOKEN')) { fwrite(STDERR, 'Configure OPUS_COMPOSER_TOKEN with read access to the locked VCS repositories.' . PHP_EOL); exit(1); }"
       - name: Install locked VCS dependencies without application scripts
+        id: dependencies
         env:
           COMPOSER_AUTH: >-
             {"github-oauth":{"github.com":"${{ secrets.OPUS_COMPOSER_TOKEN }}"}}
         run: composer install --no-interaction --prefer-source --no-progress --no-scripts
       - name: Unit and runtime contract tests
         run: php vendor/phpunit/phpunit/phpunit --do-not-cache-result
+      - name: Generate standalone Kapsle authoritative autoload
+        id: kapsle-autoload
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: composer dump-autoload --working-dir=addons/kapsle --classmap-authoritative --strict-psr --strict-ambiguous --no-scripts --no-plugins --no-interaction
+      - name: Verify standalone Kapsle enum loading
+        if: ${{ !cancelled() && steps.kapsle-autoload.outcome == 'success' }}
+        env:
+          KAPSLE_AUTOLOAD: addons/kapsle/vendor/autoload.php
+        run: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/Business/Services/KapsleEnumAutoloadTest.php
 
   frontend:
     name: Frontend build configuration
