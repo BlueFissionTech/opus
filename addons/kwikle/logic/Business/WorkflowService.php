@@ -8,7 +8,7 @@ use BlueFission\Arr;
 use BlueFission\DevElation;
 use BlueFission\Services\Service;
 use BlueFission\Str;
-use BlueFission\Synematic\Workflow\Pipeline;
+use BlueFission\Synematic\Interop\Hub;
 use Closure;
 use InvalidArgumentException;
 use Throwable;
@@ -52,7 +52,8 @@ class WorkflowService extends Service
             'client_ref' => $workflow->action->connection->client,
             'capability_ref' => $workflow->action->connection->capability,
             'mapping' => 'subject -> capture.subject', 'max_attempts' => $workflow->retry->maxAttempts,
-            'approval_required' => true, 'receipt_scope' => 'service_instance'];
+            'approval_required' => true, 'receipt_scope' => 'service_instance',
+            'definition' => $workflow->graph()->toArray()];
     }
 
     public function dryRun(RunRequest $request, AgentRuntimeContext $context): RunResult
@@ -104,18 +105,24 @@ class WorkflowService extends Service
                 'result' => $result('running', 'unknown')];
             $settled = null;
             $started = false;
+            $triggered = false;
+            $finished = false;
             $mapped = null;
             try {
-                $pipeline = new Pipeline(0);
-                $pipeline->context([]);
-                $pipeline->addStep(function () use ($request, &$mapped): string {
+                $trigger = static function () use (&$triggered): string {
+                    if ($triggered) { throw new InvalidArgumentException('Trigger already consumed.'); }
+                    $triggered = true;
+                    return 'triggered';
+                };
+                $map = static function () use ($request, &$triggered, &$mapped, &$started): string {
+                    if (!$triggered || $started) { throw new InvalidArgumentException('Invalid workflow state.'); }
                     $mapped = $request->subject;
                     return 'mapped';
-                }, 'map');
-                $pipeline->addStep(function () use ($key, &$mapped, &$started, &$settled, $result, $approval): string {
+                };
+                $capture = function () use ($key, &$mapped, &$started, &$settled, $result, $approval): string {
                     if ($started || $mapped === null) { throw new InvalidArgumentException('Invalid workflow state.'); }
                     $started = true;
-                    // Do not expose connector exceptions, returned data or authority to Pipeline observers.
+                    // Native Node/Trail receive labels, never connector payloads or authority.
                     try {
                         $outcome = $this->connector->capture($key, $mapped);
                         if (($outcome['ok'] ?? null) === true && ($outcome['effects'] ?? null) === 'committed') {
@@ -131,12 +138,25 @@ class WorkflowService extends Service
                         } else { $settled = $result('uncertain', 'unknown'); }
                     } catch (Throwable) { $settled = $result('uncertain', 'unknown'); }
                     return 'attempted';
-                }, 'capture');
-                $pipeline->run(null);
+                };
+                $document = $workflow->graph();
+                $graph = $document->toGraph(static function (string $reference, string $kind) use ($trigger, $map, $capture, &$mapped): callable {
+                    return match ([$kind, $reference]) {
+                        ['node', 'fixture.created'] => $trigger,
+                        ['node', 'fixture.subject'] => $map,
+                        ['node', 'fixture.capture'] => $capture,
+                        ['condition', 'fixture.subject-present'] => static function () use (&$mapped): bool { return $mapped !== null && $mapped !== ''; },
+                        default => throw new InvalidArgumentException('Unavailable workflow resolver.'),
+                    };
+                });
+                $hub = new Hub();
+                $hub->addWorkflow('approved', $graph);
+                $hub->runWorkflow('approved', $document->entry(), null);
+                $finished = true;
             } catch (Throwable) {
                 // An observer failure after an effect cannot erase its receipt or permit replay.
             }
-            $settled ??= $result($started ? 'uncertain' : 'failed', $started ? 'unknown' : 'none');
+            $settled ??= $result($started ? 'uncertain' : ($finished ? 'skipped' : 'failed'), $started ? 'unknown' : 'none');
             $this->runs[$key]['result'] = $settled;
             try { DevElation::do('kwikle.run.result', [['version' => 1, 'status' => $settled->status, 'effects' => $settled->effects]]); }
             catch (Throwable) { /* Observation cannot change a settled receipt. */ }
@@ -147,8 +167,24 @@ class WorkflowService extends Service
 
     private function supported(Workflow $workflow): bool
     {
-        return $workflow->trigger->type === 'fixture.created' && $workflow->action->type === 'fixture.capture'
-            && $workflow->action->connection->client === 'fixture';
+        if ($workflow->trigger->type !== 'fixture.created' || $workflow->action->type !== 'fixture.capture'
+            || $workflow->action->connection->client !== 'fixture'
+            || $workflow->action->connection->capability !== 'fixture.capture') { return false; }
+        try {
+            $definition = $workflow->graph()->toArray();
+            if ($definition['mode'] !== 'first' || $definition['max_steps'] > 16
+                || Arr::size($definition['nodes']) > 16 || Arr::size($definition['edges']) > 32) { return false; }
+            $captures = 0;
+            foreach ($definition['nodes'] as $node) {
+                if (!Arr::has(['fixture.created', 'fixture.subject', 'fixture.capture'], $node['resolver'], true)) { return false; }
+                if ($node['resolver'] === 'fixture.capture') { $captures++; }
+            }
+            foreach ($definition['edges'] as $edge) {
+                if (!Arr::has(['', 'fixture.subject-present'], $edge['condition_ref'] ?? '', true)) { return false; }
+            }
+            // A native graph is not permission to multiply the approved fixture effect.
+            return $captures === 1;
+        } catch (Throwable) { return false; }
     }
 
     private function find(string $id, AgentRuntimeContext $context): ?Workflow

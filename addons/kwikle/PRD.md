@@ -1,11 +1,21 @@
 # Kwikle integration automation
 
-Kwikle composes triggers and actions for operators and specialist governors on
-the shared Opus command surface. Synematic owns sequencing; provider clients
-belong to SimpleClients and cross-system contracts belong to Annex.
+Kwikle is a workflow automation and integration service, comparable in purpose
+to Zapier: operators compose triggers, transformations, conditions and actions
+to move data between approved systems. Human operators and specialist governors
+use the shared Opus command surface under the same host authority rules.
+Synematic owns portable workflow documents, graph execution, branching and its
+interop primitives. Provider clients belong to SimpleClients and cross-system
+capability contracts belong to Annex. Kwikle must not recreate these engines.
+
+Native Synematic and Wise are required by Composer and the add-on library
+manifest, alongside DevElation and BlueCore. Provider-specific clients and Annex
+adapters are not installed or activated merely because future integrations need
+them. Missing released contracts remain explicit activation gates.
 
 The first source-package increment executes a fixture capture workflow through
-Synematic. Operators can list, validate, explain, dry-run, execute and inspect a
+Synematic GraphDocument/Graph/Hub, not a custom workflow schema or fixed Pipeline
+wrapper. Operators can list, validate, explain, dry-run, execute and inspect a
 run. Execution requires a host-owned approval bound to the exact request and
 authenticated application, tenant and actor. Parse and discovery never execute.
 

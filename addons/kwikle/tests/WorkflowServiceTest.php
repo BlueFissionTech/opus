@@ -9,12 +9,89 @@ use App\Domain\Agents\{AgentApplicationScope, AgentRuntimeContext};
 use BlueFission\Data\Storage\Storage;
 use BlueFission\DevElation;
 use BlueFission\Services\Application;
+use BlueFission\Synematic\Orchestration\GraphDocument;
 use BlueFission\Wise\Cmd\{CommandProcessor, CommandRequest, CommandResult};
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 class WorkflowServiceTest extends TestCase
 {
+    private function graph(array $changes = []): GraphDocument
+    {
+        return new GraphDocument(array_replace([
+            'id' => 'fixture.capture', 'entry' => 'received', 'max_steps' => 3,
+            'nodes' => [
+                ['id' => 'received', 'resolver' => 'fixture.created'],
+                ['id' => 'mapped', 'resolver' => 'fixture.subject'],
+                ['id' => 'stored', 'resolver' => 'fixture.capture'],
+            ],
+            'edges' => [
+                ['from' => ['node' => 'received'], 'to' => ['node' => 'mapped']],
+                ['from' => ['node' => 'mapped'], 'to' => ['node' => 'stored'],
+                    'condition_ref' => 'fixture.subject-present'],
+            ],
+        ], $changes));
+    }
+
+    private function graphWorkflow(GraphDocument $graph): Workflow
+    {
+        return new Workflow('capture', 'app', 'tenant', new Trigger(),
+            new Action(new ConnectionReference('local', 'fixture', 'fixture.capture')), graph: $graph);
+    }
+
+    public function testNativeGraphReferencesAndConditionsDriveExecution(): void
+    {
+        $workflow = $this->graphWorkflow($this->graph());
+        $connector = new FixtureConnector();
+        $service = new WorkflowService([$workflow], $connector,
+            static fn ($request) => new Approval($request, 'app', 'tenant', 'operator'));
+        self::assertSame($workflow->graph()->toArray(), $service->describe('capture', $this->context())['definition']);
+        // The native condition prevents capture for an empty subject.
+        self::assertSame('skipped', $service->run(new RunRequest('capture', 'empty', ''), $this->context())->status);
+        self::assertSame(0, $connector->count());
+        self::assertSame('completed', $service->run(new RunRequest('capture', 'full', 'subject'), $this->context())->status);
+        self::assertSame(1, $connector->count());
+    }
+
+    public function testNativeTopologyCannotSkipMappingAndExecuteAnEffect(): void
+    {
+        $workflow = $this->graphWorkflow($this->graph(['entry' => 'stored', 'edges' => []]));
+        $connector = new FixtureConnector();
+        $service = new WorkflowService([$workflow], $connector,
+            static fn ($request) => new Approval($request, 'app', 'tenant', 'operator'));
+        self::assertSame('failed', $service->run(new RunRequest('capture', 'event', 'subject'), $this->context())->status);
+        self::assertSame(0, $connector->count());
+    }
+
+    public function testWorkflowSnapshotsNativeDefinitionWithoutSharingMutableAuthority(): void
+    {
+        $document = $this->graph();
+        $workflow = $this->graphWorkflow($document);
+        $document->entry = 'stored';
+        $export = $workflow->graph();
+        $export->entry = 'stored';
+        self::assertSame('received', $workflow->graph()->entry());
+    }
+
+    public function testNativeSchemaRejectsInvalidTopology(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->graphWorkflow($this->graph(['entry' => 'missing']));
+    }
+
+    public function testUnreviewedResolverAndFanOutAreUnavailableBeforeApproval(): void
+    {
+        foreach ([['mode' => 'all'], ['nodes' => [['id' => 'received', 'resolver' => 'shell.exec']], 'edges' => []]] as $changes) {
+            $workflow = $this->graphWorkflow($this->graph($changes));
+            $connector = new FixtureConnector();
+            $reviews = 0;
+            $service = new WorkflowService([$workflow], $connector, static function () use (&$reviews) { $reviews++; });
+            self::assertSame('unavailable', $service->run(new RunRequest('capture', 'event', 'subject'), $this->context())->status);
+            self::assertSame(0, $reviews);
+            self::assertSame(0, $connector->count());
+        }
+    }
+
     private function context(string $tenant = 'tenant', string $actor = 'operator', array $caps = ['kwikle.read', 'kwikle.execute']): AgentRuntimeContext
     {
         return new AgentRuntimeContext($tenant, ['id' => $actor], ['kwikle'], ['kwikle' => 'active'],
