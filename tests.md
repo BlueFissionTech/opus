@@ -474,6 +474,20 @@ repository reads/writes, and verify guard recovery after successful and throwing
 observers. Run the complete PHPUnit suite before release. No provider, database
 service, credentials or dependency changes are required for this contract.
 
+# Published application endpoint qualification
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/ApplicationEndpointVerifierTest.php`.
+The tests require ext-curl for native transport cases and use disposable loopback
+HTTP fixtures. They cover exact endpoint paths, healthy contracts, redirects,
+false-success HTML/JSON, unavailable readiness, wrong profiles, bounded response
+size, connection failure, input rejection and redacted CLI bootstrap failure.
+Real CLI subprocesses also verify both supported profiles and nonzero exits for
+wrong-profile and unavailable-readiness responses; a passing HTTP request alone
+cannot make the command succeed.
+They do not start containers, install dependencies, use credentials or qualify a
+deployed application. Qualify an approved running origin separately using
+`php bin/verify-application.php http://localhost:8080 api`; nonzero means fail.
+
 # Command tenant-scope regressions
 
 Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AgentCommandContextLifecycleTest|AgentScopedProfileTest|AgentCapabilityMapTest|AgentScopedCommandProcessorTest'`.
