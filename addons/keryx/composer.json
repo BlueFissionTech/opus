@@ -1,0 +1,36 @@
+{
+  "name": "bluefission/opus-addon-keryx",
+  "description": "Keryx capability add-on for Opus.",
+  "type": "opus-addon",
+  "license": "proprietary",
+  "require": {
+    "php": "^8.2",
+    "ext-curl": "*",
+    "bluefission/bluecore": "^0.1.4-alpha",
+    "bluefission/develation": "^1.3.47",
+    "bluefission/simpleclients": "^0.1.1@alpha",
+    "bluefission/wise": "^0.1.0-alpha.3"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6 || ^11.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "AddOns\\Keryx\\": "logic/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "AddOns\\Keryx\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "installer-name": "keryx",
+    "opus-addon": true
+  },
+  "scripts": {
+    "test": "phpunit --do-not-cache-result"
+  },
+  "minimum-stability": "alpha",
+  "prefer-stable": true
+}
