@@ -12,6 +12,7 @@ use App\Business\Services\ConsultingGuidanceService;
 use App\Business\Services\UnavailableConsultingGuidance;
 use App\Domain\Guidance\ConsultingGuidanceInterface;
 use App\Business\Services\VibeThemeRenderer;
+use App\Business\Services\ApplicationIntakePromptRenderer;
 use App\Business\Services\ConversationalLearningCatalog;
 use App\Business\Services\LazyAgentCommandProcessor;
 use App\Business\Services\WiseProfilePolicyResolver;
@@ -93,6 +94,7 @@ class AppRegistration implements IExtension {
 		$this->delegate('datasource', DatasourceManager::class);
 		$this->delegate('template', $templateRenderer);
 		$this->delegate('vibe.theme', $templateRenderer);
+		$this->delegate('intake.prompt', $this->_app->resolve(ApplicationIntakePromptRenderer::class));
 		$this->delegate('wise.profile.policy', $profilePolicies);
 		$this->delegate('conversation.catalog', $conversationCatalog);
 		$this->delegate('guidance', $this->_app->resolve(ConsultingGuidanceService::class));

@@ -56,3 +56,10 @@ managed-service operations, or production readiness for optional providers.
 Those remain evidence-gated in the [roadmap](ROADMAP.md). Unit and contract
 tests live under [`tests`](tests); the [testing guide](tests.md) distinguishes
 clean-checkout checks from opt-in integration and release proofs.
+
+The native `intake.prompt` service composes the existing Vibe theme renderer with
+versioned package-owned questions. Intake state and persistence remain in the
+onboarding domain; only status and unanswered-field flags cross into the template
+runtime. Private values are not exposed through its global lifecycle signals.
+This adapter selects trusted template versions, not a new prompt language or
+execution engine. See [agentic onboarding](docs/agentic-onboarding.md).
