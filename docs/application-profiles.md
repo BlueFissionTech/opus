@@ -89,3 +89,32 @@ startup. Those release gates remain under issues #25, #20 and #31. Role, grant,
 tenant and membership administration also remain separate. Do not call the full
 profile release complete from loopback tests or schema availability alone.
 Local Compose files remain installation-owned rather than distributed here.
+
+## Published endpoint qualification
+
+After the approved local service profile starts, qualify its actual published
+origin with `php bin/verify-application.php http://localhost:8080 api` (or
+`dashboard` for that profile). Use a supported, security-qualified PHP runtime
+with ext-curl and the installed locked dependencies. This command does not
+install packages, start containers, modify configuration, or provision users.
+
+Exit zero requires HTTP 200, JSON media type and the exact typed public
+contracts at `/health`, `/ready` and `/api/info`. A redirect, HTML error page,
+wrong profile, connection failure or unavailable readiness is a failure. Requests
+use native DevElation Curl, bounded time/body limits, TLS verification, no
+redirect following and no automatic retries. Origins cannot contain credentials,
+paths, queries or fragments. Only request an operator-approved origin.
+
+The JSON receipt exposes check names, status codes and fixed reason codes, not
+response bodies, exception text or connection details. A receipt qualifies only
+these public endpoints at observation time. It does not prove authenticated
+dashboard behavior, tenant isolation, an add-on or governor, durable workflow
+recovery, image provenance, or production readiness. Do not report startup
+success from container state or a PHP-extension healthcheck alone.
+
+This is a qualification command, not a Compose launcher or an automatic startup
+gate. An installation's launcher must run it against the published origin after
+starting **or reusing** the stack and propagate any nonzero exit before reporting
+application readiness. The launcher must also reject missing required recipes;
+this command does not validate Compose files. Until that integration and the
+actual published origin have been verified, local startup remains unqualified.
