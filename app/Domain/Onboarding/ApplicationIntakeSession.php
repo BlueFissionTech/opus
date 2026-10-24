@@ -236,6 +236,17 @@ final class ApplicationIntakeSession
         return $this->status->val();
     }
 
+    public function promptVersion(): string
+    {
+        return $this->promptVersion->val();
+    }
+
+    /** @return list<string> */
+    public static function fields(): array
+    {
+        return self::FIELDS;
+    }
+
     public function revision(): int
     {
         return $this->revision;

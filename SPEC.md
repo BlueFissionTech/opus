@@ -722,3 +722,16 @@ unknown if any executed participant has unknown confidence. Evidence must not
 change selection, authorization, retry or execution count. The added usage,
 trace and request-scope fields must stay outside global observation payloads.
 See `docs/delegation-evidence.md`.
+
+# Versioned intake questions
+
+The optional intake question renderer consumes the stored prompt version and uses
+the package-owned Vibe template for that exact version. Only the project name is
+required; answered and explicitly skipped questions are not asked again. Paused
+and completed sessions require an explicit resume rather than silently restarting
+intake. Rendering never writes a session or starts planning, generation, a workflow,
+an installation or a provider. Unsupported versions fail without choosing another
+template. Private answers, defaults and identity must not enter Vibe source, variables,
+output or globally observable runtime signals. Clients retain their existing
+authorization before retrieving intake state. Native registration exposes the same
+read-only renderer to host consumers; no parallel prompt parser is introduced.

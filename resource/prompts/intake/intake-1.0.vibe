@@ -1,0 +1,55 @@
+Intake prompt 1.0
+
+Onboarding is optional. Only the project name is required.
+An answer, a default, a skipped field and an unanswered field are different states.
+Do not treat a default as an explicit answer. Ask only the questions shown below.
+Do not request credentials, secrets or private customer records.
+Completing intake does not authorize implementation, installation, provider access,
+workflow execution or code generation. Later plans begin in shadow/dry-run mode
+unless an authorized administrator has explicitly changed that platform policy.
+
+{#if var=status equals="new"}
+project_name: What is the project name?
+You may stop after naming the project and resume onboarding later.
+{/if}
+{#if var=status equals="paused"}
+Intake is paused. Explicitly resume before collecting more answers.
+Rendering these questions does not resume the session.
+{/if}
+{#if var=status equals="completed"}
+Intake is complete. Explicitly resume if you want to revise or add context.
+Completion is not approval to execute a plan.
+{/if}
+{#if var=status equals="in_progress"}
+You may skip any optional question or complete intake now.
+{#if var=ask_project_type equals=1}
+project_type: What kind of application are you building?
+{/if}
+{#if var=ask_industry equals=1}
+industry: Which industry or domain should the application serve?
+{/if}
+{#if var=ask_audience equals=1}
+audience: Who will use the application?
+{/if}
+{#if var=ask_description equals=1}
+description: What should the application help its users accomplish?
+{/if}
+{#if var=ask_specification equals=1}
+specification: Which requirements or constraints should a proposed plan respect?
+{/if}
+{#if var=ask_personality equals=1}
+personality: How should the application agent communicate?
+{/if}
+{#if var=ask_agent_name equals=1}
+agent_name: What display name should the application agent use?
+{/if}
+{#if var=ask_delivery_strategy equals=1}
+delivery_strategy: How would you like to review and stage proposed work?
+{/if}
+{#if var=ask_timeline equals=1}
+timeline: Are there milestones or dates the proposed plan should consider?
+{/if}
+{#if var=has_questions equals=0}
+No unanswered questions remain. You may complete intake or revise an answer.
+{/if}
+{/if}
