@@ -501,3 +501,15 @@ observer verifies that the added usage, trace and scope fields stay outside its
 global payload. See `docs/delegation-evidence.md` for nullable confidence and
 unknown-measurement migration semantics. Run the full suite before release.
 These fixtures do not qualify providers, durable accounting or billing totals.
+
+# Native identity bridge conformance
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/NativePresenceBridgeConformanceTest.php`.
+This calls the installed BlueCore bridge with immutable Presence contexts and
+requires typed denial for absent host authentication and unsupported hosts. Native
+envelope controls verify immutable scope and secret-redacted denial snapshots.
+No provider, credentials, session store, network or dependency install is used.
+The locked BlueCore 0.1.4-alpha / Presence 0.1.0-alpha.3 pair is incompatible:
+bridge cases remain red with `ArgumentCountError`; do not turn this into an
+expected-exception pass. See `docs/materia-bridge-conformance.md`. Run the full
+suite after an approved native repair before claiming host compatibility.

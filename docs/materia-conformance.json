@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "snapshot_id": "2026-10-24-native-identity-bridge",
+  "recorded_at": "2026-10-24T04:13:00Z",
+  "owning_issue": 107,
+  "status": "failed",
+  "coverage": "partial",
+  "scope": "offline negative native identity bridge conformance",
+  "application_base": "56d5b1184520c89cd3186cdaa63fd436621cd90c",
+  "composer_lock_line_endings": "LF",
+  "composer_lock_sha256": "9bd160f97af5ebe83330e20efb77ef45ff4020370e144359ae2e294b36f70bbd",
+  "direct_materia_packages": [
+    {
+      "package": "bluefission/automata",
+      "version": "v1.0.0-alpha.8",
+      "source_reference": "1941852c0625aaf8f6cfc47ac6b5823c9a2724da",
+      "status": "not_assessed"
+    },
+    {
+      "package": "bluefission/bluecore",
+      "version": "v0.1.4-alpha",
+      "source_reference": "99b1789d162adae71320762917802fae57bd1667",
+      "status": "failed"
+    },
+    {
+      "package": "bluefission/chronicler",
+      "version": "v0.1.2-alpha",
+      "source_reference": "450582e557a86cdf049e1bf6c324ac30d286c49e",
+      "status": "not_assessed"
+    },
+    {
+      "package": "bluefission/develation",
+      "version": "v1.3.47",
+      "source_reference": "4b9079b8b34010ddd5e0f92774ae9abafbe9ea77",
+      "status": "partial"
+    },
+    {
+      "package": "bluefission/opus-addon-hoom",
+      "version": "dev-main",
+      "source_reference": "58fc7824fe4f20f13fd583b67d10586bc99f5b28",
+      "status": "not_assessed"
+    },
+    {
+      "package": "bluefission/opus-addon-kapsle",
+      "version": "dev-main",
+      "source_reference": "d3c687c33c4667a9c48fdeb63d23e6b73a3268e2",
+      "status": "not_assessed"
+    },
+    {
+      "package": "bluefission/presence",
+      "version": "v0.1.0-alpha.3",
+      "source_reference": "5c01dca824a2bccb2c899b59ab9587d21b715515",
+      "status": "partial"
+    },
+    {
+      "package": "bluefission/simpleclients",
+      "version": "v0.1.1-alpha",
+      "source_reference": "9321728041b016e1e80eca6fcd4dff9e24e720ce",
+      "status": "not_assessed"
+    },
+    {
+      "package": "bluefission/synematic",
+      "version": "dev-main",
+      "source_reference": "daeab426a8d3065d4b187bf2e29ed97f1e38e46f",
+      "status": "not_assessed"
+    },
+    {
+      "package": "bluefission/synthetiq",
+      "version": "v0.1.0-alpha.1",
+      "source_reference": "666ac8f0585fc92f7a1f9de8405e0eba39d31198",
+      "status": "not_assessed"
+    },
+    {
+      "package": "bluefission/vibrato",
+      "version": "dev-main",
+      "source_reference": "0ac90afec37025a5eaf2dc69f56dbab99dc343ab",
+      "status": "not_assessed"
+    },
+    {
+      "package": "bluefission/wise",
+      "version": "v0.1.0-alpha.3",
+      "source_reference": "ab4975fd85f8dff9d3f79337b4a3c6fab2e7f855",
+      "status": "not_assessed"
+    }
+  ],
+  "validation": {
+    "command": "php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Unit/NativePresenceBridgeConformanceTest.php",
+    "php_version": "8.2.35",
+    "sapi": "cli",
+    "tests": 6,
+    "assertions": 41,
+    "errors": 2,
+    "passing_cases": [
+      "immutable context scope",
+      "immutable redacted denial envelope",
+      "snapshot exact direct locked graph",
+      "lock digest checkout line-ending portability"
+    ],
+    "failing_cases": [
+      "supported host without authentication",
+      "unsupported host"
+    ],
+    "error_type": "ArgumentCountError",
+    "factory_available": true,
+    "php_binary_sha256": "39a2f0bc882c7aaa4281f3598f2eee3c263b631b25d2da5e9dcdad92ed27a6e6"
+  },
+  "limitations": [
+    "metadata identities are not an installed-file integrity audit",
+    "native denial interoperability is failed",
+    "positive authentication is not tested",
+    "tenant revision expiry and revocation integration is not tested",
+    "application registration and middleware termination are not tested",
+    "other direct package capabilities are not assessed by this slice",
+    "clean consumer installation and deployment are not qualified",
+    "no release or integration enablement approval"
+  ]
+}
