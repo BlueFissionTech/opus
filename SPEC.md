@@ -722,3 +722,12 @@ unknown if any executed participant has unknown confidence. Evidence must not
 change selection, authorization, retry or execution count. The added usage,
 trace and request-scope fields must stay outside global observation payloads.
 See `docs/delegation-evidence.md`.
+
+# Native dependency conformance
+
+Dependency metadata and class availability do not prove interoperability. The
+native authentication bridge must return a typed denial for an unauthenticated
+immutable context, without treating identifiers as authority. Conformance tests
+must execute the real package boundary and remain failing when the locked pair
+cannot satisfy it. See `docs/materia-bridge-conformance.md`; this negative slice
+does not qualify positive authentication or the complete Materia graph.
