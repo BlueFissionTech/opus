@@ -722,3 +722,15 @@ unknown if any executed participant has unknown confidence. Evidence must not
 change selection, authorization, retry or execution count. The added usage,
 trace and request-scope fields must stay outside global observation payloads.
 See `docs/delegation-evidence.md`.
+
+# Lazy command runtime initialization isolation
+
+Lazy command factories and their ready/unavailable observers must not construct
+or execute nested command runtimes through this host adapter, including
+already-cached other instances.
+Nested calls return a stable non-observing denial. The preparation fence always
+releases after failure or success; an explicit later request can recover from a
+failed build, and normal command execution still delegates once. Construction
+failure must remain distinct from execution failure. Reuse Wise result contracts
+and DevElation notifications; do not introduce automatic retries or a second
+runtime engine. Wise remains an installed runtime requirement.

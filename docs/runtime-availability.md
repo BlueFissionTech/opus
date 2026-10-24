@@ -101,6 +101,26 @@ requires current authorization and claim checks. No automatic retry or replay is
 introduced. These exception guarantees currently cover `execute()`; other host
 operations and a durable manual-recovery interface remain separate work.
 
+## Lazy command runtime initialization
+
+`LazyAgentCommandProcessor` must keep construction lazy and separate preparation
+from execution. Its factory and ready/unavailable action observers cannot invoke
+nested lazy runtimes, even when another instance already has a cached processor.
+These calls return `invalid` with `agent_command_runtime_reentry_denied` and the
+host decision `deny`; they do not publish another availability notification.
+The process-local preparation fence releases before normal command delegation
+and after failed initialization. Later explicit requests can try initialization
+again; no automatic retry, queue, distributed lock or provider recovery is added.
+
+Ready and unavailable payloads retain their existing native DevElation contract.
+Observer exceptions cannot replace the settled construction outcome. Exceptions
+from actual command execution remain execution failures, not unavailable-runtime
+reports. Existing authorization/approval processing still owns execution policy.
+Lazy construction does not make the required Wise installation optional.
+This fence is not a sandbox for arbitrary PHP callbacks or direct access to an
+inner processor. Normal command execution may still delegate through another lazy
+runtime after preparation has finished; existing execution policy remains in force.
+
 ## Evidence and remaining scope
 
 The composition tests must cover read-only lazy inspection, denied probes,
@@ -118,9 +138,17 @@ simulated commits, including failures after an effect. They verify one invocatio
 one completion/cleanup attempt, retained identifiers, claim fencing, and bounded
 diagnostics. These in-memory fault fixtures do not prove database crash durability.
 
-The injected runtime factory remains host-owned; this increment does not bind a
-production provider or add web/Wise administration routes. #125 still requires
-those equivalent authorized surfaces, provider/transport adapters, bounded
+The injected runtime factory remains host-owned; no production provider is bound
+by these fixtures. Existing Wise lifecycle administration is documented in
+`runtime-commands.md`; it is not the complete recovery plane. #125 still requires
+equivalent authorized web/recovery surfaces, provider/transport adapters, bounded
 retry and replay policy, dead-letter/manual recovery controls, fallback
 configuration, durable activity/cost metrics and installed-host proof. No
 inspection result or source test proves those remaining requirements.
+
+Initialization regressions use native Wise results and DevElation actions,
+including native Application resolution, same/cross-instance factory reentry,
+cached ready observers, unavailable observers and explicit later recovery. Run
+`php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'RuntimeInitializationIsolationTest|LazyAgentCommandProcessorTest|CommandHostTest|CommandResultObservationTest'`
+and the full suite before promotion. These are offline host fixtures, not provider
+or deployment qualification.
