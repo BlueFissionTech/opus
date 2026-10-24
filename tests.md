@@ -501,3 +501,14 @@ observer verifies that the added usage, trace and scope fields stay outside its
 global payload. See `docs/delegation-evidence.md` for nullable confidence and
 unknown-measurement migration semantics. Run the full suite before release.
 These fixtures do not qualify providers, durable accounting or billing totals.
+
+# Kwikle effect-time authority
+
+Run `php vendor/phpunit/phpunit/phpunit -c addons/kwikle/phpunit.xml --do-not-cache-result`
+and `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --testsuite Unit --filter 'AddOns\\Kwikle\\Tests\\'`.
+The package and host paths include authority changes during review, connector
+availability and real native graph filtering; application/tenant/actor/correlation
+binding; missing/throwing authority; cross-service reentrancy; and post-effect
+revocation without unauthorized compensation or replay. The host registration
+fixture injects the trusted context resolver through native Application bindArgs.
+These remain synthetic in-process fixtures, not provider or durable queue proof.

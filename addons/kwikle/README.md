@@ -15,13 +15,21 @@ Commands use Wise's quoted argument syntax:
     get kwikle-workflow "status" "capture" "event-1"
     do kwikle-workflow "retry" "capture" "event-1" "subject" "2"
 
-The host binds reviewed Workflow definitions, a FixtureConnector, and a review
-callback through Application::bindArgs for WorkflowService, then resolves and
+The host binds reviewed Workflow definitions, a FixtureConnector, a review
+callback and a fresh authenticated context resolver (`context`) through
+Application::bindArgs for WorkflowService, then resolves and
 delegates that service. Wrap the host's Wise processor with
 WorkflowCommandProcessor and inject a fresh authenticated AgentRuntimeContext
 resolver. The host can register an Action on the delegated service to invoke the
 processor. WorkflowServiceTest demonstrates actual resolve/delegate/register/
 perform calls, including revoked execution permission on the next invocation.
+
+For direct construction, pass the trusted resolver as the fourth argument:
+`new WorkflowService($workflows, $connector, $review, $resolveContext)`.
+It must read current host authority for the same request, not return a cached
+grant or derive authority from command arguments. Wire that resolver into the
+command processor as well. Omitting it keeps discovery available but execution
+denied; there is no fallback from a missing resolver to the caller's snapshot.
 
 The passive package factory declares its console resources and specialist agent;
 it does not invent a tenant, automatically approve work, or replace the host
@@ -33,6 +41,16 @@ RunRequest instance, application, tenant, actor, and an explicit compensation
 decision. It must return no approval until human/policy review is complete.
 Command arguments and returned provider data cannot supply approval. Both read
 and execution check active add-on state and host capability grants.
+
+Execution rechecks host authority after review and connector availability, then
+immediately before capture and separately approved compensation. Application,
+tenant, actor and correlation must remain unchanged. Resolver failures, revoked
+capabilities and changed lifecycle state deny new effects. Native graph callbacks
+cannot retain old grants. A denial during graph execution is a settled receipt,
+not a retryable failure. Revocation after a confirmed effect does not erase it:
+successful capture stays committed; partial capture stays partial if compensation
+is no longer authorized. Host resolution, review and native callbacks cannot
+reenter workflow execution across service instances.
 
 Receipts are bounded to 1,000 events per service instance. Duplicate events for
 one application/tenant/workflow cannot execute under a second actor. Stored

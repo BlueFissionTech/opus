@@ -44,7 +44,7 @@ class WorkflowServiceTest extends TestCase
         $workflow = $this->graphWorkflow($this->graph());
         $connector = new FixtureConnector();
         $service = new WorkflowService([$workflow], $connector,
-            static fn ($request) => new Approval($request, 'app', 'tenant', 'operator'));
+            static fn ($request) => new Approval($request, 'app', 'tenant', 'operator'), fn () => $this->context());
         self::assertSame($workflow->graph()->toArray(), $service->describe('capture', $this->context())['definition']);
         // The native condition prevents capture for an empty subject.
         self::assertSame('skipped', $service->run(new RunRequest('capture', 'empty', ''), $this->context())->status);
@@ -58,7 +58,7 @@ class WorkflowServiceTest extends TestCase
         $workflow = $this->graphWorkflow($this->graph(['entry' => 'stored', 'edges' => []]));
         $connector = new FixtureConnector();
         $service = new WorkflowService([$workflow], $connector,
-            static fn ($request) => new Approval($request, 'app', 'tenant', 'operator'));
+            static fn ($request) => new Approval($request, 'app', 'tenant', 'operator'), fn () => $this->context());
         self::assertSame('failed', $service->run(new RunRequest('capture', 'event', 'subject'), $this->context())->status);
         self::assertSame(0, $connector->count());
     }
@@ -85,7 +85,7 @@ class WorkflowServiceTest extends TestCase
             $workflow = $this->graphWorkflow($this->graph($changes));
             $connector = new FixtureConnector();
             $reviews = 0;
-            $service = new WorkflowService([$workflow], $connector, static function () use (&$reviews) { $reviews++; });
+            $service = new WorkflowService([$workflow], $connector, static function () use (&$reviews) { $reviews++; }, fn () => $this->context());
             self::assertSame('unavailable', $service->run(new RunRequest('capture', 'event', 'subject'), $this->context())->status);
             self::assertSame(0, $reviews);
             self::assertSame(0, $connector->count());
@@ -105,7 +105,7 @@ class WorkflowServiceTest extends TestCase
             new Action(new ConnectionReference('local', $client, 'fixture.capture')), new RetryPolicy(2));
         $review ??= static fn ($request, $context) => new Approval($request, $context->applicationId(),
             $context->tenantId(), $context->actor()['id']);
-        return [new WorkflowService([$workflow], $connector, $review), $connector];
+        return [new WorkflowService([$workflow], $connector, $review, fn () => $this->context()), $connector];
     }
 
     public function testPackageAndPassiveFactory(): void
@@ -248,13 +248,15 @@ class WorkflowServiceTest extends TestCase
         $workflow = new Workflow('capture', 'app', 'tenant', new Trigger(),
             new Action(new ConnectionReference('local', 'fixture', 'fixture.capture')));
         $app = new Application(['name' => 'kwikle-registration']);
+        $current = $this->context();
+        $resolveContext = function () use (&$current) { return $current; };
         $app->bindArgs(['workflows' => [$workflow], 'connector' => $connector,
-            'review' => static fn ($request) => new Approval($request, 'app', 'tenant', 'operator')], WorkflowService::class);
+            'review' => static fn ($request) => new Approval($request, 'app', 'tenant', 'operator'),
+            'context' => $resolveContext], WorkflowService::class);
         $service = $app->resolve(WorkflowService::class);
         self::assertInstanceOf(WorkflowService::class, $service);
-        $current = $this->context();
         $processor = new WorkflowCommandProcessor(new CommandProcessor($this->createMock(Storage::class)),
-            $service, function () use (&$current) { return $current; });
+            $service, $resolveContext);
         $app->delegate('kwikle.workflows', $service);
         $receivers = [];
         $results = [];

@@ -722,3 +722,14 @@ unknown if any executed participant has unknown confidence. Evidence must not
 change selection, authorization, retry or execution count. The added usage,
 trace and request-scope fields must stay outside global observation payloads.
 See `docs/delegation-evidence.md`.
+
+# Kwikle effect-time authority
+
+Review and workflow callbacks cannot extend a stale host capability snapshot.
+Kwikle must resolve current host authority after review and immediately before
+capture or separately approved compensation. Application, tenant, actor and
+request correlation remain bound to the admitted invocation. Missing, failing,
+revoked or changed authority denies new effects. Revocation after a confirmed
+effect cannot erase that receipt, claim rollback, or authorize compensation or
+replay. Native Synematic still owns graph execution; host admission is not a
+replacement workflow or identity engine.

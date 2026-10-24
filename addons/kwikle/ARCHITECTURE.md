@@ -28,6 +28,17 @@ a trusted approval resolver. WorkflowCommandProcessor decorates Wise's processor
 it receives authenticated context from the host, never command arguments.
 Definition and request records are immutable at the authority boundary.
 
+The host supplies a separate live context resolver to WorkflowService. A
+RunRequest-bound approval is not a lease on old capabilities: the service pins
+application, tenant, actor and correlation, re-resolves after review/availability,
+and checks the same scope immediately before capture or compensation. Missing or
+throwing resolution denies effects. This composes existing AgentRuntimeContext
+and host lifecycle/capability policy; it does not add a membership or identity
+engine. The reentrancy guard covers context resolution and native graph filters
+as well as review and receipt observers. Once an effect is confirmed, subsequent
+revocation preserves its truthful receipt and cannot authorize a compensating
+effect. Read commands still obtain fresh host context through the processor.
+
 Synematic GraphDocument owns portable schema validation and graph compilation;
 Hub registers and runs the resulting native Graph. Native nodes and conditions
 are resolved from a fixture-only allowlist after host admission, never from

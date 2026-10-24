@@ -19,11 +19,13 @@ class WorkflowService extends Service
     private array $runs = [];
     private static bool $executing = false;
     private Closure $review;
+    private ?Closure $context;
 
-    public function __construct(array $workflows, private FixtureConnector $connector, callable $review)
+    public function __construct(array $workflows, private FixtureConnector $connector, callable $review, ?callable $context = null)
     {
         parent::__construct();
         $this->review = Closure::fromCallable($review);
+        $this->context = $context === null ? null : Closure::fromCallable($context);
         foreach ($workflows as $workflow) {
             if (!$workflow instanceof Workflow) { throw new InvalidArgumentException('Invalid workflow.'); }
             $key = $this->key([$workflow->application, $workflow->tenant, $workflow->id]);
@@ -74,24 +76,30 @@ class WorkflowService extends Service
 
     public function run(RunRequest $request, AgentRuntimeContext $context): RunResult
     {
-        $result = fn (string $status, string $effects = 'none'): RunResult =>
-            new RunResult($status, $effects, $request->attempt, $context->correlationId());
-        $workflow = $this->find($request->workflow, $context);
-        if (self::$executing || $workflow === null || $context->correlationId() === null
-            || !$this->authorized($workflow, $context, 'kwikle.execute')) { return $result('denied'); }
-        if (!$this->supported($workflow)) { return $result('unavailable'); }
-
-        // Review callbacks and observers cannot reenter execution.
+        $correlation = null;
+        $result = static function (string $status, string $effects = 'none') use ($request, &$correlation): RunResult {
+            return new RunResult($status, $effects, $request->attempt, $correlation);
+        };
+        if (self::$executing) { return $result('denied'); }
+        // Authority resolvers, native filters, reviews and observers cannot reenter.
         self::$executing = true;
         try {
+            $scope = $this->authorityScope($context);
+            $correlation = $scope[3];
+            $workflow = $this->workflows[$this->key([$scope[0], $scope[1], $request->workflow])] ?? null;
+            if ($workflow === null || $correlation === null
+                || !$this->authorized($workflow, $context, 'kwikle.execute')) { return $result('denied'); }
+            if (!$this->currentAuthority($workflow, $scope)) { return $result('denied'); }
+            if (!$this->supported($workflow)) { return $result('unavailable'); }
             $approval = ($this->review)($request, $context);
             if (!$approval instanceof Approval || $approval->request !== $request
-                || $approval->application !== $context->applicationId() || $approval->tenant !== $context->tenantId()
-                || $approval->actor !== Arr::getPath($context->actor(), 'id')) { return $result('denied'); }
-            $key = $this->runKey($request->workflow, $request->event, $context);
+                || $approval->application !== $scope[0] || $approval->tenant !== $scope[1]
+                || $approval->actor !== $scope[2]
+                || !$this->currentAuthority($workflow, $scope)) { return $result('denied'); }
+            $key = $this->key([$scope[0], $scope[1], $request->workflow, $request->event]);
             $prior = $this->runs[$key] ?? null;
             if ($prior !== null) {
-                if ($prior['actor'] !== Arr::getPath($context->actor(), 'id')) { return $result('denied'); }
+                if ($prior['actor'] !== $scope[2]) { return $result('denied'); }
                 if ($prior['subject'] !== $request->subject) { return $result('conflict'); }
                 if ($prior['result']->attempt === $request->attempt) { return $prior['result']; }
                 if ($prior['result']->status !== 'failed' || $prior['result']->effects !== 'none'
@@ -99,9 +107,11 @@ class WorkflowService extends Service
             } elseif ($request->attempt !== 1) { return $result('retry_denied'); }
             if ($request->attempt > $workflow->retry->maxAttempts) { return $result('retry_denied'); }
             if ($prior === null && Arr::size($this->runs) >= 1000) { return $result('capacity'); }
-            if (!$this->connector->available()) { return $result('unavailable'); }
+            $available = $this->connector->available();
+            if (!$this->currentAuthority($workflow, $scope)) { return $result('denied'); }
+            if (!$available) { return $result('unavailable'); }
 
-            $this->runs[$key] = ['actor' => Arr::getPath($context->actor(), 'id'), 'subject' => $request->subject,
+            $this->runs[$key] = ['actor' => $scope[2], 'subject' => $request->subject,
                 'result' => $result('running', 'unknown')];
             $settled = null;
             $started = false;
@@ -119,8 +129,12 @@ class WorkflowService extends Service
                     $mapped = $request->subject;
                     return 'mapped';
                 };
-                $capture = function () use ($key, &$mapped, &$started, &$settled, $result, $approval): string {
+                $capture = function () use ($key, &$mapped, &$started, &$settled, $result, $approval, $workflow, $scope): string {
                     if ($started || $mapped === null) { throw new InvalidArgumentException('Invalid workflow state.'); }
+                    if (!$this->currentAuthority($workflow, $scope)) {
+                        $settled = $result('denied');
+                        throw new InvalidArgumentException('Workflow authority unavailable.');
+                    }
                     $started = true;
                     // Native Node/Trail receive labels, never connector payloads or authority.
                     try {
@@ -131,7 +145,7 @@ class WorkflowService extends Service
                             $settled = $result('failed');
                         } elseif (($outcome['ok'] ?? null) === false && ($outcome['effects'] ?? null) === 'committed') {
                             $settled = $result('partial', 'committed');
-                            if ($approval->compensation) {
+                            if ($approval->compensation && $this->currentAuthority($workflow, $scope)) {
                                 $settled = $this->connector->compensate($key)
                                     ? $result('compensated', 'reversed') : $result('uncertain', 'unknown');
                             }
@@ -200,6 +214,21 @@ class WorkflowService extends Service
             && Arr::has($context->activeAddOns(), 'kwikle', true)
             && ($context->lifecycleStates()['kwikle'] ?? null) === 'active'
             && Arr::has($context->capabilities(), $capability, true);
+    }
+
+    private function authorityScope(AgentRuntimeContext $context): array
+    {
+        return [$context->applicationId(), $context->tenantId(), Arr::getPath($context->actor(), 'id'),
+            $context->correlationId()];
+    }
+
+    private function currentAuthority(Workflow $workflow, array $scope): bool
+    {
+        try {
+            $current = $this->context === null ? null : ($this->context)();
+            return $current instanceof AgentRuntimeContext && $this->authorityScope($current) === $scope
+                && $this->authorized($workflow, $current, 'kwikle.execute');
+        } catch (Throwable) { return false; }
     }
 
     private function runKey(string $workflow, string $event, AgentRuntimeContext $context): string
