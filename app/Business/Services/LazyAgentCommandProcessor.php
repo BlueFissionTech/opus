@@ -19,6 +19,7 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
 {
     private ?ICommandProcessor $processor = null;
     private ?Closure $factory;
+    private static bool $preparing = false;
 
     public function __construct(?callable $factory = null)
     {
@@ -27,6 +28,21 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
 
     public function process(CommandRequest|Command|array|string $request): CommandResult
     {
+        if (self::$preparing) {
+            // Do not publish another lifecycle action from this denial.
+            return CommandResult::invalid(
+                'Command runtime initialization cannot be reentered.',
+                ['agent_command_runtime_reentry_denied'],
+                [
+                    'agent_decision' => 'deny',
+                    'agent_reason' => 'command_runtime_reentry_denied',
+                    'agent_result_status' => CommandResult::INVALID,
+                ]
+            );
+        }
+
+        // Factories and lifecycle observers cannot execute through another instance.
+        self::$preparing = true;
         try {
             $processor = $this->processor();
         } catch (Throwable) {
@@ -45,6 +61,8 @@ final class LazyAgentCommandProcessor implements ICommandProcessor
                     'agent_result_status' => CommandResult::INVALID,
                 ]
             );
+        } finally {
+            self::$preparing = false;
         }
 
         return $processor->process($request);
