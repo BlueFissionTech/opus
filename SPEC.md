@@ -1,5 +1,22 @@
 # Opus Framework Specification
 
+## Interactive command input integrity
+
+The shared CLI command loop consumes one complete physical input line per command
+or confirmation. It must never execute a truncated prefix or treat a confirmation
+suffix as a command. Commands are bounded at 64 KiB and confirmations at 128 bytes,
+excluding the LF/CRLF delimiter; over-limit input ends the session with code 2.
+An invalid or absent confirmation is never approval. An over-limit confirmation
+cancels its existing Wise continuation once before ending the session. EOF cancels
+pending confirmation once, and no further command is read. Unknown-effect host
+failures end the session without retry. Parsing, policy, grants and continuation
+storage remain Wise/host-service responsibilities, not input-loop responsibilities.
+
+Native DevElation stream handles support synthetic and standard input through the
+same loop. Caller-owned streams stay open. Test physical-line boundaries, exact
+limits, Unicode byte limits, CRLF, EOF, denial and native service resolution. This
+does not migrate legacy account/database commands or fix Engine process exit codes.
+
 ## Add-on boot diagnostics
 
 Canonical add-on registration failures retain the selected package identity,

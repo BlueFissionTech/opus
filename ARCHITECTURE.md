@@ -43,6 +43,13 @@ an add-on or provider is installed.
 
 ## Runtime and security boundaries
 
+The interactive Wise command host uses DevElation `Ref` handles for bounded line
+reads and output. `CliManager` owns only physical-line limits, consent prompting
+and presentation; it delegates each command/continuation through `CommandHost`.
+It cannot turn an input prefix into approval or replay a partial/unknown effect.
+Trusted in-process callers may supply already-open streams for the same loop;
+this does not grant command authority or replace native Engine console dispatch.
+
 Host configuration lives under [`common/config`](common/config) and process
 environment settings; secrets are not source files. Runtime path resolution
 distinguishes the installed Opus package from the consuming host and constrains

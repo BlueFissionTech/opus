@@ -72,6 +72,41 @@ session before execution.
 
 ## Migration and remaining normalization
 
+### Interactive input integrity
+
+`CliManager::cmd()` and its in-process `interact(Ref $input, Ref $output, Ref $error)`
+stream boundary now read complete physical lines through native DevElation handles.
+One physical line is one command, never a series of 1023-byte fragments. Blank
+lines are ignored; `.` on its own ends the loop. LF/CRLF and an unterminated final
+line at EOF are supported. An incomplete nonblocking read fails closed rather
+than executing a prefix. Command text is still parsed by Wise, not by this loop.
+
+Commands allow up to 65,536 bytes and confirmation responses up to 128 bytes,
+excluding the line delimiter. Limits apply before whitespace trimming and count
+UTF-8 bytes, not characters. Over-limit input ends the session with exit code 2
+and `cli_input_too_long`; no prefix, suffix or later line is executed. Restart the
+session and submit a bounded command rather than relying on truncated execution.
+
+Only a complete `y` or `yes` response (case-insensitive, surrounding whitespace
+ignored) approves a continuation. Any other complete answer declines it. EOF or
+a failed/oversized confirmation read sends one denied continuation to the shared
+host and ends the session. Missing or unresolved confirmation tokens stop with
+code 2, without treating later text as an approval or a new command. The existing
+context provider refreshes host authority on continuation; no token or policy
+store is introduced. A prompt is not an authentication mechanism.
+
+Unexpected host execution/presentation failures stop the session without retry;
+ordinary command failures retain their output, diagnostics and exit code, and
+the interactive loop may continue. Stream failures return code 1 and a generic
+`cli_stream_failed` diagnostic when the error stream is usable. Caller-owned
+streams remain open. The returned value is the loop's exit code: the legacy
+Engine-backed `terminal` entrypoint still needs separate process-exit propagation
+work. BotMan chat and legacy user/database managers are not migrated by this fix.
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'CliInputTest|CliInputProcessTest|CommandHostTest|CommandResultObservationTest|AgentRuntimeCommandProcessorTest'`
+and the full suite. The real-stdin fixture uses a synthetic processor and native
+process/stream primitives; it proves framing, not authenticated deployment.
+
 Callers that caught raw processor or rendering exceptions from `CommandHost`
 should now inspect the failed presentation. Callers using the presenter directly
 must handle serialization failure or use the shared host. No command form is
