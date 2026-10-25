@@ -16,6 +16,7 @@ privacy, review, and execution invariants after filters where required.
 
 | Name | Kind | Phase | Failure policy |
 | --- | --- | --- | --- |
+| `opus.generation.result` | action | After each public validation/render/write outcome | Ignore observer failure; preserve return or exception |
 | `opus.agent.runtime.result` | action | After a correlated composition result | Ignore observer failure; preserve runtime result |
 | `opus.addon.boot.result` | action | After a canonical registration outcome settles | Ignore observer failure; preserve boot result |
 | `opus.command.result` | action | After shared command presentation settles | Ignore observer failure; preserve command result |
@@ -36,6 +37,39 @@ follow the deterministic fallback or fail-closed behavior documented in the
 JSON catalog.
 
 ## Compatibility
+
+Catalog **2.1.0** adds `opus.generation.result` without changing existing hooks.
+Its version-1 payload has exactly `version`, `operation`, `valid`, and `phase`.
+Operation is `validateSource`, `validateFile`, `renderSource`, `renderFile` or
+`writeRenderedFile`. Phase is `returned` or `threw`; `valid` is true only when the
+existing service returns strict `valid=true`, and false for a thrown exception.
+No source, prompt, variables, output, paths, identities, diagnostics, exception
+text or provider data is published. Constructor failures are outside this action.
+
+Each public call observes its own outcome. Composed calls also publish their
+inner calls, in settlement order: successful `writeRenderedFile` publishes
+`validateSource`, `renderSource`, `renderFile`, then `writeRenderedFile`. Missing
+files may return earlier. Observe the operation needed for aggregate reporting;
+do not count all events as independent user requests or durable receipts.
+Subclass overrides retain virtual dispatch and are responsible for their own
+overridden method behavior; an inherited caller still observes its own outcome.
+
+The native DevElation dispatcher runs ascending priorities and then registration
+order. Observer returns and payload edits do not alter the original result.
+A throwing observer stops later handlers in that delivery, but cannot fail a
+successful write, suppress the original exception or request a retry. While any
+delivery is active, all five inherited service entrypoints reject calls across
+instances with `generation_observer_reentry_denied`, before validation or IO.
+The process-wide guard remains held if a handler yields and resets in `finally`.
+Keep handlers short and synchronous. No-handler and disabled-dispatch behavior
+is unchanged; enabling dispatch or subscribing later does not replay outcomes.
+
+This action is not a sandbox for installed PHP, an authorization grant, a durable
+audit stream or a completion guarantee for backend/provider effects. A valid
+render can precede a failed write, and a failure need not mean no effects occurred.
+Existing workspace, generation-option, approval and provider boundaries remain
+the caller's and service's responsibility. No parser, renderer or storage behavior
+is replaced by this observation surface.
 
 Catalog **2.0.0** changes the payload of `opus.intake.session.transitioned`.
 The name and post-persistence phase are unchanged; the payload is now:

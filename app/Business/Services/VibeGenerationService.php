@@ -7,6 +7,7 @@ namespace App\Business\Services;
 use BlueFission\Arr;
 use BlueFission\Automata\LLM\Clients\IClient;
 use BlueFission\Data\FileSystem;
+use BlueFission\DevElation;
 use BlueFission\Services\Service;
 use BlueFission\Str;
 use BlueFission\Vibrato\Reader;
@@ -17,6 +18,8 @@ use Throwable;
 
 class VibeGenerationService extends Service
 {
+    private static bool $observingResult = false;
+
     private ?IClient $llmClient;
     private VibeSyntaxValidator $validator;
     private string $workspace;
@@ -45,106 +48,147 @@ class VibeGenerationService extends Service
 
     public function validateSource(string $source): array
     {
-        return $this->validator->validate($source)->toArray();
+        return $this->observeGeneration(__FUNCTION__, function () use ($source): array {
+            return $this->validator->validate($source)->toArray();
+        });
     }
 
     public function validateFile(string $path): array
     {
-        if (!FileSystem::fileExists($path)) {
-            return $this->failure("Vibe source file was not found.");
-        }
+        return $this->observeGeneration(__FUNCTION__, function () use ($path): array {
+            if (!FileSystem::fileExists($path)) {
+                return $this->failure("Vibe source file was not found.");
+            }
 
-        $source = FileSystem::fileContents($path);
-        if ($source === null) {
-            return $this->failure("Vibe source file could not be read.");
-        }
+            $source = FileSystem::fileContents($path);
+            if ($source === null) {
+                return $this->failure("Vibe source file could not be read.");
+            }
 
-        return $this->validateSource($source);
+            return $this->validateSource($source);
+        });
     }
 
     public function renderSource(string $source, array $variables = [], array $includePaths = [], array $options = []): array
     {
-        $validation = Arr::make($this->validateSource($source));
-        if (!$validation->get('valid')) {
-            return $this->withRenderingContext($validation->val());
-        }
+        return $this->observeGeneration(__FUNCTION__, function () use ($source, $variables, $includePaths, $options): array {
+            $validation = Arr::make($this->validateSource($source));
+            if (!$validation->get('valid')) {
+                return $this->withRenderingContext($validation->val());
+            }
 
-        try {
-            $reader = $this->reader($variables, $includePaths);
-            $reader->input($source);
-            $options = Arr::make($options);
-            $resolvedVariables = $reader->run([
-                'run_backend' => (bool) ($options->get('run_backend') ?? false),
-                'validate_syntax' => false,
-            ]);
+            try {
+                $reader = $this->reader($variables, $includePaths);
+                $reader->input($source);
+                $options = Arr::make($options);
+                $resolvedVariables = $reader->run([
+                    'run_backend' => (bool) ($options->get('run_backend') ?? false),
+                    'validate_syntax' => false,
+                ]);
 
-            return [
-                'valid' => true,
-                'errors' => [],
-                'output' => $reader->output(),
-                'variables' => $resolvedVariables,
-            ];
-        } catch (Throwable $exception) {
-            return $this->withRenderingContext($this->failure($exception->getMessage()));
-        }
+                return [
+                    'valid' => true,
+                    'errors' => [],
+                    'output' => $reader->output(),
+                    'variables' => $resolvedVariables,
+                ];
+            } catch (Throwable $exception) {
+                return $this->withRenderingContext($this->failure($exception->getMessage()));
+            }
+        });
     }
 
     public function renderFile(string $path, array $variables = [], array $includePaths = [], array $options = []): array
     {
-        if (!FileSystem::fileExists($path)) {
-            return $this->withRenderingContext($this->failure("Vibe source file was not found."));
-        }
+        return $this->observeGeneration(__FUNCTION__, function () use ($path, $variables, $includePaths, $options): array {
+            if (!FileSystem::fileExists($path)) {
+                return $this->withRenderingContext($this->failure("Vibe source file was not found."));
+            }
 
-        $source = FileSystem::fileContents($path);
-        if ($source === null) {
-            return $this->withRenderingContext($this->failure("Vibe source file could not be read."));
-        }
+            $source = FileSystem::fileContents($path);
+            if ($source === null) {
+                return $this->withRenderingContext($this->failure("Vibe source file could not be read."));
+            }
 
-        $includePaths = Arr::make($includePaths)
-            ->push(dirname($path))
-            ->unique()
-            ->values()
-            ->val();
+            $includePaths = Arr::make($includePaths)
+                ->push(dirname($path))
+                ->unique()
+                ->values()
+                ->val();
 
-        return $this->renderSource($source, $variables, $includePaths, $options);
+            return $this->renderSource($source, $variables, $includePaths, $options);
+        });
     }
 
     public function writeRenderedFile(string $sourcePath, string $outputPath, array $variables = [], array $includePaths = [], array $options = []): array
     {
-        $result = Arr::make($this->renderFile($sourcePath, $variables, $includePaths, $options));
-        if (!$result->get('valid')) {
-            return $result->val();
+        return $this->observeGeneration(__FUNCTION__, function () use ($sourcePath, $outputPath, $variables, $includePaths, $options): array {
+            $result = Arr::make($this->renderFile($sourcePath, $variables, $includePaths, $options));
+            if (!$result->get('valid')) {
+                return $result->val();
+            }
+
+            try {
+                $target = $this->resolveWorkspacePath($outputPath);
+                $directory = dirname($target);
+
+                if (!$this->ensureDirectory($directory)) {
+                    return $this->withRenderingContext(
+                        $this->failure("Rendered output directory could not be created."),
+                        (string) $result->get('output'),
+                        Arr::make($result->get('variables'))->val()
+                    );
+                }
+
+                if (!$this->replaceFile($target, (string) $result->get('output'))) {
+                    return $this->withRenderingContext(
+                        $this->failure("Rendered output file could not be written."),
+                        (string) $result->get('output'),
+                        Arr::make($result->get('variables'))->val()
+                    );
+                }
+
+                $result->set('path', $target);
+
+                return $result->val();
+            } catch (Throwable $exception) {
+                return $this->withRenderingContext(
+                    $this->failure($exception->getMessage()),
+                    (string) $result->get('output'),
+                    Arr::make($result->get('variables'))->val()
+                );
+            }
+        });
+    }
+
+    private function observeGeneration(string $operation, callable $run): array
+    {
+        if (self::$observingResult) {
+            throw new RuntimeException('generation_observer_reentry_denied');
         }
 
         try {
-            $target = $this->resolveWorkspacePath($outputPath);
-            $directory = dirname($target);
+            $result = $run();
+        } catch (Throwable $error) {
+            $this->publishGenerationResult($operation, false, 'threw');
+            throw $error;
+        }
 
-            if (!$this->ensureDirectory($directory)) {
-                return $this->withRenderingContext(
-                    $this->failure("Rendered output directory could not be created."),
-                    (string) $result->get('output'),
-                    Arr::make($result->get('variables'))->val()
-                );
-            }
+        $this->publishGenerationResult($operation, ($result['valid'] ?? null) === true, 'returned');
+        return $result;
+    }
 
-            if (!$this->replaceFile($target, (string) $result->get('output'))) {
-                return $this->withRenderingContext(
-                    $this->failure("Rendered output file could not be written."),
-                    (string) $result->get('output'),
-                    Arr::make($result->get('variables'))->val()
-                );
-            }
-
-            $result->set('path', $target);
-
-            return $result->val();
-        } catch (Throwable $exception) {
-            return $this->withRenderingContext(
-                $this->failure($exception->getMessage()),
-                (string) $result->get('output'),
-                Arr::make($result->get('variables'))->val()
-            );
+    private function publishGenerationResult(string $operation, bool $valid, string $phase): void
+    {
+        self::$observingResult = true;
+        try {
+            DevElation::do(ExtensionPointCatalog::GENERATION_RESULT, [[
+                'version' => 1, 'operation' => $operation, 'valid' => $valid, 'phase' => $phase,
+            ]]);
+        } catch (Throwable) {
+            // An observer cannot replace a result, suppress an error, or request replay.
+        } finally {
+            self::$observingResult = false;
         }
     }
 

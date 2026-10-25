@@ -13,6 +13,7 @@ use RuntimeException;
 
 final class ExtensionPointCatalog extends Service
 {
+    public const GENERATION_RESULT = 'opus.generation.result';
     public const AGENT_RUNTIME_RESULT = 'opus.agent.runtime.result';
     public const COMMAND_RESULT = 'opus.command.result';
     public const ADDON_BOOT_RESULT = 'opus.addon.boot.result';
@@ -27,6 +28,7 @@ final class ExtensionPointCatalog extends Service
     public const FRONTEND_MARKUP_DIRECTORY = 'opus.frontend.markup_directory';
 
     public const NAMES = [
+        self::GENERATION_RESULT,
         self::AGENT_RUNTIME_RESULT,
         self::COMMAND_RESULT,
         self::ADDON_BOOT_RESULT,
@@ -42,6 +44,20 @@ final class ExtensionPointCatalog extends Service
     ];
 
     private const RUNTIME_CONTRACTS = [
+        self::GENERATION_RESULT => [
+            'kind' => 'action',
+            'area' => 'rendering_generation',
+            'phase' => 'after_public_operation_outcome',
+            'owner' => 'VibeGenerationService',
+            'mutability' => 'observe_only',
+            'exception_policy' => 'ignore_observer_failure',
+            'payload_type' => 'object',
+            'payload_required' => ['version', 'operation', 'valid', 'phase'],
+            'payload_properties' => ['version' => 'integer', 'operation' => 'string', 'valid' => 'boolean', 'phase' => 'string'],
+            'return_type' => 'void',
+            'return_required' => [],
+            'return_properties' => [],
+        ],
         self::AGENT_RUNTIME_RESULT => [
             'kind' => 'action',
             'area' => 'agent_runtime_result',
