@@ -501,3 +501,14 @@ observer verifies that the added usage, trace and scope fields stay outside its
 global payload. See `docs/delegation-evidence.md` for nullable confidence and
 unknown-measurement migration semantics. Run the full suite before release.
 These fixtures do not qualify providers, durable accounting or billing totals.
+
+# Generation observation regressions
+
+Run `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'VibeGenerationObservationTest|VibeGenerationServiceTest|ExtensionPointCatalogTest'`.
+These offline tests use the installed DevElation dispatcher and native Vibrato
+validator/Reader with synthetic temporary files. They verify exact scalar
+payloads, composed-call order, disabled dispatch, invalid syntax, rejected paths,
+observer failures, original exception preservation, cross-instance replay denial,
+and guard recovery after a yielding handler. They make no provider requests and
+do not qualify live generation, durable audit or deployment. Run the full PHPUnit
+suite, PHP syntax, Composer metadata and frontend gates before publication.

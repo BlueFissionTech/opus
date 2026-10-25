@@ -722,3 +722,14 @@ unknown if any executed participant has unknown confidence. Evidence must not
 change selection, authorization, retry or execution count. The added usage,
 trace and request-scope fields must stay outside global observation payloads.
 See `docs/delegation-evidence.md`.
+
+# Generation result observation
+
+Each public VibeGenerationService validation, rendering and write call publishes
+an observe-only scalar result summary after its own return or exception. Composed
+calls retain their nested observations, in settlement order. No source, variables,
+paths, output, diagnostic text, identities or provider content enters the action.
+Observers cannot replace results, turn invalid input valid, suppress an original
+exception or replay operations through any service instance during notification.
+Disabled dispatch and absent handlers retain existing behavior. This is not a
+durable receipt, authorization, deployment or proof that external effects settled.

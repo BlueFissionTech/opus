@@ -56,3 +56,13 @@ managed-service operations, or production readiness for optional providers.
 Those remain evidence-gated in the [roadmap](ROADMAP.md). Unit and contract
 tests live under [`tests`](tests); the [testing guide](tests.md) distinguishes
 clean-checkout checks from opt-in integration and release proofs.
+
+# Generation observation boundary
+
+VibeGenerationService retains native Vibrato validation and Reader execution and
+its existing workspace write boundary. A native DevElation action observes each
+settled public operation with a versioned scalar summary; inner public operations
+remain observable and keep virtual dispatch. No alternate parser or event engine
+is introduced. A synchronous process-wide guard rejects generation-service calls
+during notification before IO or validation; observer failure is isolated from
+the original return/exception. Installed PHP remains trusted and is not sandboxed.
