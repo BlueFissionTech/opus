@@ -722,3 +722,14 @@ unknown if any executed participant has unknown confidence. Evidence must not
 change selection, authorization, retry or execution count. The added usage,
 trace and request-scope fields must stay outside global observation payloads.
 See `docs/delegation-evidence.md`.
+
+# Versa submission boundary
+
+The passive Versa package exposes scoped channel discovery, host-reviewed text
+submission and local attempt status through native SimpleClients and Wise
+contracts. Configuration, identity, lifecycle, permissions and approval remain
+host-owned; command data cannot confer them. An HTTP success is not delivery
+proof. Ambiguous dispatches are not replayed within one service instance and
+private bodies/provider errors are excluded from executed results. This initial
+increment does not establish signed inbound handling, durable recovery or live
+provider readiness. See `addons/versa/SPEC.md` for the remaining acceptance gates.

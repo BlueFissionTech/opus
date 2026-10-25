@@ -501,3 +501,22 @@ observer verifies that the added usage, trace and scope fields stay outside its
 global payload. See `docs/delegation-evidence.md` for nullable confidence and
 unknown-measurement migration semantics. Run the full suite before release.
 These fixtures do not qualify providers, durable accounting or billing totals.
+
+# Versa injected messaging boundary
+
+Run `php vendor/phpunit/phpunit/phpunit -c addons/versa/phpunit.xml --do-not-cache-result`
+for the package and `php vendor/phpunit/phpunit/phpunit --do-not-cache-result --filter 'AddOns\\Versa\\Tests'`
+through the host test suite. Use `php bin/lint-php.php` and the full PHPUnit suite
+before publishing. The native Application resolves, delegates and executes the
+service; actual Wise parses text/structured requests with fixture storage; native
+SimpleClients requests/responses carry only synthetic traffic.
+
+Coverage includes exact request approval, fresh authority, cross-application,
+tenant and participant isolation, notification opt-in, invalid text/media,
+process-local idempotency/conflicts, bounded receipt capacity, reentrancy and
+post-dispatch failures without a false no-effects claim. Parse-only requests do
+not invoke host callbacks. Results omit private text and provider errors.
+
+No environment variables, secrets, provider accounts, installations or live
+messages are needed. Signed inbound webhooks, provider status, durable restart
+recovery and operational security/load acceptance are not qualified by these tests.

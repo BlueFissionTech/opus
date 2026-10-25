@@ -1,0 +1,22 @@
+{
+  "name": "bluefission/opus-addon-versa",
+  "description": "Governed text submission through an explicitly injected native client.",
+  "type": "opus-addon",
+  "license": "Apache-2.0",
+  "require": {
+    "php": "^8.2",
+    "ext-mbstring": "*",
+    "bluefission/bluecore": "^0.1.4-alpha",
+    "bluefission/develation": "^1.3.47",
+    "bluefission/opus": "dev-main",
+    "bluefission/simpleclients": "^0.1.1-alpha",
+    "bluefission/wise": "^0.1.0-alpha.3"
+  },
+  "require-dev": { "phpunit/phpunit": "^9.6" },
+  "autoload": { "psr-4": { "AddOns\\Versa\\": "logic/" } },
+  "autoload-dev": { "psr-4": { "AddOns\\Versa\\Tests\\": "tests/" } },
+  "extra": { "installer-name": "versa", "opus-addon": true },
+  "scripts": { "test": "phpunit --do-not-cache-result" },
+  "minimum-stability": "alpha",
+  "prefer-stable": true
+}
