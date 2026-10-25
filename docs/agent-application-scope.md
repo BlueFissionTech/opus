@@ -64,6 +64,22 @@ with direct store access is outside this boundary. Tests use actual host storage
 and Automata routing with synthetic locks and fixtures; they do not qualify
 multi-process MySQL behavior or a production installation migration.
 
+The native state adapter rejects DevElation's explicit `STATUS_FAILED` and
+`STATUS_FAILED_INIT` after every read/write, even when fluent IO returns normally.
+It raises `agent_runtime_state_read_failed` or `agent_runtime_state_write_failed`
+without forwarding native messages or private data. A failed read is not an empty
+store or permission to use cached fields. A failed write is not a successful
+claim: composition's execution boundary retains unknown effects and does not
+dispatch the runtime or automatically clear/retry the potentially applied claim.
+The adapter does not reset native status or repair/activate a failed store.
+
+This is explicit-failure handling, not a generic storage success protocol.
+Drivers may return no status or fail through a different signal; nonfailure and
+legacy no-status behavior remain compatible, not certified durable. Before using
+shared persistent state, qualify the chosen native driver, locking, complete
+write/error propagation and restart recovery. Do not substitute a string status,
+an in-memory test or a successful method return for that evidence.
+
 This increment does not install Cogito, add module teardown or select an
 installation identity automatically. Principal-only module admission and lifecycle
 acceptance remain required before enabling that integration.
