@@ -722,3 +722,15 @@ unknown if any executed participant has unknown confidence. Evidence must not
 change selection, authorization, retry or execution count. The added usage,
 trace and request-scope fields must stay outside global observation payloads.
 See `docs/delegation-evidence.md`.
+
+## Reported native agent-state failures
+
+The agent-state adapter must reject native storage's explicit failure or failed
+initialization status after every read and write. A failed read cannot expose
+cached fields as authoritative state or proceed to a write. A failed claim write
+cannot admit runtime execution, be reported successful, or trigger automatic
+retry/rollback. Exceptions use fixed host diagnostics and retain unknown effects
+where a write may already have occurred. Existing storage, scope keys and lock
+contracts remain unchanged. A missing or nonfailure legacy status is not proof
+of durable persistence; each deployed storage driver still requires independent
+atomicity, durability and recovery qualification.

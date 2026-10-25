@@ -9,6 +9,7 @@ use App\Domain\Agents\IAgentRuntimeStateSynchronizer;
 use BlueFission\Arr;
 use BlueFission\Data\Storage\Storage;
 use BlueFission\Str;
+use RuntimeException;
 
 final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
 {
@@ -77,6 +78,7 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
     private function states(): Arr
     {
         $this->storage->read();
+        $this->assertStorageDidNotFail('read');
 
         return Arr::make((array) ($this->storage->{self::FIELD} ?? []));
     }
@@ -85,6 +87,16 @@ final class AgentRuntimeStateStore implements IAgentRuntimeStateStore
     {
         $this->storage->{self::FIELD} = $states->toArray();
         $this->storage->write();
+        $this->assertStorageDidNotFail('write');
+    }
+
+    private function assertStorageDidNotFail(string $operation): void
+    {
+        // Fluent IO can report failure without throwing. Nonfailure is not a
+        // durability receipt; the backing driver still needs qualification.
+        if (Arr::has([Storage::STATUS_FAILED, Storage::STATUS_FAILED_INIT], $this->storage->status(), true)) {
+            throw new RuntimeException('agent_runtime_state_' . $operation . '_failed');
+        }
     }
 
     private function key(string $agentId, ?string $tenantId): string

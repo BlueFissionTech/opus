@@ -501,3 +501,13 @@ observer verifies that the added usage, trace and scope fields stay outside its
 global payload. See `docs/delegation-evidence.md` for nullable confidence and
 unknown-measurement migration semantics. Run the full suite before release.
 These fixtures do not qualify providers, durable accounting or billing totals.
+
+## Reported native agent-state failure regressions
+
+Run `php vendor/phpunit/phpunit/phpunit --filter 'AgentRuntimeStateStoreOutcomeTest|ApplicationAgentRuntimeScopeTest|AgentCompositionServiceTest|AgentDelegationServiceTest|AgentRuntimeCommandProcessorTest'`.
+The suite includes actual unactivated DevElation Disk (no file opened), synthetic
+native status failures, ordinary base Storage compatibility and actual composition
+admission. Failed state reads must prevent factory access; failed claim writes
+must prevent runtime dispatch without retry, cleanup or fabricated rollback.
+No providers, credentials or live databases are used. Run the full suite before
+release; this check does not certify arbitrary drivers or persistent concurrency.
