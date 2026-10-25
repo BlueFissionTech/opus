@@ -56,3 +56,13 @@ managed-service operations, or production readiness for optional providers.
 Those remain evidence-gated in the [roadmap](ROADMAP.md). Unit and contract
 tests live under [`tests`](tests); the [testing guide](tests.md) distinguishes
 clean-checkout checks from opt-in integration and release proofs.
+
+## Versa injected messaging
+
+The optional source package in `addons/versa` composes DevElation Service and
+Application registration with SimpleClients contracts and the host Wise processor.
+Its narrow adapter owns admission, review, sanitized attempt receipts and command
+binding, not protocols, queues or credential management. Host injection is explicit;
+package discovery is passive. Receipt state is bounded and service-local, so it
+cannot qualify multi-worker operation or restart recovery. See the package's
+architecture and specification before attempting any provider integration.
