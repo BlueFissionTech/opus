@@ -6,7 +6,6 @@ namespace App\Business\Gateways;
 
 use App\Domain\User\AuthenticationRequired;
 use BlueFission\BlueCore\Auth;
-use BlueFission\BlueCore\Engine;
 use BlueFission\Services\Request;
 use Closure;
 use Throwable;
@@ -25,9 +24,8 @@ class AuthenticationGateway extends \BlueFission\BlueCore\Gateway\Authentication
     {
         $auth = null;
         try {
-            $resolved = $this->authResolver === null
-                ? Engine::makeInstance(Auth::class)
-                : ($this->authResolver)();
+            // Only the registering host can supply an authenticator owner.
+            $resolved = $this->authResolver === null ? null : ($this->authResolver)();
             $auth = $resolved instanceof Auth ? $resolved : null;
             if ($auth === null) {
                 throw new AuthenticationRequired();

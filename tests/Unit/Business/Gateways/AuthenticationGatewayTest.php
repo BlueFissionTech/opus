@@ -8,6 +8,8 @@ use App\Business\Gateways\AuthenticationGateway;
 use App\Business\Gateways\AdminAuthenticationGateway;
 use App\Business\Presentation\AuthenticationFailureResponse;
 use App\Domain\User\AuthenticationRequired;
+use App\Registration\AppRegistration;
+use App\Registration\ProfileRegistration;
 use BlueFission\BlueCore\Auth;
 use BlueFission\BlueCore\Engine;
 use BlueFission\Services\Application;
@@ -46,7 +48,7 @@ final class AuthenticationGatewayTest extends TestCase
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
-    public function testDefaultResolverUsesTheEngineAuthenticatorBindings(string $gatewayClass): void
+    public function testRegisteredResolverUsesTheEngineAuthenticatorBindings(string $gatewayClass): void
     {
         $base = Application::instance();
         $base->bind(Auth::class, EngineBoundAuthFixture::class);
@@ -54,12 +56,157 @@ final class AuthenticationGatewayTest extends TestCase
         $engine = new Engine();
         $engine->bind(Auth::class, EngineBoundAuthFixture::class);
         $engine->bindArgs(['owner' => 'engine'], Auth::class);
+        $engine->bindArgs(['authResolver' => static fn () => $engine->resolve(Auth::class)], AuthenticationGateway::class);
 
         $gateway = $engine->getDynamicInstance($gatewayClass);
         $arguments = [];
         $gateway->process(new Request(), $arguments);
         $this->assertSame(['engine'], EngineBoundAuthFixture::$resolvedOwners);
         $this->assertSame(1, EngineBoundAuthFixture::$establishedSessions);
+    }
+
+    public static function registeredOwners(): array
+    {
+        $cases = [];
+        foreach (['platform', 'api'] as $profile) {
+            foreach ([AuthenticationGateway::class, AdminAuthenticationGateway::class] as $gateway) {
+                foreach ([false, true] as $allowed) {
+                    $cases[] = [$profile, $gateway, $allowed];
+                }
+            }
+        }
+        return $cases;
+    }
+
+    /**
+     * @dataProvider registeredOwners
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testRegisteredGatewayUsesItsOwnerEvenAfterAnotherEngineIsCreated(
+        string $profile, string $gatewayClass, bool $allowed
+    ): void {
+        $first = $this->registeredEngine($profile, $allowed ? 'engine' : 'base');
+        $second = $this->registeredEngine($profile, $allowed ? 'base' : 'engine');
+        $this->assertSame($second, Engine::instance());
+        $gateway = $first->resolve($gatewayClass);
+        $this->assertSame([], EngineBoundAuthFixture::$resolvedOwners, 'Construction must remain lazy.');
+
+        $this->routeOnEngine($first, $gatewayClass, $allowed);
+        $this->assertSame([$allowed ? 'engine' : 'base'], EngineBoundAuthFixture::$resolvedOwners);
+        $this->assertSame($allowed ? 1 : 0, EngineBoundAuthFixture::$establishedSessions);
+    }
+
+    /**
+     * @dataProvider gateways
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testUnboundGatewayCannotBorrowAnActiveEngineAuthenticator(string $gatewayClass): void
+    {
+        $engine = new Engine();
+        $engine->bind(Auth::class, EngineBoundAuthFixture::class);
+        $engine->bindArgs(['owner' => 'engine'], Auth::class);
+        $this->route(new $gatewayClass(), false);
+        $this->assertSame([], EngineBoundAuthFixture::$resolvedOwners);
+    }
+
+    public static function registrationPaths(): array
+    {
+        return [
+            ['platform', AuthenticationGateway::class], ['platform', AdminAuthenticationGateway::class],
+            ['api', AuthenticationGateway::class], ['api', AdminAuthenticationGateway::class],
+        ];
+    }
+
+    /**
+     * @dataProvider registrationPaths
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testRegisteredResolverRechecksItsOwnersCurrentAuthenticator(string $profile, string $gatewayClass): void
+    {
+        $first = $this->registeredEngine($profile, 'engine');
+        $gateway = $first->resolve($gatewayClass);
+        $this->registeredEngine($profile, 'engine');
+        $arguments = [];
+        $gateway->process(new Request(), $arguments);
+        $first->bindArgs(['owner' => 'base'], Auth::class);
+        try {
+            $gateway->process(new Request(), $arguments);
+            $this->fail('The owner no longer permits an authenticated session.');
+        } catch (AuthenticationRequired) {
+            $this->assertSame(['engine', 'base'], EngineBoundAuthFixture::$resolvedOwners);
+            $this->assertSame(1, EngineBoundAuthFixture::$establishedSessions);
+        }
+    }
+
+    /**
+     * @dataProvider registrationPaths
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testFailedOwnerResolutionDoesNotFallBackToAnotherEngine(string $profile, string $gatewayClass): void
+    {
+        $first = $this->registeredEngine($profile, 'engine');
+        $this->registeredEngine($profile, 'engine');
+        $first->bind(Auth::class, 'MissingAuthenticatorFixture');
+        $this->routeOnEngine($first, $gatewayClass, false);
+        $this->assertSame([], EngineBoundAuthFixture::$resolvedOwners);
+        $this->assertSame(0, EngineBoundAuthFixture::$establishedSessions);
+    }
+
+    private function registeredEngine(string $profile, string $owner): Engine
+    {
+        if (!class_exists('App', false)) {
+            class_alias(Engine::class, 'App');
+        }
+        if (!defined('SITE_ROOT')) {
+            define('SITE_ROOT', dirname(__DIR__, 4) . '/public/');
+        }
+        putenv('OPUS_PROFILE=' . $profile);
+        putenv('OPUS_ADDONS=');
+        $engine = new Engine();
+        $engine->configuration('database', ['mysql' => []]);
+        $engine->configuration('ai', ['openai' => ['apiKey' => '']]);
+        if ($profile === 'api') {
+            (new ProfileRegistration())->init();
+        } else {
+            // Actual platform argument registration, without starting other services.
+            (new AppRegistration())->arguments();
+        }
+        $engine->bind(Auth::class, EngineBoundAuthFixture::class);
+        $engine->bindArgs(['owner' => $owner], Auth::class);
+        return $engine;
+    }
+
+    private function routeOnEngine(Engine $engine, string $gatewayClass, bool $allowed): void
+    {
+        $server = $_SERVER;
+        $_SERVER['HTTP_HOST'] = 'localhost';
+        $_SERVER['SERVER_PORT'] = 80;
+        $_SERVER['REQUEST_URI'] = '/owner-proof';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        (new \ReflectionProperty(Application::class, '_arguments'))->setValue($engine,
+            ['_method' => 'get', 'service' => 'app', 'behavior' => '', 'data' => []]);
+        $executed = false;
+        $engine->gateway('owner-proof', $gatewayClass);
+        $engine->map('get', '/owner-proof', static function () use (&$executed): string {
+            $executed = true;
+            return 'owner-effect';
+        })->gateway('owner-proof');
+        ob_start();
+        try {
+            $engine->process()->run();
+            $this->assertTrue($allowed, 'Another application must not authorize this route.');
+        } catch (AuthenticationRequired) {
+            $this->assertFalse($allowed, 'This application must retain its own valid identity.');
+        } finally {
+            $output = ob_get_clean();
+            $_SERVER = $server;
+        }
+        $this->assertSame($allowed, $executed);
+        $this->assertSame($allowed ? 'owner-effect' : '', $output);
     }
 
     /** @dataProvider gateways */

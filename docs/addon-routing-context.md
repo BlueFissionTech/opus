@@ -23,11 +23,33 @@ restoration of a surrounding registration context and suspended execution.
 Existing HTTP checks retain authentication, CSRF, readiness and route-exclusion
 assertions without a special test-only routing path.
 
-The authentication gateway's default resolver also uses the Engine's native
-container, where host registration binds Auth's session and storage dependencies.
-Resolving Auth on the unrelated base Application loses those bindings and denies
-valid sessions. Injected resolvers remain supported, and resolution/read/write
-failures still fail closed before a protected controller executes.
+Authentication must also retain its concrete application owner. Both platform
+and minimal-profile registration must bind a lazy Auth resolver through native
+`bindArgs()` to that application's container. Neither the unrelated base
+Application nor a newer active Engine may supply another application's identity.
+Resolving Auth on the base Application loses the host's session/storage bindings;
+resolving on the latest Engine can select the wrong host entirely. An unbound
+gateway must fail closed rather than infer an owner from global state.
+
+Injected resolvers remain supported. Registration and gateway construction must
+not resolve Auth eagerly. Resolution/read/write failures must deny before the
+protected controller executes. Regression evidence must cover both gateway names,
+both registration paths, opposite authentication states on two real Engines,
+owner rebinding/revocation, and absence of effects on the other Engine.
+
+Custom hosts using these gateways must provide the same explicit lazy binding:
+
+```php
+$app->bindArgs(
+    ['authResolver' => static fn () => $app->resolve(\BlueFission\BlueCore\Auth::class)],
+    \App\Business\Gateways\AuthenticationGateway::class
+);
+```
+
+Native inherited argument resolution supplies this binding to the admin gateway
+as well. A deliberately custom resolver remains trusted host code; request data
+must never supply it. A standalone no-argument gateway is now a denial boundary,
+not an implicit connection to whichever Engine was created last.
 
 ## Dependency gate
 
