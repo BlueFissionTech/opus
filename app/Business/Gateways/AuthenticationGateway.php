@@ -6,7 +6,7 @@ namespace App\Business\Gateways;
 
 use App\Domain\User\AuthenticationRequired;
 use BlueFission\BlueCore\Auth;
-use BlueFission\Services\Application;
+use BlueFission\BlueCore\Engine;
 use BlueFission\Services\Request;
 use Closure;
 use Throwable;
@@ -26,7 +26,7 @@ class AuthenticationGateway extends \BlueFission\BlueCore\Gateway\Authentication
         $auth = null;
         try {
             $resolved = $this->authResolver === null
-                ? Application::makeInstance(Auth::class)
+                ? Engine::makeInstance(Auth::class)
                 : ($this->authResolver)();
             $auth = $resolved instanceof Auth ? $resolved : null;
             if ($auth === null) {

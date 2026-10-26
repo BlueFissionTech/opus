@@ -9,6 +9,7 @@ use App\Business\Gateways\AdminAuthenticationGateway;
 use App\Business\Presentation\AuthenticationFailureResponse;
 use App\Domain\User\AuthenticationRequired;
 use BlueFission\BlueCore\Auth;
+use BlueFission\BlueCore\Engine;
 use BlueFission\Services\Application;
 use BlueFission\Services\Request;
 use PHPUnit\Framework\TestCase;
@@ -38,6 +39,27 @@ final class AuthenticationGatewayTest extends TestCase
     public static function gateways(): array
     {
         return [[AuthenticationGateway::class], [AdminAuthenticationGateway::class]];
+    }
+
+    /**
+     * @dataProvider gateways
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testDefaultResolverUsesTheEngineAuthenticatorBindings(string $gatewayClass): void
+    {
+        $base = Application::instance();
+        $base->bind(Auth::class, EngineBoundAuthFixture::class);
+        $base->bindArgs(['owner' => 'base'], Auth::class);
+        $engine = new Engine();
+        $engine->bind(Auth::class, EngineBoundAuthFixture::class);
+        $engine->bindArgs(['owner' => 'engine'], Auth::class);
+
+        $gateway = $engine->getDynamicInstance($gatewayClass);
+        $arguments = [];
+        $gateway->process(new Request(), $arguments);
+        $this->assertSame(['engine'], EngineBoundAuthFixture::$resolvedOwners);
+        $this->assertSame(1, EngineBoundAuthFixture::$establishedSessions);
     }
 
     /** @dataProvider gateways */
@@ -176,5 +198,33 @@ final class AuthenticationGatewayTest extends TestCase
         }
         $this->assertSame($allowed, $executed);
         $this->assertSame($allowed ? 'effect' : '', $output);
+    }
+}
+
+/** Synthetic identity provider: exercises native container ownership without IO. */
+final class EngineBoundAuthFixture extends Auth
+{
+    public static array $resolvedOwners = [];
+    public static int $establishedSessions = 0;
+
+    public function __construct(private string $owner)
+    {
+        self::$resolvedOwners[] = $owner;
+    }
+
+    public function isAuthenticated()
+    {
+        return $this->owner === 'engine';
+    }
+
+    public function setSession()
+    {
+        self::$establishedSessions++;
+        return true;
+    }
+
+    public function destroySession()
+    {
+        return true;
     }
 }

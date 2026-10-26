@@ -11,6 +11,9 @@ use App\Business\Services\ExtensionPointCatalog;
 use BlueFission\BlueCore\Domain\AddOn\Models\AddOnModel;
 use BlueFission\BlueCore\Engine;
 use BlueFission\DevElation;
+use BlueFission\Services\Application;
+use BlueFission\Services\Mapping;
+use Fiber;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionProperty;
@@ -652,6 +655,97 @@ PHP);
         $this->assertBootFailure($engine);
         $this->assertSame('failed', $manager->bootState('boot_probe'));
         $this->assertSame([], $engine->maps());
+    }
+
+    public function testDeferredRegistrationUsesTheQueuedEngineNotTheLatestInstance(): void
+    {
+        $first = Engine::instance();
+        $manager = $this->manager();
+        $manager->loadActivatedAddOns();
+        $second = new Engine();
+        $manager->loadActivatedAddOns();
+
+        $first->dispatch('OnAppLoaded');
+        $this->assertSame('ready', ($first->maps()['get']['boot/probe']->callable)());
+        $this->assertSame([], $second->maps());
+        $this->assertSame([], Application::instance()->maps());
+        $second->dispatch('OnAppLoaded');
+        $this->assertNotSame($first->maps()['get']['boot/probe'], $second->maps()['get']['boot/probe']);
+        $this->assertNotNull($first->theme('boot_probe/default'));
+        $this->assertNotNull($second->theme('boot_probe/default'));
+    }
+
+    /** @dataProvider registrationScopeOutcomes */
+    public function testDeferredRegistrationRestoresTheCallersScope(bool $fails): void
+    {
+        if ($fails) {
+            $this->prependRegistration(<<<'PHP'
+require dirname(__DIR__, 2) . '/mapping/api.php';
+throw new \RuntimeException('synthetic-registration-failure');
+PHP);
+        }
+        $engine = Engine::instance();
+        $manager = $this->manager();
+        $manager->loadActivatedAddOns();
+        $outer = new Application(['name' => 'surrounding-registration']);
+        Mapping::withApplication($outer, function () use ($engine, $fails): void {
+            if ($fails) {
+                $this->assertBootFailure($engine);
+            } else {
+                $engine->dispatch('OnAppLoaded');
+            }
+            Mapping::add('/after-package', static fn (): string => 'outer');
+        });
+        $this->assertSame('ready', ($engine->maps()['get']['boot/probe']->callable)());
+        $this->assertArrayNotHasKey('after-package', $engine->maps()['get']);
+        $this->assertArrayNotHasKey('boot/probe', $outer->maps()['get']);
+        $this->assertSame('outer', ($outer->maps()['get']['after-package']->callable)());
+        $this->assertSame($fails ? 'failed' : 'registered', $manager->bootState('boot_probe'));
+    }
+
+    public static function registrationScopeOutcomes(): array
+    {
+        return [[false], [true]];
+    }
+
+    public function testSuspendedRegistrationCannotCaptureAnotherEnginesMappings(): void
+    {
+        $this->prependRegistration(<<<'PHP'
+$GLOBALS['boot_attempts'] = ($GLOBALS['boot_attempts'] ?? 0) + 1;
+if ($GLOBALS['boot_attempts'] === 1) { \Fiber::suspend('registration-paused'); }
+PHP);
+        $first = Engine::instance();
+        $manager = $this->manager();
+        $manager->loadActivatedAddOns();
+        $second = new Engine();
+        $manager->loadActivatedAddOns();
+        $fiber = new Fiber(static fn () => $first->dispatch('OnAppLoaded'));
+        $this->assertSame('registration-paused', $fiber->start());
+        Mapping::add('/outside-fiber', static fn (): string => 'base');
+        $second->dispatch('OnAppLoaded');
+        $this->assertSame([], $first->maps());
+        $secondMapping = $second->maps()['get']['boot/probe'];
+        $fiber->resume();
+        $this->assertTrue($fiber->isTerminated());
+        $this->assertNotSame($first->maps()['get']['boot/probe'], $secondMapping);
+        $this->assertSame($secondMapping, $second->maps()['get']['boot/probe']);
+        $this->assertSame(['outside-fiber'], array_keys(Application::instance()->maps()['get']));
+        $this->assertSame(['boot/probe'], array_keys($first->maps()['get']));
+        $this->assertSame(['boot/probe'], array_keys($second->maps()['get']));
+        $this->assertSame(2, $GLOBALS['boot_attempts']);
+    }
+
+    public function testSettledObserversDoNotInheritThePackageRegistrationScope(): void
+    {
+        DevElation::up();
+        DevElation::action(ExtensionPointCatalog::ADDON_BOOT_RESULT, static function (): void {
+            Mapping::add('/settled-observer', static fn (): string => 'base');
+        });
+        $engine = Engine::instance();
+        $this->manager()->loadActivatedAddOns();
+        $engine->dispatch('OnAppLoaded');
+        $this->assertSame(['boot/probe'], array_keys($engine->maps()['get']));
+        $this->assertSame(['settled-observer'], array_keys(Application::instance()->maps()['get']));
     }
 
     private function useInstalledAddOnLayout(): void
