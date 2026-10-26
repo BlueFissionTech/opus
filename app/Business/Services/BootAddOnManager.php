@@ -13,6 +13,7 @@ use BlueFission\BlueCore\Engine;
 use BlueFission\Data\FileSystem;
 use BlueFission\DevElation;
 use BlueFission\Net\HTTP;
+use BlueFission\Services\Mapping;
 use BlueFission\Str;
 use InvalidArgumentException;
 use ReflectionClass;
@@ -109,7 +110,8 @@ class BootAddOnManager extends AddOnManager
                     $record->set('reason', 'addon_not_active_or_identity_changed');
                     return;
                 }
-                $this->registerContributions($engine, $record, $root, $name);
+                Mapping::withApplication($engine,
+                    fn () => $this->registerContributions($engine, $record, $root, $name));
                 $record->set('state', 'registered');
                 $record->set('phase', 'complete');
                 $record->set('reason', null);

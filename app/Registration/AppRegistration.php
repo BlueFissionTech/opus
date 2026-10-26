@@ -1,5 +1,7 @@
 <?php
 namespace App\Registration;
+use App\Business\Gateways\AuthenticationGateway;
+use BlueFission\BlueCore\Auth;
 // use BlueFission\BlueCore\Business\Managers\CommandManager;
 use BlueFission\BlueCore\Business\Managers\NavMenuManager;
 use BlueFission\BlueCore\Business\Managers\DatasourceManager;
@@ -123,6 +125,8 @@ class AppRegistration implements IExtension {
 	 * Pass arguments to different components
 	 */
 	public function arguments() {
+		$app = $this->_app;
+		$this->bindArgs(['authResolver' => static fn () => $app->resolve(Auth::class)], AuthenticationGateway::class);
 		$this->bindArgs( ['session'=>new Session()], 'App\Business\Http\AdminController');
 		$this->bindArgs( ['session'=>new Session()], 'BlueFission\BlueCore\Auth');
 

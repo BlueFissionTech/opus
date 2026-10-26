@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Registration;
 
+use App\Business\Gateways\AuthenticationGateway;
 use App\Business\Presentation\PackageTheme;
 use App\Business\Services\ApplicationProfile;
 use App\Business\Services\RuntimePathResolver;
@@ -31,6 +32,7 @@ final class ProfileRegistration implements IExtension
         $app->delegate('session', new Session());
         $app->bind(Storage::class, MySQL::class);
         $app->bindArgs(['session' => new Session()], Auth::class);
+        $app->bindArgs(['authResolver' => static fn () => $app->resolve(Auth::class)], AuthenticationGateway::class);
         $app->bindArgs(['config' => $app->configuration('database')['mysql']], MySQLLink::class);
         if ($profile->name === 'dashboard') {
             $paths = $GLOBALS['OPUS_RUNTIME_PATHS'] ?? RuntimePathResolver::discover();
